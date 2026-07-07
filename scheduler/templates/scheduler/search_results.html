@@ -1,0 +1,123 @@
+{% extends 'scheduler/base.html' %}
+{% block title %}Search Results – {{ query }}{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+    <div style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:0.5rem;">🔍 Search Results</h2>
+        {% if query %}
+        <p style="color:var(--text-muted);">Showing results for "<strong style="color:var(--text-main);">{{ query }}</strong>"</p>
+        {% endif %}
+    </div>
+
+    <!-- Search bar -->
+    <form method="get" action="{% url 'scheduler:search' %}" style="margin-bottom:2rem;display:flex;gap:0.75rem;">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search courses, lecturers, rooms..."
+               id="id_search_input"
+               style="flex:1;padding:0.75rem 1rem;background:var(--card-bg,#0d2824);border:1px solid var(--border);border-radius:10px;color:var(--text-main,#f0fdfa);font-size:0.95rem;outline:none;font-family:inherit;">
+        <button type="submit" id="btn-search" style="padding:0.75rem 1.5rem;background:var(--primary);border:none;border-radius:10px;color:#fff;font-weight:600;cursor:pointer;">Search</button>
+    </form>
+
+    {% if not query %}
+    <div class="card" style="padding:3rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">🔍</div>
+        <div style="font-weight:600;margin-bottom:0.5rem;">Type something to search</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">Search across courses, lecturers, rooms, student groups, and timetables.</div>
+    </div>
+    {% elif not results %}
+    <div class="card" style="padding:3rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">😕</div>
+        <div style="font-weight:600;margin-bottom:0.5rem;">No results found</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">Try a different search term.</div>
+    </div>
+    {% else %}
+
+    {% if results.courses %}
+    <div style="margin-bottom:1.5rem;">
+        <h3 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.75rem;">Courses ({{ results.courses|length }})</h3>
+        <div style="display:grid;gap:0.5rem;">
+            {% for course in results.courses %}
+            <div class="card" style="padding:0.875rem 1.25rem;display:flex;align-items:center;gap:1rem;">
+                <span style="padding:0.25rem 0.6rem;background:rgba(16,185,129,0.15);color:#6ee7b7;border-radius:6px;font-size:0.8rem;font-weight:700;font-family:monospace;">{{ course.code }}</span>
+                <div style="flex:1;">
+                    <div style="font-weight:600;">{{ course.name }}</div>
+                    <div style="color:var(--text-muted);font-size:0.8rem;">{{ course.lecturer.name|default:"No lecturer" }} · {{ course.student_group.name|default:"No group" }}</div>
+                </div>
+                <span style="font-size:0.75rem;color:var(--text-muted);">{{ course.required_room_type }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.lecturers %}
+    <div style="margin-bottom:1.5rem;">
+        <h3 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.75rem;">Lecturers ({{ results.lecturers|length }})</h3>
+        <div style="display:grid;gap:0.5rem;">
+            {% for lec in results.lecturers %}
+            <div class="card" style="padding:0.875rem 1.25rem;display:flex;align-items:center;gap:1rem;">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--primary-dark,#0d5a4f),var(--primary));display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;">
+                    {{ lec.name|first|upper }}
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:600;">{{ lec.name }}</div>
+                    <div style="color:var(--text-muted);font-size:0.8rem;">{{ lec.email }} · {{ lec.department.name }}</div>
+                </div>
+                <a href="{% url 'scheduler:lecturer_availability' %}?lecturer_id={{ lec.id }}" style="font-size:0.8rem;color:var(--primary);text-decoration:none;">View Availability →</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.rooms %}
+    <div style="margin-bottom:1.5rem;">
+        <h3 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.75rem;">Rooms ({{ results.rooms|length }})</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;">
+            {% for room in results.rooms %}
+            <div class="card" style="padding:0.875rem;">
+                <div style="font-weight:600;margin-bottom:0.25rem;">{{ room.name }}</div>
+                <div style="color:var(--text-muted);font-size:0.8rem;">{{ room.get_room_type_display }} · Cap: {{ room.capacity }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.student_groups %}
+    <div style="margin-bottom:1.5rem;">
+        <h3 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.75rem;">Student Groups ({{ results.student_groups|length }})</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;">
+            {% for group in results.student_groups %}
+            <div class="card" style="padding:0.875rem;">
+                <div style="font-weight:600;margin-bottom:0.25rem;">{{ group.name }}</div>
+                <div style="color:var(--text-muted);font-size:0.8rem;">{{ group.program.name }} · {{ group.size }} students</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results.timetables %}
+    <div style="margin-bottom:1.5rem;">
+        <h3 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.75rem;">Timetables ({{ results.timetables|length }})</h3>
+        <div style="display:grid;gap:0.5rem;">
+            {% for tt in results.timetables %}
+            <a href="{% url 'scheduler:timetable_detail' tt.pk %}" style="text-decoration:none;">
+                <div class="card" style="padding:0.875rem 1.25rem;display:flex;align-items:center;gap:1rem;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <div style="font-size:1.25rem;">🗓️</div>
+                    <div>
+                        <div style="font-weight:600;color:var(--text-main);">{{ tt.name }}</div>
+                        <div style="color:var(--text-muted);font-size:0.8rem;">{{ tt.semester.name }}</div>
+                    </div>
+                    {% if tt.is_active %}<span style="margin-left:auto;padding:0.2rem 0.6rem;background:rgba(16,185,129,0.15);color:#6ee7b7;border-radius:6px;font-size:0.75rem;font-weight:600;">Active</span>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+</div>
+{% endblock %}

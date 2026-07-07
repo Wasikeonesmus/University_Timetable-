@@ -1,0 +1,115 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Conflict Report - {{ timetable.name }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="font-weight: 700; font-size: 1.8rem; margin-bottom: 0.25rem;">Timetable Conflict Report</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Timetable: <strong>{{ timetable.name }}</strong> | Semester: {{ timetable.semester.name }}
+        </p>
+    </div>
+    <a href="{% url 'scheduler:timetable_detail' timetable.pk %}" class="btn btn-secondary">
+        &larr; Back to Calendar Grid
+    </a>
+</div>
+
+<div class="grid-3" style="grid-template-columns: 1fr 2fr; gap: 1.5rem; align-items: start;">
+    <!-- Summary Card -->
+    <div class="card">
+        <div class="card-title">Conflict Summary</div>
+        <div style="text-align: center; padding: 1.5rem 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+            <div style="font-size: 3.5rem; font-weight: 800; color: {% if total_conflicts > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                {{ total_conflicts }}
+            </div>
+            <div style="color: var(--text-muted); font-weight: 500; font-size: 0.9rem;">Total Violations Detected</div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.9rem; color: var(--text-muted);">Hard Conflicts (Errors)</span>
+                <span class="badge badge-error">{{ errors|length }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.9rem; color: var(--text-muted);">Soft Conflicts (Warnings)</span>
+                <span class="badge badge-warning">{{ warnings|length }}</span>
+            </div>
+        </div>
+        
+        {% if total_conflicts == 0 %}
+            <div class="badge badge-success" style="display: block; width: 100%; text-align: center; margin-top: 1.5rem; padding: 0.5rem;">
+                Schedule is 100% clean!
+            </div>
+        {% else %}
+            <form method="POST" action="{% url 'scheduler:timetable_generate' timetable.pk %}" style="margin-top: 1.5rem;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                    Re-run Solver Engine
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    <!-- Conflicts List -->
+    <div>
+        <!-- Hard Conflicts Panel -->
+        <div class="card" style="border-left: 4px solid var(--danger);">
+            <div class="card-title" style="color: #fca5a5;">
+                Hard Conflicts (Must Resolve)
+                <span class="badge badge-error" style="font-size: 0.75rem;">{{ errors|length }} Issues</span>
+            </div>
+            {% if errors %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                    {% for err in errors %}
+                        <div style="background-color: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span style="font-weight: 700; color: #fca5a5; font-size: 0.85rem; text-transform: uppercase;">
+                                    {{ err.constraint_type }}
+                                </span>
+                                <span class="badge badge-error">ERROR</span>
+                            </div>
+                            <p style="font-size: 0.9rem; line-height: 1.4; color: var(--text-main);">
+                                {{ err.message }}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+                    No hard conflicts found. All courses are correctly allocated without double-bookings or room capacity violations.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- Soft Conflicts Panel -->
+        <div class="card" style="border-left: 4px solid var(--warning);">
+            <div class="card-title" style="color: #fde047;">
+                Soft Preferences & Warnings
+                <span class="badge badge-warning" style="font-size: 0.75rem;">{{ warnings|length }} Warnings</span>
+            </div>
+            {% if warnings %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                    {% for warn in warnings %}
+                        <div style="background-color: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span style="font-weight: 700; color: #fde047; font-size: 0.85rem; text-transform: uppercase;">
+                                    {{ warn.constraint_type }}
+                                </span>
+                                <span class="badge badge-warning">WARNING</span>
+                            </div>
+                            <p style="font-size: 0.9rem; line-height: 1.4; color: var(--text-main);">
+                                {{ warn.message }}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">
+                    No soft warnings found. Optimal room types, timeslots, and gap distributions are satisfied.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

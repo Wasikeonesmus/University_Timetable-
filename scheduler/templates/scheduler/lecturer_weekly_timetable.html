@@ -1,0 +1,221 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% block title %}Weekly Timetable{% endblock %}
+{% block page_title %}Weekly Timetable{% endblock %}
+{% block breadcrumb %}Lecturer Portal › Weekly Timetable{% endblock %}
+{% block nav_timetable %}active{% endblock %}
+
+{% block extra_style %}
+.tt-container { overflow-x: auto; }
+.tt-grid {
+    display: grid;
+    grid-template-columns: 90px repeat(5, 1fr);
+    min-width: 700px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+}
+.tt-header-cell {
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+    background: #f8fafc;
+    border-bottom: 2px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+.tt-header-cell:last-child { border-right: none; }
+.tt-header-cell.today-col {
+    background: rgba(37,99,235,.06);
+    color: var(--primary);
+}
+.tt-header-day { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+.tt-header-date { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+.tt-time-cell {
+    padding: 16px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    border-right: 1px solid var(--border);
+    background: #fafbfc;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px;
+}
+.tt-cell {
+    padding: 8px;
+    border-bottom: 1px solid #f1f5f9;
+    border-right: 1px solid var(--border);
+    min-height: 80px;
+    vertical-align: top;
+}
+.tt-cell:last-child { border-right: none; }
+.tt-cell.today-col { background: rgba(37,99,235,.02); }
+.tt-cell.empty { background: #fafbfc; }
+.tt-slot {
+    background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(37,99,235,.04));
+    border: 1px solid rgba(37,99,235,.2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    height: 100%;
+    cursor: pointer;
+    transition: all .18s;
+    position: relative;
+}
+.tt-slot:hover { border-color: var(--primary); box-shadow: 0 2px 12px rgba(37,99,235,.15); transform: translateY(-1px); }
+.tt-slot.lab {
+    background: linear-gradient(135deg, rgba(139,92,246,.08), rgba(139,92,246,.04));
+    border-color: rgba(139,92,246,.2);
+}
+.tt-slot.seminar {
+    background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.04));
+    border-color: rgba(16,185,129,.2);
+}
+.tt-slot-code { font-size: 12px; font-weight: 800; color: var(--primary); margin-bottom: 2px; }
+.tt-slot.lab .tt-slot-code { color: var(--purple); }
+.tt-slot.seminar .tt-slot-code { color: var(--success); }
+.tt-slot-name { font-size: 10px; color: var(--text-muted); line-height: 1.3; margin-bottom: 4px; }
+.tt-slot-meta { font-size: 10px; color: var(--text-muted); display: flex; flex-direction: column; gap: 1px; }
+.tt-slot-attend {
+    position: absolute; bottom: 6px; right: 6px;
+    font-size: 9px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px;
+    background: rgba(37,99,235,.1); color: var(--primary);
+    text-decoration: none;
+    transition: background .18s;
+}
+.tt-slot-attend:hover { background: var(--primary); color: #fff; }
+
+.tt-slot.ended {
+    opacity: 0.55;
+    filter: grayscale(20%);
+    border-style: dashed !important;
+    cursor: default;
+    transform: none !important;
+    box-shadow: none !important;
+}
+.tt-slot.ongoing {
+    border: 2px solid #10b981 !important;
+    box-shadow: 0 0 10px rgba(16,185,129,0.2) !important;
+}
+@keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(16,185,129, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(16,185,129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129, 0); }
+}
+
+.tt-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+
+.tt-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.tt-legend-swatch {
+    width: 12px; height: 12px; border-radius: 3px;
+    border: 1px solid;
+}
+.tt-legend-swatch.lecture { background: rgba(37,99,235,.15); border-color: rgba(37,99,235,.3); }
+.tt-legend-swatch.lab { background: rgba(139,92,246,.15); border-color: rgba(139,92,246,.3); }
+.tt-legend-swatch.seminar { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.3); }
+
+@media print {
+    .lp-sidebar, .lp-topbar, .btn, .tt-slot-attend { display: none !important; }
+    .lp-main { margin-left: 0 !important; }
+    .lp-content { padding: 0 !important; }
+}
+{% endblock %}
+
+{% block content %}
+{% load scheduler_tags %}
+<div class="lp-page-header">
+    <div>
+        <h1>Weekly Timetable</h1>
+        <div class="subtitle">
+            {% if timetable %}{{ timetable.name }}{% else %}No active timetable{% endif %}
+            {% if active_semester %} — {{ active_semester.name }}{% endif %}
+        </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+        {% if timetable %}
+        <a href="{% url 'scheduler:export_timetable_ics' timetable.pk %}?filter_type=lecturer&filter_id={{ lecturer.id }}" class="btn btn-outline btn-sm">Export ICS</a>
+        {% endif %}
+        {% if webcal_url %}
+        <a href="{{ webcal_url }}" class="btn btn-sm" style="background:#2563eb; color:white; border:none; display:inline-flex; align-items:center; gap:4px; text-decoration:none; font-weight:600; padding: 0.5rem 1rem; border-radius: 6px;">
+            📲 Subscribe Calendar
+        </a>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-outline btn-sm">Print</button>
+
+    </div>
+</div>
+
+{% if all_slots %}
+<div class="tt-container">
+    <div class="tt-grid">
+        <!-- Header row -->
+        <div class="tt-header-cell" style="background:#f8fafc;">
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Time</div>
+        </div>
+        {% for day in days %}
+        <div class="tt-header-cell {% if day.dow == today_dow %}today-col{% endif %}">
+            <div class="tt-header-day">{{ day.name }}</div>
+            <div class="tt-header-date">
+                {{ day.date|date:"M d" }}
+                {% if day.dow == today_dow %}<span style="color:var(--primary);font-weight:700;margin-left:4px;">(Today)</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Collect all unique time labels used across the week -->
+        {% regroup all_slots by time_slot.slot_number as by_slot %}
+        {% for slot_group in by_slot %}
+            {% with ref=slot_group.list.0.time_slot %}
+            <!-- Time column -->
+            <div class="tt-time-cell">
+                <div>{{ ref.start_time|time:"g:i A" }}</div>
+                <div style="color:var(--text-light);font-size:9px;">— {{ ref.end_time|time:"g:i A" }}</div>
+            </div>
+            <!-- Day columns -->
+            {% for day in days %}
+                <div class="tt-cell {% if day.dow == today_dow %}today-col{% endif %}">
+                    {% for slot in slots_by_day|dict_key:day.dow %}
+                        {% if slot.time_slot.slot_number == ref.slot_number %}
+                        <div class="tt-slot {% if slot.course.required_room_type == 'Lab' %}lab{% elif slot.course.required_room_type == 'Seminar' %}seminar{% endif %} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}">
+                            <div class="tt-slot-code">{{ slot.course.code }}</div>
+                            <div class="tt-slot-name">{{ slot.course.name|truncatewords:5 }}</div>
+                            <div class="tt-slot-meta">
+                                <span>Room: {{ slot.room.name }}</span>
+                                <span>Group: {{ slot.student_group.name }}</span>
+                            </div>
+                            {% if slot.is_ongoing %}
+                                <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="tt-slot-attend ongoing" style="background:#10b981; color:white; animation:pulse-green 2s infinite;">Attend</a>
+                            {% elif slot.has_ended %}
+                                <span class="tt-slot-attend ended" style="background:#e2e8f0; color:#64748b; cursor:default; border:1px solid #cbd5e1;">Ended</span>
+                            {% else %}
+                                <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="tt-slot-attend">Attend</a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            {% endwith %}
+
+        {% endfor %}
+    </div>
+</div>
+
+<div class="tt-legend">
+    <div class="tt-legend-item"><div class="tt-legend-swatch lecture"></div> Lecture Hall</div>
+    <div class="tt-legend-item"><div class="tt-legend-swatch lab"></div> Laboratory</div>
+    <div class="tt-legend-item"><div class="tt-legend-swatch seminar"></div> Seminar Room</div>
+</div>
+
+{% else %}
+<div class="lp-card">
+    <div class="empty-state">
+        <div class="es-title">No Timetable Available</div>
+        <div class="es-text">No schedule slots have been assigned to you yet. Please check back after the timetable is generated.</div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

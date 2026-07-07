@@ -1,0 +1,32 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Python
+*.py text eol=lf
+
+# HTML / CSS / JS
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+
+# Config files
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.env text eol=lf
+Dockerfile text eol=lf
+
+# Binary files — never mangle
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+*.ico binary
+*.xlsx binary
+*.pdf binary
+*.rar binary
+*.zip binary
+*.sqlite3 binary

@@ -1,0 +1,591 @@
+{% extends 'scheduler/base.html' %}
+{% load tz %}
+
+{% block title %}Dashboard - UniSchedule{% endblock %}
+
+{% block extra_head %}
+{% if active_role == 'lecturer' %}
+<style>
+/* ── Lecturer Personalized Dashboard ─────────────────────────── */
+.ldb-hero {
+    display: flex; align-items: center; gap: 1.75rem;
+    padding: 1.75rem 2rem;
+    background: linear-gradient(135deg, #0f2044 0%, #1a3a8f 60%, #1a56db 100%);
+    border-radius: 16px; margin-bottom: 1.5rem; color: #fff;
+    position: relative; overflow: hidden;
+    box-shadow: 0 8px 32px rgba(26,86,219,0.25);
+}
+.ldb-hero::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+}
+.ldb-hero::after {
+    content: ''; position: absolute; bottom: -40px; left: 30%;
+    width: 160px; height: 160px; border-radius: 50%;
+    background: rgba(249,115,22,0.1);
+}
+.ldb-avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 900; color: #fff;
+    border: 3px solid rgba(255,255,255,0.3);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    flex-shrink: 0; position: relative; z-index: 1;
+}
+.ldb-hero-info { flex: 1; position: relative; z-index: 1; }
+.ldb-hero-info .greeting { font-size: 0.82rem; opacity: 0.75; font-weight: 500; margin-bottom: 0.2rem; }
+.ldb-hero-info h1 { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.3rem; line-height: 1.1; }
+.ldb-hero-info .sub { font-size: 0.82rem; opacity: 0.75; margin-bottom: 0.75rem; }
+.hero-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.hero-badge {
+    padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+}
+.hero-badge.active { background: rgba(16,185,129,0.3); border-color: rgba(16,185,129,0.5); }
+.hero-badge.warn { background: rgba(245,158,11,0.3); border-color: rgba(245,158,11,0.5); }
+.ldb-hero-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; position: relative; z-index: 1; }
+.hero-btn {
+    padding: 0.5rem 1.1rem; border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;
+    transition: all 0.18s ease; white-space: nowrap;
+}
+.hero-btn.primary { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+.hero-btn.primary:hover { background: rgba(255,255,255,0.25); }
+.hero-btn.orange { background: #f97316; color: #fff; border: none; }
+.hero-btn.orange:hover { background: #ea6c0a; }
+
+/* Stats grid */
+.ldb-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1rem; margin-bottom: 1.5rem;
+}
+.ldb-stat {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    box-shadow: var(--shadow-sm); transition: transform 0.18s, box-shadow 0.18s;
+    position: relative; overflow: hidden;
+}
+.ldb-stat::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%; border-radius: 4px 0 0 4px;
+}
+.ldb-stat.blue::before { background: #1a56db; }
+.ldb-stat.green::before { background: #10b981; }
+.ldb-stat.orange::before { background: #f97316; }
+.ldb-stat.purple::before { background: #8b5cf6; }
+.ldb-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.ldb-stat-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+}
+.ldb-stat-icon.blue { background: rgba(26,86,219,0.1); }
+.ldb-stat-icon.green { background: rgba(16,185,129,0.1); }
+.ldb-stat-icon.orange { background: rgba(249,115,22,0.1); }
+.ldb-stat-icon.purple { background: rgba(139,92,246,0.1); }
+.ldb-stat-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.ldb-stat-value { font-size: 1.8rem; font-weight: 900; color: var(--text); line-height: 1; }
+.ldb-stat-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.1rem; }
+
+/* Today's classes */
+.section-title {
+    font-size: 0.9rem; font-weight: 800; color: var(--text);
+    margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+}
+.today-strip {
+    display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem;
+}
+.today-class {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.85rem 1.1rem;
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow-sm);
+    transition: border-color 0.18s;
+}
+.today-class:hover { border-color: var(--primary); }
+.today-class .time-block {
+    min-width: 62px; text-align: center;
+    padding: 0.4rem 0.5rem;
+    background: rgba(26,86,219,0.07);
+    border-radius: 8px; border: 1px solid rgba(26,86,219,0.12);
+}
+.today-class .time-block .t-start { font-size: 0.9rem; font-weight: 800; color: var(--primary); }
+.today-class .time-block .t-end { font-size: 0.7rem; color: var(--text-muted); }
+.today-class .class-info { flex: 1; }
+.today-class .class-info .c-code { font-weight: 800; font-size: 0.88rem; }
+.today-class .class-info .c-name { font-size: 0.78rem; color: var(--text-muted); }
+.today-class .class-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.1rem; align-items: flex-end; }
+.now-badge {
+    display: inline-block; padding: 0.15rem 0.5rem;
+    background: #10b981; color: #fff; border-radius: 4px;
+    font-size: 0.65rem; font-weight: 800; margin-left: 0.5rem;
+}
+.next-badge {
+    display: inline-block; padding: 0.15rem 0.5rem;
+    background: #f97316; color: #fff; border-radius: 4px;
+    font-size: 0.65rem; font-weight: 800; margin-left: 0.5rem;
+}
+
+/* Next class card */
+.next-class-card {
+    background: linear-gradient(135deg, rgba(249,115,22,0.08), rgba(239,68,68,0.05));
+    border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 12px; padding: 1.1rem 1.4rem;
+    margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;
+}
+.next-class-card .nc-icon { font-size: 1.5rem; }
+.next-class-card .nc-label { font-size: 0.7rem; font-weight: 700; color: #f97316; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+.next-class-card .nc-title { font-size: 1rem; font-weight: 800; margin-bottom: 0.15rem; }
+.next-class-card .nc-sub { font-size: 0.78rem; color: var(--text-muted); }
+
+/* Bottom panels */
+.ldb-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.panel-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.panel-header { padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.panel-header h3 { font-size: 0.88rem; font-weight: 800; }
+.panel-header a { font-size: 0.75rem; color: var(--primary); font-weight: 600; text-decoration: none; }
+.panel-body { padding: 1rem 1.25rem; }
+.empty-panel { text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.83rem; }
+
+/* Notification item */
+.notif-item {
+    display: flex; gap: 0.75rem; padding: 0.65rem 0;
+    border-bottom: 1px solid #f1f5f9; align-items: flex-start;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 5px; flex-shrink: 0; }
+.notif-text { font-size: 0.8rem; font-weight: 600; }
+.notif-time { font-size: 0.7rem; color: var(--text-muted); }
+
+/* Announcement item */
+.ann-item { padding: 0.65rem 0; border-bottom: 1px solid #f1f5f9; }
+.ann-item:last-child { border-bottom: none; }
+.ann-item .ann-title { font-size: 0.83rem; font-weight: 700; margin-bottom: 0.2rem; }
+.ann-item .ann-body { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+.ann-item .ann-meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+/* Quick links */
+.quick-links { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.ql-btn {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.7rem 0.9rem; border-radius: 9px;
+    background: #f8fafc; border: 1px solid var(--border);
+    text-decoration: none; color: var(--text); font-size: 0.8rem; font-weight: 600;
+    transition: all 0.18s;
+}
+.ql-btn:hover { background: rgba(26,86,219,0.06); border-color: var(--primary); color: var(--primary); }
+.ql-btn .ql-icon { font-size: 1rem; }
+
+@media (max-width: 900px) {
+    .ldb-stats { grid-template-columns: repeat(2, 1fr); }
+    .ldb-bottom { grid-template-columns: 1fr; }
+    .ldb-hero { flex-direction: column; text-align: center; }
+    .ldb-hero-actions { align-items: center; }
+}
+@media (max-width: 600px) {
+    .ldb-stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- DEBUG: active_role="{{ active_role }}" -->
+<div style="position:fixed;bottom:12px;right:12px;z-index:9999;background:#1e293b;color:#f97316;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:monospace;box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+  role: {{ active_role }}
+</div>
+
+{% if active_role == 'lecturer' %}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# LECTURER PERSONALIZED DASHBOARD                                            #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+
+{# Determine current hour for greeting #}
+{% now "G" as current_hour_str %}
+
+<div style="max-width:1200px;margin:0 auto;">
+
+    {# ── Hero ── #}
+    <div class="ldb-hero">
+        <div class="ldb-avatar">{{ lecturer.name|first|upper }}</div>
+        <div class="ldb-hero-info">
+            <div class="greeting">{{ greeting }},</div>
+            <h1>{{ lecturer.name }}</h1>
+            <div class="sub">{{ lecturer.department.name }} &nbsp;·&nbsp; {{ lecturer.department.faculty.campus.university.name }}</div>
+            <div class="hero-badges">
+                {% if timetable %}
+                <span class="hero-badge active">✅ {{ timetable.semester.name }}</span>
+                {% else %}
+                <span class="hero-badge warn">⚠️ No Active Timetable</span>
+                {% endif %}
+                <span class="hero-badge">📧 {{ lecturer.email }}</span>
+                <span class="hero-badge">⏱️ Max {{ lecturer.max_hours_per_week }}h/wk</span>
+            </div>
+        </div>
+        <div class="ldb-hero-actions">
+            <a href="{% url 'scheduler:lecturer_my_schedule' %}" class="hero-btn orange">📅 View My Timetable</a>
+            <a href="{% url 'scheduler:lecturer_availability' %}" class="hero-btn primary">🕐 Set Availability</a>
+            <a href="{% url 'scheduler:lecturer_teaching_history' %}" class="hero-btn primary">📚 Teaching History</a>
+        </div>
+    </div>
+
+    {# ── Stats strip ── #}
+    <div class="ldb-stats">
+        <div class="ldb-stat blue">
+            <div class="ldb-stat-icon blue">📅</div>
+            <div>
+                <div class="ldb-stat-label">Classes / Week</div>
+                <div class="ldb-stat-value">{{ total_slots }}</div>
+                <div class="ldb-stat-sub">this semester</div>
+            </div>
+        </div>
+        <div class="ldb-stat green">
+            <div class="ldb-stat-icon green">📚</div>
+            <div>
+                <div class="ldb-stat-label">Unique Courses</div>
+                <div class="ldb-stat-value">{{ unique_courses_count }}</div>
+                <div class="ldb-stat-sub">assigned to you</div>
+            </div>
+        </div>
+        <div class="ldb-stat orange">
+            <div class="ldb-stat-icon orange">🕐</div>
+            <div>
+                <div class="ldb-stat-label">Teaching Hrs/Week</div>
+                <div class="ldb-stat-value">{{ total_hours }}</div>
+                <div class="ldb-stat-sub">of {{ lecturer.max_hours_per_week }}h max</div>
+            </div>
+        </div>
+        <div class="ldb-stat purple">
+            <div class="ldb-stat-icon purple">🗂️</div>
+            <div>
+                <div class="ldb-stat-label">Total Slots Taught</div>
+                <div class="ldb-stat-value">{{ total_taught }}</div>
+                <div class="ldb-stat-sub">all time</div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Next class highlight ── #}
+    {% if next_slot %}
+    <div class="next-class-card">
+        <div class="nc-icon">🔔</div>
+        <div>
+            <div class="nc-label">Next Class Today</div>
+            <div class="nc-title">{{ next_slot.course.code }} — {{ next_slot.course.name }}</div>
+            <div class="nc-sub">
+                🕐 {{ next_slot.time_slot.start_time|time:"H:i" }} – {{ next_slot.time_slot.end_time|time:"H:i" }}
+                &nbsp;·&nbsp; 🏛️ {{ next_slot.room.name }}
+                &nbsp;·&nbsp; 👥 {{ next_slot.student_group.name }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Today's classes ── #}
+    <div class="section-title">
+        📆 Today's Classes
+        {% if today_slots %}
+        <span style="font-size:0.72rem;font-weight:600;padding:0.15rem 0.5rem;background:rgba(26,86,219,0.1);color:var(--primary);border-radius:5px;">{{ today_slots|length }} class{{ today_slots|length|pluralize }}</span>
+        {% endif %}
+    </div>
+
+    {% if today_slots %}
+    <div class="today-strip">
+        {% now "H:i" as now_str %}
+        {% for slot in today_slots %}
+        <div class="today-class" {% if slot.is_overlapping %}style="border-color:#ef4444;background:rgba(239,68,68,0.03);"{% endif %}>
+            <div class="time-block" {% if slot.is_overlapping %}style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.15);"{% endif %}>
+                <div class="t-start" {% if slot.is_overlapping %}style="color:#ef4444;"{% endif %}>{{ slot.time_slot.start_time|time:"H:i" }}</div>
+                <div class="t-end">{{ slot.time_slot.end_time|time:"H:i" }}</div>
+            </div>
+            <div class="class-info">
+                <div class="c-code">
+                    {{ slot.course.code }}
+                    {% if slot == next_slot %}<span class="next-badge">NEXT</span>{% endif %}
+                    {% if slot.is_overlapping %}<span class="now-badge" style="background:#ef4444;color:#fff;font-weight:800;vertical-align:middle;margin-left:0.5rem;box-shadow:0 2px 8px rgba(239,68,68,0.25);">⚠️ OVERLAP</span>{% endif %}
+                </div>
+                <div class="c-name">{{ slot.course.name }}</div>
+                {% if slot.is_overlapping %}
+                <div style="font-size:0.7rem;color:#ef4444;font-weight:700;margin-top:0.15rem;display:flex;align-items:center;gap:0.25rem;">
+                    <span>⚠️ Warning: Double-booked at this time.</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="class-meta">
+                <span>🏛️ {{ slot.room.name }}</span>
+                <span>👥 {{ slot.student_group.name }}</span>
+                <span style="padding:0.1rem 0.4rem;border-radius:4px;font-size:0.65rem;font-weight:700;
+                    {% if slot.course.required_room_type == 'Lab' %}background:rgba(249,115,22,0.1);color:#f97316;
+                    {% elif slot.course.required_room_type == 'Seminar' %}background:rgba(139,92,246,0.1);color:#8b5cf6;
+                    {% else %}background:rgba(26,86,219,0.1);color:#1a56db;{% endif %}">
+                    {{ slot.course.required_room_type }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:1.5rem;text-align:center;color:var(--text-muted);font-size:0.85rem;margin-bottom:1.5rem;">
+        🎉 No classes scheduled for today.
+    </div>
+    {% endif %}
+
+    {# ── Bottom panels: Notifications + Announcements + Quick Links ── #}
+    <div class="ldb-bottom">
+
+        {# Notifications #}
+        <div class="panel-card">
+            <div class="panel-header">
+                <h3>🔔 Recent Alerts</h3>
+                <a href="{% url 'scheduler:notifications_list' %}">View All</a>
+            </div>
+            <div class="panel-body">
+                {% if notifications %}
+                {% for n in notifications %}
+                <div class="notif-item">
+                    <div class="notif-dot"></div>
+                    <div>
+                        <div class="notif-text">{{ n.title }}</div>
+                        <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-panel">No new notifications.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Announcements + Quick Links #}
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h3>📢 Announcements</h3>
+                </div>
+                <div class="panel-body">
+                    {% if announcements %}
+                    {% for ann in announcements %}
+                    <div class="ann-item">
+                        <div class="ann-title">{{ ann.title }}</div>
+                        <div class="ann-body">{{ ann.content|truncatewords:20 }}</div>
+                        <div class="ann-meta">{{ ann.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-panel">No announcements.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header"><h3>⚡ Quick Actions</h3></div>
+                <div class="panel-body">
+                    <div class="quick-links">
+                        <a href="{% url 'scheduler:lecturer_my_schedule' %}" class="ql-btn">
+                            <span class="ql-icon">📅</span> My Timetable
+                        </a>
+                        <a href="{% url 'scheduler:lecturer_teaching_history' %}" class="ql-btn">
+                            <span class="ql-icon">📚</span> History
+                        </a>
+                        <a href="{% url 'scheduler:lecturer_availability' %}" class="ql-btn">
+                            <span class="ql-icon">🕐</span> Availability
+                        </a>
+                        <a href="{% url 'accounts:profile' %}" class="ql-btn">
+                            <span class="ql-icon">👤</span> My Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% else %}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{# ADMIN / SCHEDULER DASHBOARD (unchanged)                                    #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="card" style="border: 1px solid var(--border); padding: 2rem; background: linear-gradient(145deg, var(--card-bg), #f8fafc);">
+    <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.25rem; margin-bottom: 1.5rem; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h1 style="font-weight: 800; font-size: 1.8rem; letter-spacing: -0.02em; color: var(--text-main); margin-bottom: 0.25rem;">
+                University Timetable Management System
+            </h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Tenant Isolation Scope: <strong style="color:var(--primary);">{{ active_university.name }}</strong>
+            </p>
+        </div>
+        <span class="badge badge-info" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Role: {{ active_role|upper }}</span>
+    </div>
+
+    <!-- University and Semester Scope Info Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background-color: rgba(10, 71, 143, 0.04); padding: 0.75rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(10, 71, 143, 0.1); flex-wrap: wrap; gap: 0.5rem;">
+        <div style="font-weight: 600; color: var(--primary); font-size: 0.9rem;">
+            University: <span style="font-weight: 800;">{{ active_university.name }}</span>
+        </div>
+        <div style="font-weight: 600; color: var(--primary); font-size: 0.9rem;">
+            Semester: <span style="font-weight: 800;">{{ active_semester.name|default:"Not Defined" }}</span>
+        </div>
+        <div style="font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.35rem;">
+            <span style="color: var(--text-muted);">Status:</span>
+            <span class="badge {% if timetable_status == 'Generated' %}badge-success{% else %}badge-warning{% endif %}" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700;">{{ timetable_status }}</span>
+        </div>
+    </div>
+
+    <!-- Active University Stats Inline Bar -->
+    <div style="display: flex; justify-content: space-around; align-items: center; background-color: rgba(10, 71, 143, 0.04); border: 1px solid rgba(10, 71, 143, 0.1); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="color: var(--primary);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
+            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">Courses:</span>
+            <strong style="font-size: 1.15rem; font-weight: 800;">{{ courses_count }}</strong>
+        </div>
+        <div style="width: 1px; height: 24px; background-color: rgba(10, 71, 143, 0.15);"></div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="color: var(--primary);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v-2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">Lecturers:</span>
+            <strong style="font-size: 1.15rem; font-weight: 800;">{{ lecturers_count }}</strong>
+        </div>
+        <div style="width: 1px; height: 24px; background-color: rgba(10, 71, 143, 0.15);"></div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="color: var(--primary);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg></div>
+            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">Rooms:</span>
+            <strong style="font-size: 1.15rem; font-weight: 800;">{{ rooms_count }}</strong>
+        </div>
+        <div style="width: 1px; height: 24px; background-color: rgba(10, 71, 143, 0.15);"></div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="color: {% if conflict_count > 0 %}var(--danger){% else %}var(--success){% endif %};"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
+            <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">Conflicts:</span>
+            <strong style="font-size: 1.15rem; font-weight: 800; color: {% if conflict_count > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ conflict_count }}</strong>
+        </div>
+    </div>
+
+    <!-- Action Buttons Panel -->
+    {% if active_timetable %}
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            {% if active_role == 'admin' or active_role == 'scheduler' %}
+                <form method="POST" action="{% url 'scheduler:timetable_generate' active_timetable.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary), #10b981);">Generate Timetable</button>
+                </form>
+            {% endif %}
+            <a href="{% url 'scheduler:timetable_conflicts' active_timetable.pk %}" class="btn btn-warning">Detect Conflicts</a>
+            {% if active_role == 'admin' or active_role == 'scheduler' %}
+                <form method="POST" action="{% url 'scheduler:timetable_generate' active_timetable.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary">Optimize Schedule</button>
+                </form>
+            {% endif %}
+            <a href="{% url 'scheduler:timetable_detail' active_timetable.pk %}" class="btn btn-secondary" style="border: 1px solid var(--border);">View Timetable Grid</a>
+        </div>
+    {% else %}
+        <div style="background-color: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 1rem; color: var(--warning); font-size: 0.9rem;">
+            [Warning] No timetable versions exist for this university. Go to Timetables in the menu to create a schedule version.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Lower panels -->
+<div class="grid-2">
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="card">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span>Recent Alerts</span>
+                <a href="{% url 'scheduler:notifications_list' %}" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; text-decoration: none;">View All</a>
+            </div>
+            {% if notifications %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
+                    {% for notification in notifications %}
+                        <a href="{% url 'scheduler:notification_read' notification.pk %}" style="display: block; border: 1px solid var(--border); border-left: 3px solid {% if notification.level == 'success' %}var(--success){% elif notification.level == 'warning' %}var(--warning){% elif notification.level == 'danger' %}var(--danger){% else %}var(--info){% endif %}; padding: 0.75rem 1rem; border-radius: 6px; text-decoration: none; color: inherit;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.15rem;">
+                                <span style="font-weight: 700; text-transform: uppercase;">{{ notification.level }}</span>
+                                <span>{{ notification.created_at|timesince }} ago</span>
+                            </div>
+                            <h5 style="font-weight: 700; font-size: 0.9rem;">{{ notification.title }}</h5>
+                            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.1rem;">{{ notification.message|truncatewords:15 }}</p>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 2rem 0;">No new notifications.</p>
+            {% endif %}
+        </div>
+        <div class="card">
+            <div class="card-title">Broadcasts &amp; Announcements</div>
+            {% if announcements %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
+                    {% for ann in announcements %}
+                        <div style="border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 6px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                                <strong>{{ ann.created_by.get_full_name|default:ann.created_by.username }}</strong>
+                                <span>{{ ann.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <h5 style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.15rem;">{{ ann.title }}</h5>
+                            <p style="font-size: 0.82rem; color: var(--text-muted);">{{ ann.content }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 2rem 0;">No active announcements.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% if active_role == 'admin' or active_role == 'institution_admin' %}
+            <div class="card">
+                <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span>Subscription limits</span>
+                    <a href="{% url 'scheduler:subscription_billing' %}" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; text-decoration: none;">Billing Details</a>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <span style="font-weight: 600; font-size: 0.9rem;">Plan: <strong>{{ subscription.get_tier_display }}</strong></span>
+                    <span class="badge badge-success" style="font-size:0.75rem; background-color: var(--success); color: white; padding: 0.2rem 0.5rem;">{{ subscription.get_status_display }}</span>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); display:flex; flex-direction:column; gap:0.5rem;">
+                    <div>Rooms: {{ rooms_count }} / {{ subscription.max_rooms }} limit</div>
+                    <div>Courses: {{ courses_count }} / {{ subscription.max_courses }} limit</div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-title">Role Insights: {{ active_role|title }}</div>
+            {% if active_role == 'dean' %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Faculty Scope: <strong>{{ role_context.faculty.name|default:"Not Linked" }}</strong><br>
+                    Departments: <strong>{{ role_context.faculty_departments_count|default:0 }}</strong> | Rooms: <strong>{{ role_context.faculty_rooms_count|default:0 }}</strong>
+                </p>
+            {% elif active_role == 'hod' %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Department Scope: <strong>{{ role_context.department.name|default:"Not Linked" }}</strong><br>
+                    Lecturers: <strong>{{ role_context.dept_lecturers_count|default:0 }}</strong> | Courses: <strong>{{ role_context.dept_courses_count|default:0 }}</strong>
+                </p>
+            {% elif active_role == 'student' %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Group: <strong>{{ role_context.student_group.name }}</strong><br>
+                    Go to <strong>My Timetable</strong> to view your cohort schedule.
+                </p>
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;">
+                    Full system access scope. Check active rules or run the generator to output optimal timetables.
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <div class="card-title">Rules Engine Status</div>
+            <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.85rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;"><span style="color:var(--success); font-weight: 800;">✓</span> <span>Lecturer Availability checks</span></div>
+                <div style="display:flex; align-items:center; gap:0.5rem;"><span style="color:var(--success); font-weight: 800;">✓</span> <span>Room Capacity checks</span></div>
+                <div style="display:flex; align-items:center; gap:0.5rem;"><span style="color:var(--success); font-weight: 800;">✓</span> <span>Walking Distance Travel Times</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

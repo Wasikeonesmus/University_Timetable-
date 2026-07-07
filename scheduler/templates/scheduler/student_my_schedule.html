@@ -1,0 +1,112 @@
+{% extends 'scheduler/base.html' %}
+{% block title %}My Timetable – {{ student_group.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;">
+    <div style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:0.25rem;">🗓️ My Timetable</h2>
+        <p style="color:var(--text-muted);font-size:0.875rem;">Welcome, {{ request.user.get_full_name|default:request.user.username }}. Group: {{ student_group.name }} ({{ student_group.size }} students)</p>
+    </div>
+
+    {% if timetable %}
+    <div class="card" style="padding:1rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+        <div>
+            <div style="font-weight:600;">{{ timetable.name }}</div>
+            <div style="color:var(--text-muted);font-size:0.85rem;">{{ timetable.semester.name }}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <a href="{% url 'scheduler:student_portal_weekly_timetable' %}"
+               style="padding:0.5rem 1rem;background:var(--primary);border-radius:8px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;">
+               Weekly Grid
+            </a>
+            <a href="{{ webcal_url }}"
+               style="padding:0.5rem 1rem;background:#4285F4;border-radius:8px;color:#fff;text-decoration:none;font-size:0.85rem;font-weight:600;">
+               Add to Calendar
+            </a>
+        </div>
+    </div>
+
+    <div class="card" style="padding:1.5rem;margin-bottom:1.5rem;background:var(--card-bg, #fff);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+        <div style="display:flex;align-items:start;gap:1rem;flex-wrap:wrap;">
+            <div style="font-size:2rem;line-height:1;margin-top:0.25rem;">📅</div>
+            <div style="flex:1;min-width:280px;">
+                <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.5rem;color:var(--text-main);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#4285F4;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Calendar Subscription
+                </h3>
+                <p style="color:var(--text-muted);font-size:0.85rem;line-height:1.4;margin-bottom:1rem;">
+                    Subscribe to your class schedule in any calendar app (Google Calendar, Outlook, Apple Calendar, etc.).
+                </p>
+                <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                    <a href="{{ webcal_url }}"
+                       style="padding:0.5rem 1rem;background:#4285F4;border-radius:8px;color:#fff;text-decoration:none;font-size:0.8rem;font-weight:600;display:inline-flex;align-items:center;gap:0.35rem;transition:all 0.2s;"
+                       onmouseover="this.style.background='#357ae8'"
+                       onmouseout="this.style.background='#4285F4'">
+                        📲 Subscribe via Webcal
+                    </a>
+                    <a href="{{ feed_url }}"
+                       style="font-size:0.8rem;color:var(--primary);text-decoration:none;"
+                       onmouseover="this.style.textDecoration='underline'"
+                       onmouseout="this.style.textDecoration='none'">
+                        Copy iCal Link
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if slots %}
+    <div style="display:grid;gap:0.75rem;">
+        {% for slot in slots %}
+        <div class="card {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}" 
+             style="padding:1rem 1.25rem;display:flex;align-items:center;gap:1.25rem;transition:all 0.2s;
+                    {% if slot.has_ended %}opacity:0.55;filter:grayscale(10%);border-style:dashed;{% elif slot.is_ongoing %}border: 2px solid #10b981;box-shadow: 0 0 10px rgba(16,185,129,0.25);{% endif %}" 
+             onmouseover="{% if not slot.has_ended %}this.style.borderColor='var(--primary)'{% endif %}" 
+             onmouseout="{% if not slot.has_ended and not slot.is_ongoing %}this.style.borderColor='var(--border)'{% elif slot.is_ongoing %}this.style.borderColor='#10b981'{% endif %}">
+            <div style="text-align:center;min-width:75px;padding:0.5rem;background:{% if slot.is_ongoing %}rgba(16,185,129,0.15){% else %}rgba(16,185,129,0.1){% endif %};border-radius:8px;border:1px solid {% if slot.is_ongoing %}#10b981{% else %}var(--primary){% endif %};">
+                <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);">{{ slot.time_slot.get_day_of_week_display|slice:":3"|upper }}</div>
+                <div style="font-size:0.95rem;font-weight:700;color:{% if slot.is_ongoing %}#10b981{% else %}var(--primary){% endif %};">{{ slot.time_slot.start_time|time:"g:i A" }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">{{ slot.time_slot.end_time|time:"g:i A" }}</div>
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:700;font-size:1rem;margin-bottom:0.2rem;display:flex;align-items:center;gap:0.5rem;">
+                    <span style="color:var(--primary);margin-right:0.5rem;">{{ slot.course.code }}</span>{{ slot.course.name }}
+                    {% if slot.is_ongoing %}
+                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; background: #10b981; color: white; font-size: 0.62rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 20px; text-transform: uppercase;">● Live</span>
+                    {% elif slot.has_ended %}
+                        <span style="font-size: 0.62rem; color: #64748b; font-weight: 800; background: #e2e8f0; padding: 0.15rem 0.45rem; border-radius: 20px; text-transform: uppercase;">Ended</span>
+                    {% endif %}
+                </div>
+                <div style="color:var(--text-muted);font-size:0.85rem;">
+                    🏛️ {{ slot.room.name }} ({{ slot.room.get_room_type_display }}, Cap: {{ slot.room.capacity }})
+                    &nbsp;·&nbsp; 👨‍🏫 {{ slot.lecturer.name }}
+                </div>
+            </div>
+
+            <div style="text-align:right;">
+                <span style="padding:0.25rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:600;
+                    {% if slot.course.required_room_type == 'Lab' %}background:rgba(249,115,22,0.15);color:#fb923c;
+                    {% elif slot.course.required_room_type == 'Seminar' %}background:rgba(139,92,246,0.15);color:#c4b5fd;
+                    {% else %}background:rgba(16,185,129,0.15);color:#6ee7b7;{% endif %}">
+                    {{ slot.course.required_room_type }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="padding:3rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+        <div style="font-weight:600;margin-bottom:0.5rem;">No classes scheduled yet</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">Your timetable will appear here once generation completes.</div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="card" style="padding:3rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">🗓️</div>
+        <div style="font-weight:600;margin-bottom:0.5rem;">No active timetable</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">Ask your timetable administrator to publish a schedule.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

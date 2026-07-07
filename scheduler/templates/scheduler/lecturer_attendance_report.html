@@ -1,0 +1,138 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% block title %}Attendance Reports{% endblock %}
+{% block page_title %}Attendance Reports{% endblock %}
+{% block breadcrumb %}Lecturer Portal › Attendance Reports{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block extra_style %}
+.filter-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+}
+.filter-form {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    width: 100%;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.form-group label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.form-control {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+    background: #fff;
+    min-width: 200px;
+}
+.form-control:focus {
+    border-color: var(--primary);
+}
+{% endblock %}
+
+{% block content %}
+<div class="lp-page-header">
+    <div>
+        <h1>Attendance Reports</h1>
+        <div class="subtitle">View and export historical student attendance statistics</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <form method="get" class="filter-form">
+        <div class="form-group">
+            <label for="courseSelect">Filter by Course</label>
+            <select name="course" id="courseSelect" class="form-control" onchange="this.form.submit()">
+                <option value="">All Courses</option>
+                {% for course in courses %}
+                <option value="{{ course.code }}" {% if course_filter == course.code %}selected{% endif %}>
+                    {{ course.code }}: {{ course.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if course_filter %}
+        <a href="{% url 'scheduler:lecturer_attendance_report' %}" class="btn btn-outline btn-sm" style="margin-top: 18px;">Reset Filter</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Reports Table -->
+<div class="lp-card">
+    <div class="lp-card-header">
+        <h3>Past Attendance Sessions</h3>
+    </div>
+    <div class="lp-table-wrap" style="overflow-x:auto;">
+        <table class="lp-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Course Code</th>
+                    <th>Student Group</th>
+                    <th>Room</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Attendance Rate</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in session_data %}
+                <tr>
+                    <td><strong>{{ data.session.date|date:"d M Y" }}</strong></td>
+                    <td><span style="font-weight:700; color:var(--primary);">{{ data.session.schedule_slot.course.code }}</span></td>
+                    <td>{{ data.session.schedule_slot.student_group.name }}</td>
+                    <td>{{ data.session.schedule_slot.room.name }}</td>
+                    <td><span style="color:var(--success); font-weight:700;">{{ data.present }}</span></td>
+                    <td><span style="color:var(--danger); font-weight:700;">{{ data.absent }}</span></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="progress-bar-wrap" style="width: 80px; height: 6px;">
+                                <div class="progress-bar-fill {% if data.rate < 60 %}red{% elif data.rate < 85 %}orange{% else %}green{% endif %}" style="width: {{ data.rate }}%;"></div>
+                            </div>
+                            <strong>{{ data.rate }}%</strong>
+                        </div>
+                    </td>
+                    <td>
+                        {% if data.session.is_active %}
+                        <span class="badge badge-green">Open / Draft</span>
+                        {% else %}
+                        <span class="badge badge-gray">Closed</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'scheduler:lecturer_attendance_session' data.session.id %}" class="btn btn-outline btn-sm">
+                            {% if data.session.is_active %}Edit{% else %}View{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="empty-state">No attendance records found for the selected course.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

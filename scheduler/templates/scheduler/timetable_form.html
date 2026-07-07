@@ -1,0 +1,15 @@
+{% extends 'scheduler/base.html' %}
+{% block title %}Create Timetable{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;margin:0 auto;">
+    <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:1rem;">Create Timetable</h2>
+    <form method="post" class="card" style="padding:1.5rem;">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" style="margin-top:1rem;padding:0.65rem 1.2rem;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+            Create
+        </button>
+    </form>
+</div>
+{% endblock %}

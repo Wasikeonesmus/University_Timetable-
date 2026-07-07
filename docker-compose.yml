@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: timetable_db
+    environment:
+      - POSTGRES_DB=timetable_db
+      - POSTGRES_USER=timetable_user
+      - POSTGRES_PASSWORD=timetable_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    container_name: timetable_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=django-insecure-prod-key-goes-here-12345
+      - DEBUG=True
+      - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
+      - ALLOWED_HOSTS=127.0.0.1,localhost,web
+    depends_on:
+      - db
+
+  worker:
+    build: .
+    container_name: timetable_worker
+    command: python manage.py qcluster
+    volumes:
+      - .:/app
+    environment:
+      - SECRET_KEY=django-insecure-prod-key-goes-here-12345
+      - DEBUG=True
+      - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
+    depends_on:
+      - db
+      - web
+
+volumes:
+  pgdata:

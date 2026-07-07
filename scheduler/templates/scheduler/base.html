@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Timetable Scheduler{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ── Design Tokens ───────────────────────────────────────────────── */
+        :root {
+            --bg:          #f0f4f8;
+            --card-bg:     #ffffff;
+            --sidebar-bg:  #0f2044;
+            --sidebar-w:   240px;
+            --header-h:    60px;
+            --primary:     #1a56db;
+            --primary-dk:  #1342b0;
+            --orange:      #f97316;
+            --success:     #10b981;
+            --danger:      #ef4444;
+            --warning:     #f59e0b;
+            --info:        #06b6d4;
+            --text:        #0f172a;
+            --text-muted:  #64748b;
+            --border:      #e2e8f0;
+            --radius:      10px;
+            --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+            --shadow:      0 4px 16px rgba(0,0,0,.08);
+            --transition:  0.18s ease;
+        }
+
+        /* ── Reset ───────────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* ── Sidebar ─────────────────────────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            background: var(--sidebar-bg);
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            height: var(--header-h);
+            background: #ffffff;
+            border-bottom: 3px solid var(--orange);
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .sidebar-brand-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--orange));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sidebar-brand-text { display: flex; flex-direction: column; }
+        .sidebar-brand-text strong { font-size: 13px; font-weight: 800; color: var(--sidebar-bg); line-height: 1.2; }
+        .sidebar-brand-text span { font-size: 10px; color: var(--text-muted); font-weight: 500; letter-spacing: .04em; }
+
+        .sidebar-nav { padding: 12px 8px; flex: 1; }
+
+        .nav-section-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #6b8cba;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            padding: 16px 10px 6px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: #94afd4;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: var(--transition);
+            margin-bottom: 2px;
+        }
+        .nav-link svg { flex-shrink: 0; opacity: .75; transition: var(--transition); }
+        .nav-link:hover {
+            background: rgba(255,255,255,.07);
+            color: #ffffff;
+        }
+        .nav-link:hover svg { opacity: 1; }
+        .nav-link.active {
+            background: linear-gradient(90deg, rgba(26,86,219,.35), rgba(26,86,219,.12));
+            color: #ffffff;
+            font-weight: 600;
+            border-left: 3px solid var(--orange);
+            padding-left: 7px;
+        }
+        .nav-link.active svg { opacity: 1; color: #ffffff; }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,.07);
+            font-size: 11px;
+            color: #4a6080;
+        }
+
+        /* ── Main wrapper ────────────────────────────────────────────────── */
+        .main-wrapper {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ── Topbar / Header ─────────────────────────────────────────────── */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: var(--header-h);
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            gap: 16px;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+        .header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+        /* Breadcrumb / page title in header */
+        .header-page-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* University selector chip */
+        .uni-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        .uni-selector label { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+        .uni-selector select {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            outline: none;
+            max-width: 150px;
+        }
+
+        /* Semester badge */
+        .semester-badge {
+            background: rgba(26,86,219,.08);
+            border: 1px solid rgba(26,86,219,.15);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        /* Search box */
+        .header-search {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 5px 12px;
+            transition: var(--transition);
+        }
+        .header-search:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,86,219,.1);
+        }
+        .header-search svg { color: var(--text-muted); flex-shrink: 0; }
+        .header-search input {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            color: var(--text);
+            width: 160px;
+            outline: none;
+            font-family: inherit;
+        }
+        .header-search input::placeholder { color: var(--text-muted); }
+
+        /* User avatar */
+        .user-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--orange));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px; color: #fff;
+            flex-shrink: 0;
+        }
+        .user-info-block { display: flex; flex-direction: column; }
+        .user-info-block .u-name { font-size: 12px; font-weight: 600; color: var(--text); }
+        .user-info-block .u-role { font-size: 10px; font-weight: 700; color: var(--primary); text-transform: uppercase; }
+
+        /* ── Content area ────────────────────────────────────────────────── */
+        .content-container {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Page header row ─────────────────────────────────────────────── */
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .page-header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1.2;
+        }
+        .page-header p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Cards ───────────────────────────────────────────────────────── */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-subtitle { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+
+        /* Stat cards */
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .stat-icon-blue   { background: rgba(26,86,219,.1);  color: var(--primary); }
+        .stat-icon-orange { background: rgba(249,115,22,.1);  color: var(--orange); }
+        .stat-icon-green  { background: rgba(16,185,129,.1);  color: var(--success); }
+        .stat-icon-red    { background: rgba(239,68,68,.1);   color: var(--danger); }
+        .stat-icon-cyan   { background: rgba(6,182,212,.1);   color: var(--info); }
+        .stat-value { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+        .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+
+        /* ── Buttons ─────────────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary   { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dk); }
+
+        .btn-secondary { background: var(--border); color: var(--text); }
+        .btn-secondary:hover { background: #cbd5e1; }
+
+        .btn-danger    { background: var(--danger);  color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-success   { background: var(--success); color: #fff; }
+        .btn-success:hover { background: #059669; }
+
+        .btn-warning   { background: var(--warning); color: #fff; }
+        .btn-warning:hover { background: #d97706; }
+
+        .btn-outline   { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+        .btn-outline:hover { background: rgba(26,86,219,.06); }
+
+        .btn-ghost     { background: transparent; color: var(--text-muted); }
+        .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-lg { padding: 10px 22px; font-size: 15px; }
+        .btn-icon { padding: 7px; }
+
+        /* ── Badges ──────────────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-blue    { background: rgba(26,86,219,.1);    color: var(--primary); }
+        .badge-orange  { background: rgba(249,115,22,.1);   color: var(--orange); }
+        .badge-green   { background: rgba(16,185,129,.1);   color: var(--success); }
+        .badge-red     { background: rgba(239,68,68,.1);    color: var(--danger); }
+        .badge-yellow  { background: rgba(245,158,11,.12);  color: #92400e; }
+        .badge-cyan    { background: rgba(6,182,212,.1);    color: #0e7490; }
+        .badge-gray    { background: rgba(100,116,139,.1);  color: var(--text-muted); }
+
+        /* Legacy aliases so existing templates still work */
+        .badge-primary { background: rgba(26,86,219,.1);   color: var(--primary); }
+        .badge-success { background: rgba(16,185,129,.1);  color: var(--success); }
+        .badge-danger  { background: rgba(239,68,68,.1);   color: var(--danger); }
+        .badge-warning { background: rgba(245,158,11,.12); color: #92400e; }
+        .badge-info    { background: rgba(6,182,212,.1);   color: #0e7490; }
+        .badge-error   { background: rgba(239,68,68,.1);   color: var(--danger); }
+
+        /* ── Tables ──────────────────────────────────────────────────────── */
+        .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead { background: #f8fafc; }
+        th {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #f8fafc; }
+
+        /* ── Forms ───────────────────────────────────────────────────────── */
+        .form-group { margin-bottom: 14px; }
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .form-control, .form-select, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text);
+            background: #fff;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+        .form-control:focus, .form-select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,86,219,.1);
+        }
+
+        /* ── Alerts ──────────────────────────────────────────────────────── */
+        .alerts { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .alert-close { margin-left: auto; background: none; border: none; cursor: pointer; font-size: 16px; opacity: .5; line-height: 1; padding: 0 0 0 8px; }
+        .alert-close:hover { opacity: 1; }
+        .alert-success { background: rgba(16,185,129,.08);  color: #065f46;  border: 1px solid rgba(16,185,129,.2); }
+        .alert-error, .alert-danger { background: rgba(239,68,68,.08);  color: #991b1b;  border: 1px solid rgba(239,68,68,.2); }
+        .alert-warning { background: rgba(245,158,11,.08);  color: #92400e;  border: 1px solid rgba(245,158,11,.2); }
+        .alert-info    { background: rgba(6,182,212,.08);   color: #0e7490;  border: 1px solid rgba(6,182,212,.2); }
+
+        /* ── Grid helpers ────────────────────────────────────────────────── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+
+        /* ── Dividers ────────────────────────────────────────────────────── */
+        .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+        /* ── Tabs ────────────────────────────────────────────────────────── */
+        .tab-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+        .tab-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+        .tab-link:hover { color: var(--text); background: rgba(0,0,0,.04); }
+        .tab-link.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+        /* ── Footer ──────────────────────────────────────────────────────── */
+        footer {
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            background: #fff;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+
+        /* ── Scrollbar ───────────────────────────────────────────────────── */
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
+
+        /* ── Responsive ──────────────────────────────────────────────────── */
+        @media (max-width: 992px) {
+            .sidebar { display: none; }
+            .main-wrapper { margin-left: 0; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- ─── Sidebar ─────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+    <a href="{% url 'scheduler:dashboard' %}" class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="sidebar-brand-text">
+            <strong>UniSchedule</strong>
+            <span>Timetable System</span>
+        </div>
+    </a>
+
+    <nav class="sidebar-nav">
+        <a href="{% url 'scheduler:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            Dashboard
+        </a>
+
+        {% if active_role == 'admin' or active_role == 'scheduler' %}
+        <div class="nav-section-label">Resources</div>
+        <a href="{% url 'scheduler:import_resources' %}" class="nav-link {% if request.resolver_match.url_name == 'import_resources' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Bulk Import
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=lecturer" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'lecturer' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Lecturers
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=room" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'room' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+            Rooms / Venues
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=course" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'course' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Courses / Units
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=studentgroup" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'studentgroup' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Student Groups
+        </a>
+
+        <div class="nav-section-label">Structure</div>
+        {% if active_role == 'admin' or active_role == 'scheduler' %}
+        <a href="{% url 'scheduler:setup_wizard' %}" class="nav-link {% if request.resolver_match.url_name == 'setup_wizard' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Setup Wizard
+        </a>
+        {% endif %}
+        <a href="{% url 'scheduler:resources_manager' %}?tab=university" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'university' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7H3"/><path d="M19 21V11"/><path d="M5 21V11"/></svg>
+            Universities
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=campus" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'campus' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Campuses
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=department" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'department' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Departments
+        </a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=timeslot" class="nav-link {% if request.resolver_match.url_name == 'resources_manager' and active_tab == 'timeslot' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Time Slots
+        </a>
+
+        <div class="nav-section-label">Scheduler</div>
+        <a href="{% url 'scheduler:timetable_list' %}" class="nav-link {% if request.resolver_match.url_name == 'timetable_list' or request.resolver_match.url_name == 'timetable_detail' or request.resolver_match.url_name == 'timetable_conflicts' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Timetables
+        </a>
+        <a href="{% url 'scheduler:constraint_list' %}" class="nav-link {% if request.resolver_match.url_name == 'constraint_list' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            Constraints
+        </a>
+        <a href="{% url 'scheduler:reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Reports
+        </a>
+
+        {% if active_role == 'admin' or active_role == 'scheduler' %}
+        <a href="{% url 'scheduler:lecturer_availability' %}" class="nav-link {% if request.resolver_match.url_name == 'lecturer_availability' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Availability
+        </a>
+        {% endif %}
+        {% endif %}
+
+        {% if active_role == 'student' %}
+        <div class="nav-section-label">My Account</div>
+        <a href="{% url 'scheduler:student_my_schedule' %}" class="nav-link {% if request.resolver_match.url_name == 'student_my_schedule' %}active{% endif %}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            My Timetable
+        </a>
+        {% endif %}
+
+
+
+        <!-- Account Services Section -->
+        <div class="nav-section-label">Account Services</div>
+        <a href="{% url 'scheduler:notifications_list' %}" class="nav-link {% if request.resolver_match.url_name == 'notifications_list' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            Notifications
+        </a>
+        {% if active_role == 'admin' or active_role == 'institution_admin' %}
+        <a href="{% url 'scheduler:subscription_billing' %}" class="nav-link {% if request.resolver_match.url_name == 'subscription_billing' %}active{% endif %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Billing & Limits
+        </a>
+        {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+        UniSchedule v2 &mdash; OR-Tools
+    </div>
+</aside>
+
+<!-- ─── Main ──────────────────────────────────────────────────────────────── -->
+<div class="main-wrapper">
+
+    <!-- Topbar -->
+    <header>
+        <div class="header-left">
+            <!-- University selector: hidden for lecturers (fixed to their own university) -->
+            {% if active_role != 'lecturer' %}
+            <form action="{% url 'scheduler:switch_university' %}" method="POST" style="margin:0;">
+                {% csrf_token %}
+                <div class="uni-selector">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7H3"/></svg>
+                    <label>University</label>
+                    <select name="university_id" onchange="this.form.submit()">
+                        {% for uni in all_universities %}
+                            <option value="{{ uni.id }}" {% if active_university.id == uni.id %}selected{% endif %}>{{ uni.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+            {% else %}
+            <!-- Static university display for lecturers -->
+            <div class="uni-selector" style="cursor:default;pointer-events:none;opacity:0.85;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7H3"/></svg>
+                <label>University</label>
+                <span style="font-size:12px;font-weight:600;color:var(--text);">{{ active_university.name }}</span>
+            </div>
+            {% endif %}
+
+            {% if active_semester %}
+                <div class="semester-badge">{{ active_semester.name }}</div>
+            {% endif %}
+
+            <!-- Search -->
+            <form action="{% url 'scheduler:search' %}" method="get" style="margin:0;">
+                <div class="header-search">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" name="q" placeholder="Search anything…" id="id_global_search">
+                </div>
+            </form>
+        </div>
+
+        <div class="header-right">
+            {% if request.user.is_authenticated %}
+            <a href="{% url 'accounts:profile' %}" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+                <div class="user-avatar">{{ request.user.first_name|first|default:request.user.username|first|upper }}</div>
+                <div class="user-info-block">
+                    <span class="u-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                    <span class="u-role">{{ active_role }}</span>
+                </div>
+            </a>
+            <a href="{% url 'accounts:logout' %}" class="btn btn-ghost btn-sm">Logout</a>
+            {% else %}
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm">Sign In</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content-container">
+        {% if messages %}
+        <div class="alerts">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                {{ message }}
+                <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer>
+        &copy; 2026 Multi-University Timetable Management System &mdash; Powered by Google OR-Tools
+    </footer>
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

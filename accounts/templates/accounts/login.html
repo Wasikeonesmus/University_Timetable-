@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In – University Timetable</title>
+    <meta name="description" content="Sign in to the University Timetable Scheduling System">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #061815;
+            --card: #0d2824;
+            --border: #143c36;
+            --primary: #10b981;
+            --primary-dark: #0d5a4f;
+            --primary-glow: rgba(16,185,129,0.15);
+            --text: #f0fdfa;
+            --muted: #8fa3a0;
+            --danger: #f43f5e;
+            --input-bg: #0a1f1c;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background blobs */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px; left: -200px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+            animation: drift 12s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -150px; right: -150px;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(13,90,79,0.12) 0%, transparent 70%);
+            animation: drift 15s ease-in-out infinite alternate-reverse;
+            pointer-events: none;
+        }
+        @keyframes drift {
+            from { transform: translate(0,0) scale(1); }
+            to { transform: translate(60px, 40px) scale(1.05); }
+        }
+
+        .auth-wrapper {
+            width: 100%;
+            max-width: 460px;
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Logo / Brand */
+        .brand {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .brand-icon {
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 32px rgba(16,185,129,0.3);
+        }
+        .brand h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .brand h1 span { color: var(--primary); }
+        .brand p { color: var(--muted); font-size: 0.9rem; margin-top: 0.3rem; }
+
+        /* Card */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .card-subtitle {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-bottom: 1.75rem;
+        }
+
+        /* Form fields */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+        .form-control::placeholder { color: var(--muted); }
+
+        /* Alerts */
+        .alert {
+            padding: 0.875rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.25rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .alert-danger {
+            background: rgba(244,63,94,0.12);
+            border: 1px solid rgba(244,63,94,0.3);
+            color: #fca5a5;
+        }
+        .alert-success {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #6ee7b7;
+        }
+        .alert-info {
+            background: rgba(99,102,241,0.1);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: #c7d2fe;
+        }
+
+        /* Submit button */
+        .btn-primary {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 0.5rem;
+            letter-spacing: 0.02em;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(16,185,129,0.4);
+        }
+        .btn-primary:active { transform: translateY(0); }
+
+        /* Footer link */
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        /* Error list */
+        .errorlist {
+            list-style: none;
+            color: #fca5a5;
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="brand">
+            <div class="brand-icon">🎓</div>
+            <h1>University <span>Timetable</span></h1>
+            <p>Intelligent Scheduling System</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Welcome back</div>
+            <div class="card-subtitle">Sign in to your account to continue</div>
+
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+
+            <form method="post" id="login-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="form-label" for="id_login_username">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_login_password">Password</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <ul class="errorlist">{% for e in form.password.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+                {% endif %}
+                <button type="submit" class="btn-primary" id="btn-login">Sign In →</button>
+            </form>
+        </div>
+
+        <div class="auth-footer">
+            Don't have an account? <a href="{% url 'accounts:register' %}">Create one</a>
+        </div>
+    </div>
+</body>
+</html>

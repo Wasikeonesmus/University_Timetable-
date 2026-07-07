@@ -1,0 +1,1891 @@
+{% extends 'scheduler/base.html' %}
+{% load scheduler_tags %}
+
+{% block title %}{{ timetable.name }} - Calendar Grid{% endblock %}
+
+{% block extra_head %}
+<!-- No FullCalendar script -->
+<style>
+    /* ═══════════════════════════════════════════════════════════════
+       SPACE-THEME TIMETABLE — matching the dark cosmic mockup
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* Outer wrapper that wraps everything below the top header/filters */
+    .space-timetable-shell {
+        position: relative;
+        background: linear-gradient(135deg, #0f2044 0%, #1e3a8a 50%, #0f172a 100%);
+        border-radius: 16px;
+        overflow: hidden;
+        padding: 0;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    /* Twinkling star particles */
+    .space-timetable-shell::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+            radial-gradient(1px 1px at 25% 45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+            radial-gradient(1.5px 1.5px at 60% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+            radial-gradient(1px 1px at 75% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
+            radial-gradient(1px 1px at 85% 65%, rgba(255,255,255,0.4) 0%, transparent 100%),
+            radial-gradient(1.5px 1.5px at 40% 75%, rgba(255,255,255,0.3) 0%, transparent 100%),
+            radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+            radial-gradient(2px 2px at 90% 85%, rgba(245,130,32,0.5) 0%, transparent 100%),
+            radial-gradient(2px 2px at 5% 55%, rgba(245,130,32,0.4) 0%, transparent 100%),
+            radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.3) 0%, transparent 100%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    /* Inner flex layout: grid left + sidebar right */
+    .timetable-workspace {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 0;
+        align-items: start;
+        position: relative;
+        z-index: 1;
+    }
+    .timetable-workspace.sidebar-collapsed {
+        grid-template-columns: 1fr;
+    }
+    .timetable-workspace.sidebar-collapsed .cf-sidebar {
+        display: none !important;
+    }
+
+    /* ─── Timetable Grid Table ─────────────────────────────────────── */
+    .tt-table-wrapper {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        background: #ffffff;
+        overflow-x: auto;
+        width: 100%;
+        margin: 1rem 1.25rem 1.25rem 1.25rem;
+    }
+
+    .tt-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1000px;
+        background: #ffffff;
+    }
+
+    /* Overrides for base.html global table styles */
+    .tt-table thead {
+        background: transparent !important;
+    }
+    .tt-table tbody tr:hover {
+        background: rgba(0, 0, 0, 0.01) !important;
+    }
+    .tt-table tbody tr {
+        border-bottom: 1px solid #f1f5f9 !important;
+    }
+    .tt-table td {
+        border-bottom: 1px solid #f1f5f9 !important;
+        background: transparent !important;
+        padding: 0.75rem !important;
+    }
+
+    /* Header row styling */
+    .tt-table thead th {
+        padding: 1rem 0.75rem !important;
+        text-align: center;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #1e293b !important;
+        background: #f8fafc !important;
+        border-bottom: 2px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .tt-table thead th:last-child {
+        border-right: none !important;
+    }
+
+    .th-time {
+        width: 120px;
+        text-align: center !important;
+        font-weight: 800 !important;
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: #f8fafc !important;
+        color: #1e293b !important;
+        border-right: 1px solid #e2e8f0 !important;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+    }
+
+    .td-time {
+        padding: 1.25rem 0.75rem !important;
+        background: #fafbfc !important;
+        border-right: 1px solid #e2e8f0 !important;
+        vertical-align: middle;
+        text-align: center;
+        position: sticky;
+        left: 0;
+        z-index: 9;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+    }
+    .time-hour {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    .time-sub {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 700;
+        white-space: nowrap;
+        display: block;
+    }
+
+    .td-cell {
+        vertical-align: top;
+        border-right: 1px solid #f1f5f9 !important;
+        min-width: 165px;
+        background: transparent;
+    }
+    .td-cell:last-child {
+        border-right: none !important;
+    }
+
+    .td-empty {
+        background-color: #fafbfc !important;
+    }
+
+
+    /* ── Premium Lecturer/Course Card ────────────────────────────────── */
+    .class-card {
+        border-radius: 8px;
+        padding: 0.75rem 0.85rem;
+        text-align: left;
+        color: #1e293b;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        border: none;
+        height: 100%;
+        min-height: 130px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .class-card:last-child {
+        margin-bottom: 0;
+    }
+    .class-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.1), 0 0 10px rgba(80,140,255,0.05);
+    }
+
+    /* Soft premium glassmorphic styles per day of the week */
+    .class-card.day-1 { background: rgba(59, 130, 246, 0.08); border: 1.5px solid rgba(59, 130, 246, 0.18); border-left: 4.5px solid #3b82f6 !important; }
+    .class-card.day-2 { background: rgba(249, 115, 22, 0.08); border: 1.5px solid rgba(249, 115, 22, 0.18); border-left: 4.5px solid #ea580c !important; }
+    .class-card.day-3 { background: rgba(139, 92, 246, 0.08); border: 1.5px solid rgba(139, 92, 246, 0.18); border-left: 4.5px solid #8b5cf6 !important; }
+    .class-card.day-4 { background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.18); border-left: 4.5px solid #ef4444 !important; }
+    .class-card.day-5 { background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.18); border-left: 4.5px solid #10b981 !important; }
+    .class-card.day-6 { background: rgba(168, 85, 247, 0.08); border: 1.5px solid rgba(168, 85, 247, 0.18); border-left: 4.5px solid #a855f7 !important; }
+    .class-card.day-7 { background: rgba(236, 72, 153, 0.08); border: 1.5px solid rgba(236, 72, 153, 0.18); border-left: 4.5px solid #ec4899 !important; }
+
+    
+    /* Ended and Ongoing slots styles */
+    .class-card.ended {
+        opacity: 0.55;
+        filter: grayscale(30%);
+        border: 1.5px dashed rgba(0, 0, 0, 0.2) !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    .class-card.ongoing {
+        border: 2px solid #10b981 !important;
+        box-shadow: 0 0 14px rgba(16,185,129,0.35) !important;
+    }
+    .badge-live {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: #10b981;
+        color: white;
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 0.15rem 0.45rem;
+        border-radius: 20px;
+        text-transform: uppercase;
+        animation: pulse-green 2s infinite;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+    }
+    .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: white;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(255,255,255,0.7);
+        animation: dotpulse 1.8s infinite;
+    }
+    @keyframes dotpulse {
+        0%   { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+        70%  { transform: scale(1);   box-shadow: 0 0 0 4px rgba(255,255,255,0); }
+        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+    @keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(16,185,129, 0.4); }
+        70% { box-shadow: 0 0 0 6px rgba(16,185,129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16,185,129, 0); }
+    }
+
+
+    /* Lecturer row layout */
+    .card-lecturer-row {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        width: 100%;
+        margin-bottom: 0.4rem;
+    }
+
+    /* Lecturer avatar circular styling */
+    .card-avatar-container {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255, 255, 255, 0.85);
+        overflow: hidden;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .card-avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .card-lecturer-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .card-course-info {
+        font-size: 0.82rem;
+        font-weight: 700;
+        opacity: 0.95;
+        line-height: 1.3;
+        margin-bottom: 0.6rem;
+        width: 100%;
+    }
+
+    /* Metadata items with icons */
+    .card-meta-row {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+        margin-top: auto;
+    }
+    .card-meta-item {
+        font-size: 0.64rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-weight: 600;
+        padding: 0.2rem 0.45rem;
+        background: rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 4px;
+        color: #475569;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-meta-item svg {
+        width: 11px;
+        height: 11px;
+        flex-shrink: 0;
+        opacity: 0.85;
+    }
+
+    /* ─── LIVE CONFLICTS Sidebar ─────────────────────────────────── */
+    .cf-sidebar {
+        background: rgba(8, 18, 40, 0.75);
+        backdrop-filter: blur(12px);
+        border-left: 1px solid rgba(255,255,255,0.06);
+        border-radius: 0 16px 16px 0;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 500px;
+        max-height: 75vh;
+        position: sticky;
+        top: 0;
+    }
+
+    .cf-sidebar-title {
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .cf-overall-status {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.45);
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .cf-badge-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+    }
+
+    .cf-badge {
+        border-radius: 10px;
+        padding: 0.7rem 0.5rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .cf-badge-hard {
+        background: rgba(60, 60, 70, 0.6);
+        border: 1px solid rgba(120,120,140,0.3);
+    }
+
+    .cf-badge-soft {
+        background: rgba(160, 90, 10, 0.4);
+        border: 1px solid rgba(245, 130, 32, 0.4);
+    }
+
+    .cf-badge-num {
+        font-size: 1.6rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .cf-badge-hard .cf-badge-num { color: #d1d5db; }
+    .cf-badge-soft .cf-badge-num { color: #f58220; }
+
+    .cf-badge-label {
+        font-size: 0.64rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .cf-badge-hard .cf-badge-label { color: rgba(200,200,220,0.6); }
+    .cf-badge-soft .cf-badge-label { color: rgba(245,130,32,0.75); }
+
+    .cf-badge-hard .cf-badge-icon { color: #22c55e; font-size: 0.75rem; }
+
+    #cf-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-right: 2px;
+    }
+
+    #cf-list::-webkit-scrollbar { width: 4px; }
+    #cf-list::-webkit-scrollbar-track { background: transparent; }
+    #cf-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+    .conflict-item {
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 8px;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.76rem;
+        color: rgba(255,255,255,0.75);
+        line-height: 1.4;
+        cursor: pointer;
+        transition: background 0.15s ease;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .conflict-item:hover {
+        background: rgba(245, 158, 11, 0.14);
+    }
+
+    .conflict-item-hard {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .conflict-item-hard:hover {
+        background: rgba(239, 68, 68, 0.14);
+    }
+
+    .conflict-item-inner { flex: 1; }
+
+    .conflict-item-title {
+        font-weight: 700;
+        color: #ffffff;
+        font-size: 0.76rem;
+        margin-bottom: 2px;
+    }
+
+    .conflict-item-sub {
+        font-size: 0.68rem;
+        color: rgba(255,255,255,0.45);
+    }
+
+    .conflict-item-arrow {
+        color: rgba(255,255,255,0.25);
+        font-size: 0.9rem;
+        align-self: center;
+        flex-shrink: 0;
+    }
+
+    .warning-item {
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 8px;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.76rem;
+        color: rgba(255,255,255,0.75);
+        line-height: 1.4;
+    }
+
+    /* ─── Generation overlay ─────────────────────────────────────── */
+    #gen-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 15, 30, 0.88);
+        backdrop-filter: blur(6px);
+        z-index: 2000;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+    }
+    #gen-overlay.active { display: flex; }
+    .gen-spinner-ring {
+        width: 72px; height: 72px;
+        border-radius: 50%;
+        border: 4px solid rgba(45,212,191,0.15);
+        border-top-color: #2dd4bf;
+        animation: spin 0.9s linear infinite;
+    }
+    .gen-progress-bar-track {
+        width: 320px; height: 6px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .gen-progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #0d9488, #2dd4bf);
+        border-radius: 999px;
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+
+    /* ─── Modal ──────────────────────────────────────────────────── */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.8);
+        backdrop-filter: blur(4px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .modal-overlay.active { display: flex !important; }
+
+    .modal-card {
+        background: #0f1e38;
+        border: 1px solid rgba(80,140,255,0.2);
+        border-radius: 14px;
+        max-width: 450px;
+        width: 100%;
+        padding: 1.75rem;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+        color: #e2e8f0;
+    }
+
+    .modal-header {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #f1f5f9;
+    }
+
+    .modal-card .form-label { color: rgba(180,210,255,0.75); font-size: 0.8rem; }
+    .modal-card .form-select {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(80,140,255,0.2);
+        color: #e2e8f0;
+        border-radius: 8px;
+    }
+
+    /* ─── Active Status pulse badges ─────────────────────────────── */
+    .badge-success-pulse { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .pulse-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background-color: #10b981;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(16,185,129,0.7);
+        animation: badgepulse 1.8s infinite;
+    }
+    @keyframes badgepulse {
+        0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0.7); }
+        70%  { transform: scale(1);    box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-start; align-items: flex-end; flex-wrap: wrap; gap: 3rem; border-bottom: 1px solid var(--border); padding-bottom: 1.25rem;">
+    <div>
+        <!-- Breadcrumbs -->
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem;">
+            <a href="{% url 'scheduler:timetable_list' %}" style="color: var(--text-muted); text-decoration: none; font-weight: 500;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">Timetables</a>
+            <span style="color: var(--border);">/</span>
+            <span style="color: var(--text-main); font-weight: 600;">{{ timetable.name }}</span>
+        </div>
+        <h1 style="font-weight: 800; font-size: 2rem; margin-bottom: 0.4rem; color: var(--primary); display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            {{ timetable.name }}
+            {% if timetable.is_active %}
+                <span class="badge badge-success-pulse" style="font-size:0.75rem; padding:0.3rem 0.8rem; font-weight:600; border-radius:20px; vertical-align:middle; background:rgba(16, 185, 129, 0.15); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3); text-transform: none; letter-spacing: normal;">
+                    <span class="pulse-dot"></span> Active
+                </span>
+            {% else %}
+                <span class="badge" style="font-size:0.75rem; padding:0.3rem 0.8rem; font-weight:600; border-radius:20px; vertical-align:middle; background:rgba(245, 158, 11, 0.15); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.3); text-transform: none; letter-spacing: normal;">
+                    Draft
+                </span>
+            {% endif %}
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">
+            University Scope: <strong style="color: var(--primary);">{{ active_university.name }}</strong> &nbsp;|&nbsp; Semester: <strong style="color: var(--text-main);">{{ active_semester.name }}</strong>
+        </p>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+        <!-- Consolidated Export Dropdown Button -->
+        <div class="export-dropdown" style="position: relative; display: inline-block;">
+            <button onclick="toggleExportDropdown(event)" class="btn btn-secondary" style="border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 0.5rem; background: #ffffff; color: var(--text-main); height: 38px; box-sizing: border-box; padding: 0 1.1rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 0.15rem;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="export-dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); z-index: 500; min-width: 180px; margin-top: 0.4rem; overflow: hidden;">
+                <button onclick="openPdfModal(); closeExportDropdown();" style="width: 100%; text-align: left; background: none; border: none; padding: 0.65rem 1rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
+                    <span style="color: #ef4444; font-size: 1rem;">📄</span> PDF Document
+                </button>
+                <button onclick="openPdfModal(); closeExportDropdown();" style="width: 100%; text-align: left; background: none; border: none; padding: 0.65rem 1rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
+                    <span style="color: #3b82f6; font-size: 1rem;">📝</span> Word Document
+                </button>
+                <a href="{% url 'scheduler:export_timetable_csv' timetable.pk %}" style="text-decoration: none; width: 100%; text-align: left; background: none; border: none; padding: 0.65rem 1rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
+                    <span style="color: #10b981; font-size: 1rem;">📊</span> Excel Sheet (CSV)
+                </a>
+            </div>
+        </div>
+
+        {% if active_role == 'admin' or active_role == 'scheduler' %}
+            <!-- Solver Settings Group -->
+            <div style="display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:#ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); height: 38px; box-sizing: border-box; align-items: center;">
+                <select id="time-limit-select" 
+                        style="background:transparent; color:var(--text-main); border:none; padding:0 0.75rem; outline:none; font-size:0.85rem; font-weight:600; cursor:pointer; height:36px; box-sizing: border-box;">
+                    <option value="auto">Time Limit: Auto</option>
+                    <option value="30">30 Seconds</option>
+                    <option value="60">1 Minute</option>
+                    <option value="180">3 Minutes</option>
+                    <option value="300">5 Minutes</option>
+                    <option value="600">10 Minutes</option>
+                </select>
+                <button id="generate-btn" onclick="runGenerate({{ timetable.pk }})"
+                        class="btn btn-primary"
+                        style="background:linear-gradient(135deg, var(--primary), var(--orange)); color: #ffffff; display:inline-flex; align-items:center; gap:0.5rem; border:none; border-radius:0; border-left:1px solid var(--border); height:38px; margin:0; box-sizing: border-box; padding: 0 1.25rem;">
+                    <svg id="gen-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <svg id="gen-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:none; animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" /></svg>
+                    <span id="gen-label">Generate</span>
+                </button>
+            </div>
+
+            <a href="{% url 'scheduler:generation_log_list' timetable.pk %}"
+               class="btn btn-secondary"
+               style="border:1px solid var(--border); display:inline-flex; align-items:center; gap:0.5rem; background: #ffffff; color: var(--text-main); height: 38px; box-sizing: border-box; padding: 0 1.1rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Generation Log
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Generation live progress overlay -->
+<div id="gen-overlay" role="dialog" aria-live="polite">
+    <div class="gen-spinner-ring"></div>
+    <div style="text-align:center;">
+        <div id="gen-overlay-title" style="font-size:1.15rem;font-weight:700;color:#e2e8f0;margin-bottom:0.4rem;">Generating Timetable…</div>
+        <div id="gen-overlay-msg" style="font-size:0.875rem;color:#94a3b8;">The solver is running. This may take up to 60 seconds.</div>
+    </div>
+    <div class="gen-progress-bar-track">
+        <div class="gen-progress-bar-fill" id="gen-progress-fill"></div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+        <div style="text-align:center;">
+            <div id="ov-elapsed" style="font-size:1.1rem;font-weight:700;color:#2dd4bf;">0s</div>
+            <div style="font-size:0.72rem;color:#64748b;">Elapsed</div>
+        </div>
+        <div style="text-align:center;">
+            <div id="ov-courses" style="font-size:1.1rem;font-weight:700;color:#34d399;">—</div>
+            <div style="font-size:0.72rem;color:#64748b;">Courses</div>
+        </div>
+        <div style="text-align:center;">
+            <div id="ov-conflicts" style="font-size:1.1rem;font-weight:700;color:#f87171;">—</div>
+            <div style="font-size:0.72rem;color:#64748b;">Hard Conflicts</div>
+        </div>
+    </div>
+</div>
+
+<!-- Solver Stats Panel (shown after generation) -->
+<div id="solver-stats-panel" style="display:none; margin-bottom:1.5rem;">
+  <div style="background:rgba(30,41,59,0.8); border:1px solid rgba(100,116,139,0.3);
+              border-radius:12px; padding:1.25rem 1.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+      <span style="font-weight:600; font-size:0.92rem; color:#e2e8f0;">⚙ Last Generation Result</span>
+      <span id="stat-status-badge" style="padding:0.25rem 0.9rem; border-radius:20px; font-size:0.78rem; font-weight:600; letter-spacing:0.05em;"></span>
+    </div>
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div id="stat-time" style="font-size:1.3rem; font-weight:700; color:#e2e8f0;">—</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.1rem;">Solve Time</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="stat-score" style="font-size:1.3rem; font-weight:700; color:#c4b5fd;">—</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.1rem;">Objective Score</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="stat-courses" style="font-size:1.3rem; font-weight:700; color:#34d399;">—</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.1rem;">Courses Placed</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="stat-hard" style="font-size:1.3rem; font-weight:700; color:#f87171;">—</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.1rem;">Hard Conflicts</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="stat-soft" style="font-size:1.3rem; font-weight:700; color:#fbbf24;">—</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.1rem;">Warnings</div>
+      </div>
+    </div>
+    <p id="stat-message" style="margin:0.75rem 0 0; font-size:0.85rem; color:#94a3b8; line-height:1.5;"></p>
+    <div id="stat-errors-block" style="display:none; margin-top:0.75rem;">
+      <p style="margin:0 0 0.4rem; font-weight:600; color:#f87171; font-size:0.82rem;">Validation Errors:</p>
+      <ul id="stat-errors-list" style="margin:0; padding-left:1.2rem; color:#fca5a5; font-size:0.82rem; line-height:1.8;"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- Filters Bar (No Cards, Compact Inline Spacing) -->
+<div style="padding: 0.5rem 0; display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+
+    <span style="font-weight: 700; color: var(--primary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Filter Grid:</span>
+    
+    <select id="filter_type" class="form-select" style="width: auto; padding: 0.4rem 1.75rem 0.4rem 0.75rem; font-size:0.9rem; border: 1px solid var(--border); border-radius: 6px; background-color: #ffffff;" onchange="updateFilters()">
+        <option value="group" {% if filter_type == 'group' %}selected{% endif %}>Student Group</option>
+        <option value="room" {% if filter_type == 'room' %}selected{% endif %}>Room</option>
+        <option value="lecturer" {% if filter_type == 'lecturer' %}selected{% endif %}>Lecturer</option>
+    </select>
+
+    <select id="filter_id" class="form-select" style="width: auto; padding: 0.4rem 1.75rem 0.4rem 0.75rem; font-size:0.9rem; border: 1px solid var(--border); border-radius: 6px; background-color: #ffffff;" onchange="reloadPage()">
+        {% if filter_type == 'group' %}
+            {% for g in student_groups %}
+                <option value="{{ g.id }}" {% if filter_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+        {% elif filter_type == 'room' %}
+            {% for r in rooms %}
+                <option value="{{ r.id }}" {% if filter_id == r.id %}selected{% endif %}>{{ r.name }} ({{ r.room_type }})</option>
+            {% endfor %}
+        {% elif filter_type == 'lecturer' %}
+            {% for l in lecturers %}
+                <option value="{{ l.id }}" {% if filter_id == l.id %}selected{% endif %}>{{ l.name }}</option>
+            {% endfor %}
+        {% endif %}
+    </select>
+
+    <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">
+        Showing grid for: <strong style="color: var(--text-main);">{{ selected_filter_name }}</strong>
+    </span>
+</div>
+
+
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- DARK SPACE-THEMED TIMETABLE SHELL                             -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="space-timetable-shell">
+
+    <!-- Shell top bar: view tabs + university info -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;gap:0.5rem;">
+
+        <!-- Weekly Grid Header -->
+        <div style="display:flex;align-items:center;gap:1.5rem;">
+            <span style="font-size:0.85rem;font-weight:700;color:#ffffff;text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:0.4rem;">
+                📅 Academic Timetable Grid
+            </span>
+            <button id="show-conflicts-btn" onclick="toggleConflictsSidebar(true)" class="btn btn-secondary" style="display: none; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #ffffff; height: 28px; font-size: 0.75rem; padding: 0 0.75rem; border-radius: 6px; align-items: center; gap: 0.35rem; cursor: pointer; transition: background 0.2s; box-sizing: border-box;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#f58220" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Show Conflicts
+            </button>
+        </div>
+
+        <!-- University · Semester label -->
+        <span style="font-size:0.78rem;font-weight:500;color:rgba(255,255,255,0.32);">
+            {{ active_university.name|default:"University" }} &nbsp;·&nbsp; {{ active_semester.name|default:"Semester" }}
+        </span>
+    </div>
+
+    <!-- Main Split Workspace -->
+    <div class="timetable-workspace">
+
+        <!-- Left Column: Timetable Grid with horizontal scroll for responsiveness -->
+        <div style="overflow-x: auto; min-width: 0; width: 100%;">
+            {% if slot_numbers %}
+                <!-- HTML Table Grid styled like a traditional university timetable -->
+                <div class="tt-table-wrapper">
+                    <table class="tt-table">
+                        <thead>
+                            <tr>
+                                <th class="th-time">Time</th>
+                                {% for day in days %}
+                                    <th class="th-day">
+                                        <div>{{ day.label }}</div>
+                                        {% if day.date %}
+                                            <div style="font-size: 10px; color: #94a3b8; font-weight: 500; margin-top: 2px;">{{ day.date|date:"M d" }}</div>
+                                        {% endif %}
+                                    </th>
+                                {% endfor %}
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot_num in slot_numbers %}
+                            <tr>
+                                <!-- Time column -->
+                                <td class="td-time">
+                                    {% with label=slot_time_labels|dict_key:slot_num %}
+                                    <span class="time-hour">
+                                        {% if label %}
+                                            {{ label.start }}
+                                        {% else %}
+                                            P{{ slot_num }}
+                                        {% endif %}
+                                    </span>
+                                    <span class="time-sub">
+                                        {% if label %}
+                                            {{ label.range }}
+                                        {% endif %}
+                                    </span>
+                                    {% endwith %}
+                                </td>
+
+
+                                <!-- Day columns -->
+                                {% for day in days %}
+                                {% with cell=grid|dict_key:slot_num|dict_key:day.num %}
+                                    {% if not cell.is_merged %}
+                                    <td class="td-cell {% if not cell.slots %}td-empty{% endif %}" {% if cell.rowspan > 1 %}rowspan="{{ cell.rowspan }}"{% endif %}>
+                                        {% if cell.slots %}
+                                            {% for slot in cell.slots %}
+                                            <div class="class-card day-{{ day.num }} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}" onclick="openEditModal({{ slot.id }}, '{{ slot.course.code }}', {{ slot.room.id }}, {{ slot.time_slot.id }})">
+                                                <!-- Lecturer inline avatar row -->
+                                                <div class="card-lecturer-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                                    <div style="display: flex; align-items: center; gap: 0.45rem; min-width: 0;">
+                                                        {% if slot.lecturer %}
+                                                        <div class="card-lecturer-name" title="{{ slot.lecturer.name }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ slot.lecturer.name }}</div>
+                                                        {% else %}
+                                                        <div class="card-lecturer-name">TBD Lecturer</div>
+                                                        {% endif %}
+                                                    </div>
+                                                    {% if slot.is_ongoing %}
+                                                        <span class="badge-live"><span class="pulse-dot"></span>Live</span>
+                                                    {% elif slot.has_ended %}
+                                                        <span style="font-size: 0.62rem; color: rgba(255,255,255,0.8); font-weight: 800; background: rgba(255,255,255,0.15); padding: 0.15rem 0.45rem; border-radius: 20px; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.25); white-space: nowrap; flex-shrink: 0; line-height: 1;">Ended</span>
+                                                    {% endif %}
+                                                </div>
+
+
+                                                <!-- Course details -->
+                                                <div class="card-course-info">
+                                                    <strong>{{ slot.course.code }}</strong>: {{ slot.course.name }}
+                                                </div>
+
+                                                <!-- Metadata block with horizontal tags -->
+                                                <div class="card-meta-row">
+                                                    <div class="card-meta-item" title="Delivery Mode">
+                                                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                                                        {% if slot.room.room_type == 'Lab' %}Physical Lab{% else %}Online{% endif %}
+                                                    </div>
+                                                    <div class="card-meta-item" title="Time of Day">
+                                                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                                                        {% if slot.time_slot.start_time.hour < 12 %}Morning{% else %}Afternoon{% endif %}
+                                                    </div>
+                                                    {% if filter_type != 'room' %}
+                                                    <div class="card-meta-item" title="Room Location">
+                                                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                                                        {{ slot.room.name }}
+                                                    </div>
+                                                    {% endif %}
+                                                    {% if filter_type != 'group' %}
+                                                    <div class="card-meta-item" title="Student Group">
+                                                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                                        {{ slot.student_group.name }}
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                {% endwith %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align:center;padding:4rem 2rem;color:rgba(255,255,255,0.35);">
+                    <div style="font-size:2.5rem;margin-bottom:1rem;">🗓</div>
+                    <h3 style="color:rgba(255,255,255,0.6);font-size:1.1rem;margin-bottom:0.5rem;">No schedule data available</h3>
+                    {% if active_role == 'admin' or active_role == 'scheduler' %}
+                        <p style="font-size:0.85rem;">Please configure timeslots in the settings first, then generate a timetable.</p>
+                    {% else %}
+                        <p style="font-size:0.85rem;">The scheduler hasn't set up timeslots yet. Please contact your coordinator.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: LIVE CONFLICTS Sidebar -->
+        <div class="cf-sidebar">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;">
+                <div class="cf-sidebar-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#f58220" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    Live Conflicts
+                </div>
+                <span style="cursor:pointer;font-size:1.1rem;color:rgba(255,255,255,0.5);transition:color 0.2s;" onmouseover="this.style.color='#f3f4f6'" onmouseout="this.style.color='rgba(255,255,255,0.5)'" onclick="toggleConflictsSidebar(false)">&times;</span>
+            </div>
+
+            <div class="cf-overall-status">
+                <span id="cf-status-text">Overall Status: Loading…</span>
+                <span id="cf-scanning-badge" style="display:flex;align-items:center;gap:0.3rem;font-size:0.68rem;color:rgba(255,255,255,0.35);">
+                    <span id="cf-scan-dot" style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;animation:cfpulse 2s ease-in-out infinite;"></span>
+                    Auto-scanning
+                </span>
+            </div>
+
+            <!-- Hard / Soft badges -->
+            <div class="cf-badge-row">
+                <div class="cf-badge cf-badge-hard">
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span id="cf-hard-count" class="cf-badge-num">—</span>
+                        <span class="cf-badge-icon">✓</span>
+                    </div>
+                    <div class="cf-badge-label">Hard Conflicts</div>
+                </div>
+                <div class="cf-badge cf-badge-soft">
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <span id="cf-soft-count" class="cf-badge-num">—</span>
+                        <span style="font-size:0.75rem;color:rgba(245,130,32,0.7);">!</span>
+                    </div>
+                    <div class="cf-badge-label">Soft Conflicts</div>
+                </div>
+            </div>
+
+            <!-- Scrollable conflict list -->
+            <div id="cf-list">
+                <div id="cf-loading" style="text-align:center;padding:1.5rem;color:rgba(255,255,255,0.3);">
+                    <div style="width:22px;height:22px;border:2px solid rgba(80,140,255,0.15);border-top-color:rgba(80,140,255,0.6);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 0.6rem;"></div>
+                    Scanning for conflicts…
+                </div>
+            </div>
+
+            <!-- Fix notice -->
+            <div id="cf-fix-result" style="display:none;margin-top:0.75rem;padding:0.65rem 0.75rem;border-radius:8px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);font-size:0.76rem;color:#34d399;"></div>
+
+            <!-- Action buttons -->
+            {% if active_role == 'admin' or active_role == 'scheduler' %}
+            <div style="margin-top:auto;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:0.5rem;">
+                <button onclick="runGenerate({{ timetable.pk }})"
+                    style="width:100%;padding:0.6rem;background:rgba(80,140,255,0.12);border:1px solid rgba(80,140,255,0.25);border-radius:8px;color:rgba(140,190,255,0.9);font-weight:600;font-size:0.8rem;cursor:pointer;transition:all 0.2s;"
+                    onmouseover="this.style.background='rgba(80,140,255,0.2)'" onmouseout="this.style.background='rgba(80,140,255,0.12)'">
+                    ↺ Regenerate Timetable
+                </button>
+                <a href="{% url 'scheduler:timetable_conflicts' timetable.pk %}"
+                   style="width:100%;padding:0.55rem;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.35);font-size:0.78rem;cursor:pointer;text-align:center;text-decoration:none;transition:all 0.2s;display:block;"
+                   onmouseover="this.style.borderColor='rgba(255,255,255,0.25)';this.style.color='rgba(255,255,255,0.65)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='rgba(255,255,255,0.35)'">
+                    Full Conflict Report →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Manual Adjustment Modal -->
+<div id="editModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span id="modalTitle">Adjust Class Assignment</span>
+            <span style="cursor: pointer; font-size: 1.5rem;" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form id="editForm" onsubmit="submitAdjust(event)">
+            {% csrf_token %}
+            <input type="hidden" id="edit_slot_id" name="slot_id">
+            
+            <div class="form-group">
+                <label class="form-label" for="edit_room">Assign Room</label>
+                <select id="edit_room" name="room_id" class="form-select">
+                    {% for r in rooms %}
+                        <option value="{{ r.id }}">{{ r.name }} ({{ r.get_room_type_display }}, Cap: {{ r.capacity }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="edit_timeslot">Assign Time Slot</label>
+                <select id="edit_timeslot" name="time_slot_id" class="form-select">
+                    {% for ts in timeslots %}
+                        <option value="{{ ts.id }}">{{ ts }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="modalAlerts" style="margin-top: 1rem; font-size: 0.8rem;"></div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ firebase_config|json_script:"firebase-config-data" }}
+{{ slots_json|json_script:"slots-data" }}
+{{ timeslots_json|json_script:"timeslots-data" }}
+<!-- Firebase SDKs (v8 Compat) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+    // Initialize Firebase if configured
+    let useFirebase = false;
+    let db = null;
+    try {
+        const configEl = document.getElementById('firebase-config-data');
+        if (configEl) {
+            const firebaseConfig = JSON.parse(configEl.textContent);
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.databaseURL) {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.database();
+                useFirebase = true;
+                console.log("[Firebase] Successfully initialized web client SDK.");
+            }
+        }
+    } catch (e) {
+        console.warn("[Firebase] Could not initialize Firebase client:", e);
+    }
+</script>
+<script>
+    // Timetable detail scripts - traditional table view
+    // Auto-highlight today's header cell if active
+    document.addEventListener('DOMContentLoaded', () => {
+        const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+        const today = days[new Date().getDay()];
+        document.querySelectorAll('.th-day').forEach(th => {
+            if (th.textContent.trim().toLowerCase() === today) {
+                th.style.boxShadow = 'inset 0 -3px 0 #2dd4bf';
+                th.style.color = '#2dd4bf';
+            }
+        });
+    });
+
+    /** Switch FullCalendar view and update active tab button */
+    function switchCalendarView(viewName) {
+        if (!window._ttCalendar) return;
+        window._ttCalendar.changeView(viewName);
+        // Force re-render of eventContent (which checks view type)
+        window._ttCalendar.render();
+
+        // Update active button
+        document.querySelectorAll('.cal-view-btn').forEach(b => b.classList.remove('cal-view-btn--active'));
+        const map = { 'timeGridWeek': 'view-btn-week', 'dayGridMonth': 'view-btn-month', 'listYear': 'view-btn-year' };
+        const btnId = map[viewName];
+        if (btnId) document.getElementById(btnId)?.classList.add('cal-view-btn--active');
+    }
+
+    function updateFilters() {
+        const filterType = document.getElementById('filter_type').value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('filter_type', filterType);
+        url.searchParams.delete('filter_id');
+        window.location.href = url.toString();
+    }
+
+    function reloadPage() {
+        const filterType = document.getElementById('filter_type').value;
+        const filterId = document.getElementById('filter_id').value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('filter_type', filterType);
+        url.searchParams.set('filter_id', filterId);
+        window.location.href = url.toString();
+    }
+
+    // Modal Operations
+    function openEditModal(slotId, courseCode, currentRoomId, currentTimeSlotId) {
+        document.getElementById('edit_slot_id').value = slotId;
+        document.getElementById('modalTitle').innerText = `Adjust Course: ${courseCode}`;
+        document.getElementById('edit_room').value = currentRoomId;
+        document.getElementById('edit_timeslot').value = currentTimeSlotId;
+        document.getElementById('modalAlerts').innerHTML = '';
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function submitAdjust(event) {
+        event.preventDefault();
+        const slotId = document.getElementById('edit_slot_id').value;
+        const roomId = document.getElementById('edit_room').value;
+        const timeSlotId = document.getElementById('edit_timeslot').value;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const formData = new FormData();
+        formData.append('room_id', roomId);
+        formData.append('time_slot_id', timeSlotId);
+        
+        fetch(`/slots/${slotId}/update/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(errData => {
+                    throw new Error(errData.message || 'Server error.');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                if (data.errors.length > 0) {
+                    let alertDiv = document.getElementById('modalAlerts');
+                    alertDiv.innerHTML = `<div class="badge badge-error" style="display:block; padding:0.5rem; margin-bottom:0.5rem;">[Collision] Hard Conflict Added:<br>${data.errors.join('<br>')}</div>`;
+                } else if (data.warnings.length > 0) {
+                    let alertDiv = document.getElementById('modalAlerts');
+                    alertDiv.innerHTML = `<div class="badge badge-warning" style="display:block; padding:0.5rem; margin-bottom:0.5rem;">[Warning] Warnings Added:<br>${data.warnings.join('<br>')}</div>`;
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                let alertDiv = document.getElementById('modalAlerts');
+                alertDiv.innerHTML = `<div class="badge badge-error" style="display:block; padding:0.5rem; margin-bottom:0.5rem;">[Error] ${data.message || 'Operation failed.'}</div>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            let alertDiv = document.getElementById('modalAlerts');
+            alertDiv.innerHTML = `<div class="badge badge-error" style="display:block; padding:0.5rem; margin-bottom:0.5rem;">[Error] ${err.message || 'An error occurred.'}</div>`;
+        });
+    }
+
+    /* ── Generation: async polling system ──────────────────────────── */
+    const TIMETABLE_ID = {{ timetable.pk }};
+    const STATUS_URL  = `/timetables/${TIMETABLE_ID}/status/`;
+    const GEN_URL     = `/timetables/${TIMETABLE_ID}/generate/`;
+    const SLOT_COUNT  = {{ slot_count|default:0 }};
+
+    let pollTimer = null;
+    let elapsedTimer = null;
+    let elapsedSeconds = 0;
+    let genStarted = false;   // true = we triggered generation this session
+    let maxPollSeconds = 300;     // stop polling after 300s (5 minutes) default
+
+    /* Animate the indeterminate progress bar (cycles 0→90→0) */
+    let _pbDir = 1, _pbVal = 5;
+    function tickProgressBar() {
+        _pbVal += _pbDir * 1.8;
+        if (_pbVal >= 90) _pbDir = -1;
+        if (_pbVal <= 5)  _pbDir =  1;
+        document.getElementById('gen-progress-fill').style.width = _pbVal + '%';
+    }
+
+    function showOverlay(msg) {
+        document.getElementById('gen-overlay-msg').textContent = msg || 'The solver is running. This may take up to 60 seconds.';
+        document.getElementById('gen-overlay').classList.add('active');
+    }
+
+    function hideOverlay() {
+        document.getElementById('gen-overlay').classList.remove('active');
+        document.getElementById('gen-progress-fill').style.width = '100%';
+    }
+
+    function resetGenerateUI() {
+        stopPolling();
+        hideOverlay();
+        const btn = document.getElementById('generate-btn');
+        const limitSelect = document.getElementById('time-limit-select');
+        if (limitSelect) limitSelect.disabled = false;
+        if (btn) {
+            btn.disabled = false;
+            document.getElementById('gen-icon').style.display = 'inline';
+            document.getElementById('gen-spinner').style.display = 'none';
+            document.getElementById('gen-label').textContent = 'Generate';
+        }
+    }
+
+    function startElapsedClock() {
+        elapsedSeconds = 0;
+        document.getElementById('ov-elapsed').textContent = '0s';
+        if (elapsedTimer) clearInterval(elapsedTimer);
+        elapsedTimer = setInterval(() => {
+            elapsedSeconds++;
+            document.getElementById('ov-elapsed').textContent = elapsedSeconds + 's';
+            tickProgressBar();
+            // Safety: if no result after maxPollSeconds seconds, reset UI and alert
+            if (elapsedSeconds >= maxPollSeconds) {
+                resetGenerateUI();
+                alert('The generation task is taking longer than expected. It may still be running in the background. Please check the "Generation Log" for updates.');
+            }
+        }, 1000);
+    }
+
+    function stopPolling() {
+        if (pollTimer)   { clearInterval(pollTimer);   pollTimer = null; }
+        if (elapsedTimer){ clearInterval(elapsedTimer); elapsedTimer = null; }
+    }
+
+    /* Render stats panel from a result object */
+    function renderStats(data) {
+        const panel = document.getElementById('solver-stats-panel');
+        panel.style.display = 'block';
+
+        const badgeColors = {
+            'OPTIMAL':   { bg:'rgba(52,211,153,0.15)', color:'#34d399', border:'rgba(52,211,153,0.35)' },
+            'FEASIBLE':  { bg:'rgba(96,165,250,0.15)', color:'#60a5fa', border:'rgba(96,165,250,0.35)' },
+            'INFEASIBLE':{ bg:'rgba(248,113,113,0.15)',color:'#f87171', border:'rgba(248,113,113,0.35)' },
+            'VALIDATION_ERROR': { bg:'rgba(251,191,36,0.15)', color:'#fbbf24', border:'rgba(251,191,36,0.35)' },
+            'ERROR':     { bg:'rgba(251,191,36,0.15)', color:'#fbbf24', border:'rgba(251,191,36,0.35)' },
+            'QUEUED':    { bg:'rgba(96,165,250,0.15)', color:'#60a5fa', border:'rgba(96,165,250,0.35)' },
+            'PENDING':   { bg:'rgba(96,165,250,0.15)', color:'#60a5fa', border:'rgba(96,165,250,0.35)' },
+        };
+        const bc = badgeColors[data.status] || badgeColors['ERROR'];
+        const badge = document.getElementById('stat-status-badge');
+        badge.textContent = data.status;
+        badge.style.background = bc.bg;
+        badge.style.color = bc.color;
+        badge.style.border = `1px solid ${bc.border}`;
+
+        document.getElementById('stat-time').textContent    = data.solve_time_seconds != null ? data.solve_time_seconds.toFixed(3)+'s' : (data.solve_time != null ? Number(data.solve_time).toFixed(3)+'s' : '—');
+        document.getElementById('stat-score').textContent   = data.solver_score != null ? data.solver_score : '—';
+        document.getElementById('stat-courses').textContent = data.courses_scheduled != null ? data.courses_scheduled : '—';
+        document.getElementById('stat-hard').textContent    = data.hard_conflicts != null ? data.hard_conflicts : '—';
+        document.getElementById('stat-soft').textContent    = (data.soft_conflicts != null ? data.soft_conflicts : (data.soft_conflicts_found != null ? data.soft_conflicts_found : '—'));
+        document.getElementById('stat-message').textContent = data.message || '';
+
+        const errBlock = document.getElementById('stat-errors-block');
+        const errList  = document.getElementById('stat-errors-list');
+        if (data.validation_errors && data.validation_errors.length > 0) {
+            errList.innerHTML = data.validation_errors.map(e => `<li>${e}</li>`).join('');
+            errBlock.style.display = 'block';
+        } else {
+            errBlock.style.display = 'none';
+        }
+    }
+
+    function handleStatusUpdate(data) {
+        // Update overlay live counters
+        if (data.courses_scheduled != null)
+            document.getElementById('ov-courses').textContent = data.courses_scheduled;
+        if (data.hard_conflicts != null)
+            document.getElementById('ov-conflicts').textContent = data.hard_conflicts;
+
+        // Update solver message if provided
+        if (data.message) {
+            document.getElementById('gen-overlay-msg').textContent = data.message;
+        }
+
+        const done = ['OPTIMAL','FEASIBLE','INFEASIBLE','VALIDATION_ERROR','ERROR'].includes(data.status);
+        if (done) {
+            if (useFirebase && db) {
+                db.ref('timetables/' + TIMETABLE_ID + '/status').off('value');
+            }
+            resetGenerateUI();
+            renderStats(data);
+            // Auto-reload the grid
+            if (data.status === 'OPTIMAL' || data.status === 'FEASIBLE') {
+                document.getElementById('gen-overlay-title').textContent = '✓ Done! Reloading grid...';
+                document.getElementById('gen-overlay').classList.add('active');
+                document.getElementById('gen-progress-fill').style.width = '100%';
+                document.getElementById('gen-overlay-msg').textContent = `${data.courses_scheduled} courses placed. Page refreshing now...`;
+                setTimeout(() => window.location.reload(), 1400);
+            }
+        }
+    }
+
+    /* Poll the status endpoint until generation is done, then reload */
+    function startPolling() {
+        startElapsedClock();
+        if (useFirebase && db) {
+            console.log("[Firebase] Subscribing to live generation status...");
+            db.ref('timetables/' + TIMETABLE_ID + '/status').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    handleStatusUpdate(data);
+                }
+            });
+        } else {
+            if (pollTimer) return; // already polling
+            pollTimer = setInterval(async () => {
+                try {
+                    const r = await fetch(STATUS_URL, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const data = await r.json();
+                    handleStatusUpdate(data);
+                } catch(e) {
+                    console.warn('Polling error:', e);
+                }
+            }, 2000); // poll every 2 seconds
+        }
+    }
+
+    /* Main entry point — called by the Generate button */
+    function runGenerate(timetableId) {
+        const btn = document.getElementById('generate-btn');
+        const icon = document.getElementById('gen-icon');
+        const spinner = document.getElementById('gen-spinner');
+        const label = document.getElementById('gen-label');
+        const limitSelect = document.getElementById('time-limit-select');
+
+        const selectedLimit = limitSelect ? limitSelect.value : 'auto';
+        if (selectedLimit === 'auto') {
+            maxPollSeconds = 300;
+        } else {
+            maxPollSeconds = parseInt(selectedLimit, 10) + 30; // selected limit + 30s safety buffer
+        }
+
+        btn.disabled = true;
+        if (limitSelect) limitSelect.disabled = true;
+        icon.style.display = 'none';
+        spinner.style.display = 'inline';
+        label.textContent = 'Queuing…';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+
+        const formData = new FormData();
+        formData.append('time_limit', selectedLimit);
+
+        fetch(GEN_URL, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            genStarted = true;
+
+            // If the task was queued (async mode) — show overlay and start polling
+            if (data.status === 'QUEUED') {
+                showOverlay('The solver is running in the background…');
+                label.textContent = 'Running…';
+                startPolling();
+                return;
+            }
+
+            // Synchronous fallback: result already available
+            btn.disabled = false;
+            if (limitSelect) limitSelect.disabled = false;
+            icon.style.display = 'inline';
+            spinner.style.display = 'none';
+            label.textContent = 'Generate';
+            renderStats(data);
+            document.getElementById('solver-stats-panel').scrollIntoView({ behavior:'smooth', block:'nearest' });
+            if (data.status === 'OPTIMAL' || data.status === 'FEASIBLE') {
+                showOverlay('✓ Done! Reloading grid…');
+                document.getElementById('gen-progress-fill').style.width = '100%';
+                document.getElementById('gen-overlay-msg').textContent = `${data.courses_scheduled} courses placed. Page refreshing now…`;
+                setTimeout(() => window.location.reload(), 1500);
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            if (limitSelect) limitSelect.disabled = false;
+            icon.style.display = 'inline';
+            spinner.style.display = 'none';
+            label.textContent = 'Generate';
+            console.error(err);
+            alert('Generation request failed. Check the console for details.');
+        });
+    }
+
+    /* ── Auto-poll on page load if generation is in progress ── */
+    (function autoCheckOnLoad() {
+        // Silently check if a generation ran recently
+        fetch(STATUS_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(data => {
+                const inProgress = ['QUEUED','PENDING','VALIDATING','SOLVING','CHECKING_CONFLICTS'].includes(data.status);
+                const justDone = ['OPTIMAL','FEASIBLE'].includes(data.status);
+                if (inProgress) {
+                    showOverlay('A generation is running in the background…');
+                    startPolling();
+                } else if (justDone && SLOT_COUNT === 0) {
+                    // Generation completed but page hasn't refreshed yet
+                    window.location.reload();
+                }
+            })
+            .catch(() => {}); // silent — don't bother user on fail
+    })();
+
+    // ── Drag & Drop Implementation ──
+    let draggedSlotId = null;
+    let draggedRoomId = null;
+    let draggedTimeSlotId = null;
+
+    function dragStart(event, slotId, roomId, timeSlotId) {
+        draggedSlotId = slotId;
+        draggedRoomId = roomId;
+        draggedTimeSlotId = timeSlotId;
+        
+        event.dataTransfer.setData('text/plain', slotId);
+        event.dataTransfer.effectAllowed = 'move';
+        
+        // Add a slight transparency to the card being dragged
+        setTimeout(() => {
+            event.target.style.opacity = '0.4';
+        }, 0);
+    }
+
+    document.addEventListener('dragend', (event) => {
+        if (event.target.classList.contains('slot-card')) {
+            event.target.style.opacity = '1';
+        }
+    });
+
+    function allowDrop(event) {
+        event.preventDefault();
+        const cell = event.currentTarget;
+        if (cell.classList.contains('drop-zone')) {
+            cell.style.backgroundColor = 'rgba(45, 212, 191, 0.15)';
+            cell.style.borderColor = '#2dd4bf';
+        }
+    }
+
+    function dragLeave(event) {
+        const cell = event.currentTarget;
+        cell.style.backgroundColor = '';
+        cell.style.borderColor = '';
+    }
+
+    async function handleDrop(event) {
+        event.preventDefault();
+        const cell = event.currentTarget;
+        cell.style.backgroundColor = '';
+        cell.style.borderColor = '';
+
+        const targetTimeSlotId = cell.getAttribute('data-time-slot-id');
+        if (!targetTimeSlotId || !draggedSlotId) return;
+
+        // If dropped in the same slot, do nothing
+        if (parseInt(targetTimeSlotId) === draggedTimeSlotId) return;
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const formData = new FormData();
+        formData.append('room_id', draggedRoomId);
+        formData.append('time_slot_id', targetTimeSlotId);
+
+        try {
+            // Show scanning indicator on list
+            document.getElementById('cf-list').innerHTML = `
+                <div id="cf-loading" style="text-align:center;padding:1.5rem;color:#94a3b8;">
+                    <div style="width:24px;height:24px;border:2px solid rgba(45,212,191,0.2);border-top-color:#2dd4bf;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 0.5rem;"></div>
+                    Saving slot changes…
+                </div>`;
+
+            const response = await fetch(`/slots/${draggedSlotId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                alert('Failed to update slot assignment: ' + (data.message || 'Unknown error'));
+                loadConflicts();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred while saving.');
+            loadConflicts();
+        }
+    }
+
+    // ── Live Conflict Detection System ──
+    const CONFLICTS_JSON_URL = `/timetables/${TIMETABLE_ID}/conflicts/json/`;
+    const AUTOFIX_URL = `/timetables/${TIMETABLE_ID}/conflicts/autofix/`;
+    let conflictPollTimer = null;
+    let autofixAttempted = false;
+
+    async function loadConflictsOnce() {
+        try {
+            const r = await fetch(CONFLICTS_JSON_URL, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!r.ok) throw new Error('Failed to fetch conflicts');
+            const data = await r.json();
+            renderConflicts(data);
+        } catch (e) {
+            console.error('Conflict loading error:', e);
+            document.getElementById('cf-list').innerHTML = `<div style="color:#ef4444;text-align:center;padding:1rem;">Failed to load conflicts.</div>`;
+        }
+    }
+
+    async function runAutoFix() {
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+            const r = await fetch(AUTOFIX_URL, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!r.ok) return;
+            const data = await r.json();
+            if (data && data.fixed > 0) {
+                const fixEl = document.getElementById('cf-fix-result');
+                if (fixEl) {
+                    fixEl.style.display = 'block';
+                    fixEl.textContent = `✓ Auto-fixed ${data.fixed} soft conflict${data.fixed !== 1 ? 's' : ''}.`;
+                    setTimeout(() => { fixEl.style.display = 'none'; }, 6000);
+                }
+                loadConflictsOnce();
+            }
+        } catch(e) {
+            // Silently ignore autofix failures
+        }
+    }
+
+    function renderConflicts(data) {
+        const cfList = document.getElementById('cf-list');
+        const hardCount = document.getElementById('cf-hard-count');
+        const softCount = document.getElementById('cf-soft-count');
+        const statusText = document.getElementById('cf-status-text');
+
+        hardCount.textContent = data.hard_count;
+        softCount.textContent = data.soft_count;
+
+        const total = (data.hard_count || 0) + (data.soft_count || 0);
+        if (statusText) {
+            statusText.textContent = total === 0
+                ? 'Overall Status: No Conflicts ✓'
+                : `Overall Status: ${total} Conflict${total !== 1 ? 's' : ''}`;
+        }
+
+        // Clear list
+        cfList.innerHTML = '';
+
+        if (data.total === 0) {
+            cfList.innerHTML = `
+                <div style="text-align:center;padding:2rem 1rem;color:rgba(80,200,120,0.7);background:rgba(80,200,120,0.05);border-radius:10px;border:1px dashed rgba(80,200,120,0.15);">
+                    <div style="font-size:1.5rem;margin-bottom:0.4rem;">✓</div>
+                    <div style="font-size:0.8rem;font-weight:600;">No conflicts detected!</div>
+                </div>`;
+            return;
+        }
+
+        let idx = 1;
+
+        // Render hard errors
+        if (data.errors) {
+            data.errors.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'conflict-item conflict-item-hard';
+                const parts = c.message ? c.message.split(/between slots|between/i) : [];
+                const timePart = parts[1] ? parts[1].trim().split(' ')[0] + ' ' + (parts[1].trim().split(' ')[1] || '') : '';
+                item.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:0.5rem;width:100%;">
+                        <span style="font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.3);flex-shrink:0;min-width:18px;">(${idx++})</span>
+                        <div class="conflict-item-inner">
+                            <div class="conflict-item-title">${c.type.replace(/_/g,' ')}</div>
+                            <div class="conflict-item-sub">${c.message}</div>
+                        </div>
+                        <span class="conflict-item-arrow">›</span>
+                    </div>`;
+                cfList.appendChild(item);
+            });
+        }
+
+        // Render soft warnings
+        if (data.warnings) {
+            data.warnings.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'conflict-item';
+                item.innerHTML = `
+                    <div style="display:flex;align-items:center;gap:0.5rem;width:100%;">
+                        <span style="font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.3);flex-shrink:0;min-width:18px;">(${idx++})</span>
+                        <div class="conflict-item-inner">
+                            <div class="conflict-item-title">${c.type.replace(/_/g,' ')}</div>
+                            <div class="conflict-item-sub">${c.message}</div>
+                        </div>
+                        <span class="conflict-item-arrow">›</span>
+                    </div>`;
+                cfList.appendChild(item);
+            });
+        }
+
+        // Auto-trigger conflict resolution if we haven't tried yet on this view
+        {% if active_role == 'admin' or active_role == 'scheduler' %}
+        if (!autofixAttempted) {
+            autofixAttempted = true;
+            runAutoFix();
+        }
+        {% endif %}
+    }
+
+    function startConflictPolling() {
+        if (useFirebase && db) {
+            console.log("[Firebase] Subscribing to live conflicts...");
+            db.ref('timetables/' + TIMETABLE_ID + '/conflicts').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    renderConflicts(data);
+                } else {
+                    loadConflictsOnce();
+                }
+            });
+        } else {
+            loadConflictsOnce();
+            conflictPollTimer = setInterval(loadConflictsOnce, 8000);
+        }
+    }
+
+    // Collaborative refresh notification banner
+    let lastRefreshTime = null;
+    function startRefreshListener() {
+        if (useFirebase && db) {
+            console.log("[Firebase] Subscribing to collaborative update notifications...");
+            db.ref('timetables/' + TIMETABLE_ID + '/refresh').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.updated_at) {
+                    if (lastRefreshTime !== null && data.updated_at > lastRefreshTime) {
+                        showToastNotification("Schedule updated by another user. Click to reload.", () => {
+                            window.location.reload();
+                        });
+                    }
+                    lastRefreshTime = data.updated_at;
+                } else if (data === null) {
+                    lastRefreshTime = Date.now();
+                }
+            });
+        }
+    }
+
+    function showToastNotification(message, callback) {
+        let toast = document.getElementById('firebase-toast');
+        if (toast) toast.remove();
+
+        if (!document.getElementById('toast-keyframes-style')) {
+            const style = document.createElement('style');
+            style.id = 'toast-keyframes-style';
+            style.innerHTML = `@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`;
+            document.head.appendChild(style);
+        }
+
+        toast = document.createElement('div');
+        toast.id = 'firebase-toast';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.right = '20px';
+        toast.style.backgroundColor = '#1f2937';
+        toast.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+        toast.style.borderRadius = '8px';
+        toast.style.padding = '12px 18px';
+        toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.5)';
+        toast.style.zIndex = '9999';
+        toast.style.color = '#f9fafb';
+        toast.style.fontSize = '0.85rem';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '12px';
+        toast.style.animation = 'slideIn 0.3s ease-out';
+
+        toast.innerHTML = `
+            <span>🔄 ${message}</span>
+            <button id="toast-reload-btn" style="background:#10b981;color:white;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:0.8rem;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter='none'">Reload</button>
+            <span id="toast-close" style="cursor:pointer;font-weight:bold;color:#9ca3af;margin-left:4px;font-size:1.2rem;" onmouseover="this.style.color='#f3f4f6'" onmouseout="this.style.color='#9ca3af'">&times;</span>
+        `;
+
+        document.body.appendChild(toast);
+
+        document.getElementById('toast-reload-btn').addEventListener('click', callback);
+        document.getElementById('toast-close').addEventListener('click', () => {
+            toast.remove();
+        });
+    }
+
+    // Start live conflict detection and refresh notifications on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        startConflictPolling();
+        startRefreshListener();
+    });
+
+    // ── PDF Download Customizer JS ──
+    function openPdfModal() {
+        document.getElementById('pdfCustomizerModal').classList.add('active');
+    }
+
+    function closePdfModal() {
+        document.getElementById('pdfCustomizerModal').classList.remove('active');
+    }
+
+    function setPdfTheme(primary, alt, btn) {
+        document.getElementById('pdf-primary-color').value = primary;
+        document.getElementById('pdf-alt-color').value = alt;
+        
+        const buttons = document.querySelectorAll('.theme-btn');
+        buttons.forEach(b => {
+            b.classList.remove('active');
+            b.style.borderColor = '#374151';
+            b.style.borderWidth = '1px';
+        });
+        
+        btn.classList.add('active');
+        btn.style.borderColor = '#34d399';
+        btn.style.borderWidth = '2px';
+    }
+
+    function triggerPdfDownload() {
+        const title = encodeURIComponent(document.getElementById('pdf-title').value);
+        const subtitle = encodeURIComponent(document.getElementById('pdf-subtitle').value);
+        const logoText = encodeURIComponent(document.getElementById('pdf-logo-text').value);
+        const primary = encodeURIComponent(document.getElementById('pdf-primary-color').value);
+        const alt = encodeURIComponent(document.getElementById('pdf-alt-color').value);
+        const showLogo = document.getElementById('pdf-show-logo').checked ? 'true' : 'false';
+        
+        const exportScope = document.getElementById('pdf-export-scope').value;
+        const layoutType = document.getElementById('pdf-layout-type').value;
+        const filterType = "{{ filter_type|default:'' }}";
+        const filterId = "{{ filter_id|default:'' }}";
+        
+        let url = `/timetables/${TIMETABLE_ID}/export-pdf/?title=${title}&subtitle=${subtitle}&logo_text=${logoText}&primary_color=${primary}&alt_color=${alt}&show_logo=${showLogo}&layout_type=${encodeURIComponent(layoutType)}`;
+        
+        if (exportScope === 'current') {
+            if (filterType && filterId) {
+                url += `&filter_type=${encodeURIComponent(filterType)}&filter_id=${encodeURIComponent(filterId)}`;
+            }
+        } else {
+            url += `&filter_type=${encodeURIComponent(exportScope)}`;
+        }
+        
+        window.location.href = url;
+        closePdfModal();
+    }
+
+    function triggerWordDownload() {
+        const title = encodeURIComponent(document.getElementById('pdf-title').value);
+        const subtitle = encodeURIComponent(document.getElementById('pdf-subtitle').value);
+        const primary = encodeURIComponent(document.getElementById('pdf-primary-color').value);
+        const alt = encodeURIComponent(document.getElementById('pdf-alt-color').value);
+        
+        const exportScope = document.getElementById('pdf-export-scope').value;
+        const filterType = "{{ filter_type|default:'' }}";
+        const filterId = "{{ filter_id|default:'' }}";
+        
+        let url = `/timetables/${TIMETABLE_ID}/export-word/?title=${title}&subtitle=${subtitle}&primary_color=${primary}&alt_color=${alt}`;
+        
+        if (exportScope === 'current') {
+            if (filterType && filterId) {
+                url += `&filter_type=${encodeURIComponent(filterType)}&filter_id=${encodeURIComponent(filterId)}`;
+            }
+        } else {
+            url += `&filter_type=${encodeURIComponent(exportScope)}`;
+        }
+        
+        window.location.href = url;
+        closePdfModal();
+    }
+
+    function toggleExportDropdown(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('export-dropdown-menu');
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function closeExportDropdown() {
+        const menu = document.getElementById('export-dropdown-menu');
+        if (menu) menu.style.display = 'none';
+    }
+
+    document.addEventListener('click', function() {
+        closeExportDropdown();
+    });
+
+    function toggleConflictsSidebar(show) {
+        const workspace = document.querySelector('.timetable-workspace');
+        const showBtn = document.getElementById('show-conflicts-btn');
+        if (show) {
+            workspace.classList.remove('sidebar-collapsed');
+            if (showBtn) showBtn.style.display = 'none';
+            localStorage.setItem('conflicts_sidebar_visible', 'true');
+        } else {
+            workspace.classList.add('sidebar-collapsed');
+            if (showBtn) showBtn.style.display = 'inline-flex';
+            localStorage.setItem('conflicts_sidebar_visible', 'false');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const isVisible = localStorage.getItem('conflicts_sidebar_visible') !== 'false';
+        toggleConflictsSidebar(isVisible);
+    });
+</script>
+
+<!-- PDF Brand Customizer Modal -->
+<div id="pdfCustomizerModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 450px; background: #111827; border: 1px solid #1f2937; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.4);">
+        <div class="modal-header" style="border-bottom: 1px solid #1f2937; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: #f9fafb; font-size: 1.1rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #34d399;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Document Customizer & Downloader
+            </span>
+            <span style="cursor: pointer; font-size: 1.5rem; color: #9ca3af; transition: color 0.2s;" onmouseover="this.style.color='#f3f4f6'" onmouseout="this.style.color='#9ca3af'" onclick="closePdfModal()">&times;</span>
+        </div>
+        <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+            <div>
+                <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.05em;">Timetable Title</label>
+                <input type="text" id="pdf-title" style="width: 100%; border: 1px solid #374151; border-radius: 6px; padding: 0.65rem; background: #1f2937; color: #f9fafb; outline: none; font-size: 0.9rem;" value="{{ timetable.name }} — {{ active_semester.name }}">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.05em;">Subtitle / Department</label>
+                <input type="text" id="pdf-subtitle" style="width: 100%; border: 1px solid #374151; border-radius: 6px; padding: 0.65rem; background: #1f2937; color: #f9fafb; outline: none; font-size: 0.9rem;" value="{{ active_university.name }} | Generated Timetable{% if selected_filter_name %} — {{ selected_filter_name }}{% endif %}">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.05em;">Branding Logo Text</label>
+                <input type="text" id="pdf-logo-text" style="width: 100%; border: 1px solid #374151; border-radius: 6px; padding: 0.65rem; background: #1f2937; color: #f9fafb; outline: none; font-size: 0.9rem;" value="KU">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.05em;">Brand Color Theme</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="setPdfTheme('#0d5a4f', '#f0fdfa', this)" class="theme-btn active" style="flex: 1; height: 35px; border-radius: 6px; border: 2px solid #34d399; background: #0d5a4f; color: white; cursor: pointer; font-size: 0.75rem; font-weight:600; outline: none;">Teal</button>
+                    <button onclick="setPdfTheme('#1e3a8a', '#eff6ff', this)" class="theme-btn" style="flex: 1; height: 35px; border-radius: 6px; border: 1px solid #374151; background: #1e3a8a; color: white; cursor: pointer; font-size: 0.75rem; font-weight:600; outline: none;">Blue</button>
+                    <button onclick="setPdfTheme('#7f1d1d', '#fef2f2', this)" class="theme-btn" style="flex: 1; height: 35px; border-radius: 6px; border: 1px solid #374151; background: #7f1d1d; color: white; cursor: pointer; font-size: 0.75rem; font-weight:600; outline: none;">Red</button>
+                    <button onclick="setPdfTheme('#1e293b', '#f8fafc', this)" class="theme-btn" style="flex: 1; height: 35px; border-radius: 6px; border: 1px solid #374151; background: #1e293b; color: white; cursor: pointer; font-size: 0.75rem; font-weight:600; outline: none;">Charcoal</button>
+                </div>
+                <input type="hidden" id="pdf-primary-color" value="#0d5a4f">
+                <input type="hidden" id="pdf-alt-color" value="#f0fdfa">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <input type="checkbox" id="pdf-show-logo" checked style="width: 16px; height: 16px; accent-color: #10b981; cursor: pointer;">
+                <label for="pdf-show-logo" style="font-size: 0.85rem; color: #9ca3af; cursor: pointer; user-select: none;">Show University logo/badge on document</label>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.05em;">Export Scope</label>
+                    <select id="pdf-export-scope" style="width: 100%; border: 1px solid #374151; border-radius: 6px; padding: 0.65rem; background: #1f2937; color: #f9fafb; outline: none; font-size: 0.9rem; cursor: pointer;">
+                        <option value="current">Current Active View Only</option>
+                        <option value="all_groups">All Student Groups (With classes)</option>
+                        <option value="all_rooms">All Rooms (With classes)</option>
+                        <option value="all_lecturers">All Lecturers (With classes)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 700; letter-spacing: 0.05em;">Layout Type</label>
+                    <select id="pdf-layout-type" style="width: 100%; border: 1px solid #374151; border-radius: 6px; padding: 0.65rem; background: #1f2937; color: #f9fafb; outline: none; font-size: 0.9rem; cursor: pointer;">
+                        <option value="weekly">Weekly Grid Layout (Default)</option>
+                        <option value="monthly">Monthly Calendar View</option>
+                        <option value="yearly">Yearly Curriculum Overview</option>
+                        <option value="master">Master Timetable Layout</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; border-top: 1px solid #1f2937; padding-top: 1.25rem;">
+                <button onclick="closePdfModal()" class="btn btn-secondary" style="flex: 1; justify-content: center; height: 42px; border: 1px solid #374151; background: transparent; color: #d1d5db; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 0.85rem;" onmouseover="this.style.background='#1f2937'" onmouseout="this.style.background='transparent'">Cancel</button>
+                <button onclick="triggerWordDownload()" class="btn btn-secondary" style="flex: 1.5; justify-content: center; height: 42px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.2)); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter='none'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Word (.docx)
+                </button>
+                <button onclick="triggerPdfDownload()" class="btn btn-primary" style="flex: 1.5; justify-content: center; height: 42px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter='none'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    PDF (.pdf)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

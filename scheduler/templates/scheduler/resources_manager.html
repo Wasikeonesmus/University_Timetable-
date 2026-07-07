@@ -1,0 +1,370 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Manage {{ tab_title }} - University Timetable System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.5rem;">Resource Administrator UI</h1>
+        <p style="color: var(--text-muted);">Manage resources scoped for: <strong style="color: var(--text-main);">{{ active_university.name }}</strong></p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{% url 'scheduler:import_resources' %}" class="btn" style="background: linear-gradient(135deg, #0d9488, #2dd4bf); color: white; border: none; font-weight: 600; font-size: 0.85rem; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 10px rgba(13, 148, 136, 0.3);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Data Import Engine
+        </a>
+        <div style="font-size: 0.85rem; background: rgba(13, 148, 136, 0.1); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.2); height: 36px; display: flex; align-items: center;">
+            <span style="color: var(--text-muted);">Current Tab:</span>&nbsp;<strong style="color: var(--primary);">{{ tab_title }}</strong>
+            <span style="margin: 0 0.5rem; color: var(--border);">|</span>
+            <span style="color: var(--text-muted);">Total:</span>&nbsp;<strong style="color: var(--text-main);">{{ items|length }}</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Horizontal Quick Navigation Pills -->
+<div class="card" style="padding: 0.75rem; margin-bottom: 2rem; background-color: rgba(13, 148, 136, 0.03); border-color: rgba(13, 148, 136, 0.15);">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'scheduler:resources_manager' %}?tab=university" class="btn {% if active_tab == 'university' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Universities</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=campus" class="btn {% if active_tab == 'campus' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Campuses</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=faculty" class="btn {% if active_tab == 'faculty' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Faculties</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=department" class="btn {% if active_tab == 'department' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Departments</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=course" class="btn {% if active_tab == 'course' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Courses</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=studentgroup" class="btn {% if active_tab == 'studentgroup' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Student Groups</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=lecturer" class="btn {% if active_tab == 'lecturer' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Lecturers</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=room" class="btn {% if active_tab == 'room' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Rooms</a>
+        <a href="{% url 'scheduler:resources_manager' %}?tab=timeslot" class="btn {% if active_tab == 'timeslot' %}btn-primary{% else %}btn-secondary{% endif %}" style="font-size: 0.8rem; padding: 0.4rem 0.85rem;">Time Slots</a>
+    </div>
+</div>
+
+<div class="grid-3" style="grid-template-columns: 2.2fr 1fr; gap: 1.5rem; align-items: start;">
+    
+    <!-- Left Column: Data Table -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.25rem;">
+            <div class="card-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                <span>List of {{ tab_title }}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;" id="record-count-info">Showing {{ items|length }} records</span>
+            </div>
+            
+            <!-- Quick Search Input -->
+            <div style="position: relative; width: 100%; max-width: 280px; display: inline-block;">
+                <input type="text" id="resource-search-bar" placeholder="Quick search..." 
+                       style="width: 100%; padding: 0.45rem 0.75rem; padding-left: 2rem; font-size: 0.82rem; border: 1px solid var(--border); border-radius: 8px; outline: none; transition: border-color 0.15s; background: var(--card-bg); color: var(--text);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                     style="position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.75;">
+                    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </div>
+        </div>
+
+        {% if items %}
+            <!-- Bulk delete toolbar (appears when rows selected) -->
+            <div id="bulk-toolbar" style="display:none; align-items:center; gap:0.75rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:0.6rem 1rem; margin-bottom:1rem;">
+                <span id="bulk-count" style="font-weight:600; color:#ef4444;">0 selected</span>
+                <button type="submit" form="bulk-delete-form" class="btn" style="background:#ef4444;color:white;border:none;font-weight:600;font-size:0.82rem;padding:0.35rem 0.9rem;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    </svg> Delete Selected
+                </button>
+                <button type="button" onclick="clearSelection()" class="btn btn-secondary" style="font-size:0.82rem;padding:0.35rem 0.9rem;">Cancel</button>
+            </div>
+
+            <form id="bulk-delete-form" method="POST" action="{% url 'scheduler:bulk_delete_resources' %}" onsubmit="return confirmBulkDelete()">
+                {% csrf_token %}
+                <input type="hidden" name="model_type" value="{{ active_tab }}">
+                <input type="hidden" name="tab" value="{{ active_tab }}">
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        {% if active_tab == 'university' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'campus' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Campus Name</th>
+                                <th>University</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'faculty' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Faculty Name</th>
+                                <th>Campus</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'department' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Department Name</th>
+                                <th>Faculty</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'course' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Program</th>
+                                <th>Duration</th>
+                                <th>Room Type</th>
+                                <th>Lecturer</th>
+                                <th>Student Group</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'studentgroup' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Group Name</th>
+                                <th>Program</th>
+                                <th>Size</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'lecturer' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Lecturer Name</th>
+                                <th>Department</th>
+                                <th>Email</th>
+                                <th>Max Hours/Week</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'room' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Room Name</th>
+                                <th>Campus</th>
+                                <th>Capacity</th>
+                                <th>Room Type</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% elif active_tab == 'timeslot' %}
+                            <tr>
+                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                                <th>Day of Week</th>
+                                <th>Slot Number</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Evening?</th>
+                                <th style="width:80px;">Action</th>
+                            </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td><input type="checkbox" name="selected_ids" value="{{ item.pk }}" class="row-cb" onchange="updateBulkToolbar()"></td>
+                                {% if active_tab == 'university' %}
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td><span style="font-family: monospace; background: rgba(255,255,255,0.05); padding: 0.2rem 0.4rem; border-radius: 4px; color: var(--primary);">{{ item.code }}</span></td>
+                                {% elif active_tab == 'campus' %}
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td>{{ item.university.name }}</td>
+                                {% elif active_tab == 'faculty' %}
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td>{{ item.campus.name }}</td>
+                                {% elif active_tab == 'department' %}
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td>{{ item.faculty.name }}</td>
+                                {% elif active_tab == 'course' %}
+                                    <td><span style="font-family: monospace; font-weight: 700; color: var(--primary);">{{ item.code }}</span></td>
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.program.name }}</span></td>
+                                    <td><span class="badge badge-info">{{ item.duration_slots }} slots</span></td>
+                                    <td><span class="badge badge-success">{{ item.get_required_room_type_display }}</span></td>
+                                    <td>{{ item.lecturer.name|default:"—" }}</td>
+                                    <td>{{ item.student_group.name|default:"—" }}</td>
+                                {% elif active_tab == 'studentgroup' %}
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.program.name }}</span></td>
+                                    <td><span class="badge badge-info" style="font-size: 0.8rem; font-weight: bold;">{{ item.size }}</span></td>
+                                {% elif active_tab == 'lecturer' %}
+                                    <td><strong><a href="{% url 'scheduler:admin_lecturer_profile' item.pk %}" style="text-decoration:none; color:inherit; border-bottom:1px dashed var(--primary);">{{ item.name }}</a></strong></td>
+                                    <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.department.name }}</span></td>
+                                    <td><a href="mailto:{{ item.email }}" style="color: var(--primary); text-decoration: none;">{{ item.email }}</a></td>
+                                    <td><span class="badge badge-warning">{{ item.max_hours_per_week }} hrs</span></td>
+                                {% elif active_tab == 'room' %}
+                                    <td><strong>{{ item.name }}</strong></td>
+                                    <td>{{ item.campus.name }}</td>
+                                    <td><span class="badge badge-info" style="font-weight: bold;">{{ item.capacity }}</span></td>
+                                    <td><span class="badge badge-success">{{ item.get_room_type_display }}</span></td>
+                                {% elif active_tab == 'timeslot' %}
+                                    <td><strong>{{ item.get_day_of_week_display }}</strong></td>
+                                    <td><span class="badge badge-info">Slot {{ item.slot_number }}</span></td>
+                                    <td>{{ item.start_time|time:"H:i" }}</td>
+                                    <td>{{ item.end_time|time:"H:i" }}</td>
+                                    <td>
+                                        {% if item.is_evening %}
+                                            <span class="badge badge-warning">Evening</span>
+                                        {% else %}
+                                            <span class="badge badge-success">Day</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td style="white-space: nowrap;">
+                                    {% if active_tab == 'lecturer' %}
+                                        <a href="{% url 'scheduler:admin_lecturer_profile' item.pk %}" 
+                                           style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                                           title="Manage profile, student groups, workload, and availability">
+                                            ⚙ Manage
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'scheduler:delete_resource' active_tab item.pk %}" 
+                                       style="color:#ef4444; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(239,68,68,0.4); border-radius:5px;"
+                                       title="Delete this record">
+                                        🗑 Delete
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            </form><!-- end bulk-delete-form -->
+        {% else %}
+            <div style="text-align: center; padding: 3rem 1.5rem; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px dashed var(--border);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <h3 style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">No {{ tab_title }} found</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 320px; margin: 0 auto;">No records exist for the active university. Add a new record using the form panel on the right.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Add Form -->
+    <div class="card">
+        <div class="card-title">
+            {% if active_tab == 'university' %}Add University
+            {% elif active_tab == 'campus' %}Add Campus
+            {% elif active_tab == 'faculty' %}Add Faculty
+            {% elif active_tab == 'department' %}Add Department
+            {% elif active_tab == 'course' %}Add Course
+            {% elif active_tab == 'studentgroup' %}Add Student Group
+            {% elif active_tab == 'lecturer' %}Add Lecturer
+            {% elif active_tab == 'room' %}Add Room
+            {% elif active_tab == 'timeslot' %}Add Time Slot
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{% url 'scheduler:resources_manager' %}?tab={{ active_tab }}">
+            {% csrf_token %}
+            
+            {% for field in form %}
+                {% if field.name == 'university' and active_tab != 'university' %}
+                    <!-- For nested fields scoped to active uni, keep hidden or render styled select containing only the active uni option -->
+                    <div class="form-group" style="display: none;">
+                        {{ field }}
+                    </div>
+                {% else %}
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 1rem;">
+                            {{ field }}
+                            <label class="form-label" for="{{ field.id_for_label }}" style="margin-bottom: 0; cursor: pointer;">{{ field.label }}</label>
+                        </div>
+                    {% else %}
+                        <div class="form-group">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small style="display: block; color: var(--text-muted); margin-top: 0.25rem; font-size: 0.75rem;">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                                <span style="color: var(--danger); font-size: 0.8rem; display: block; margin-top: 0.25rem;">{{ field.errors.0 }}</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1.25rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Add Resource
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAll(source) {
+    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = source.checked);
+    updateBulkToolbar();
+}
+function updateBulkToolbar() {
+    const checked = document.querySelectorAll('.row-cb:checked');
+    const toolbar = document.getElementById('bulk-toolbar');
+    const countEl = document.getElementById('bulk-count');
+    if (!toolbar) return;
+    if (checked.length > 0) {
+        toolbar.style.display = 'flex';
+        countEl.textContent = checked.length + ' selected';
+    } else {
+        toolbar.style.display = 'none';
+    }
+}
+function clearSelection() {
+    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+    const sa = document.getElementById('select-all');
+    if (sa) sa.checked = false;
+    updateBulkToolbar();
+}
+function confirmBulkDelete() {
+    const count = document.querySelectorAll('.row-cb:checked').length;
+    return confirm('Delete ' + count + ' selected record(s)? This cannot be undone.');
+}
+
+// ── Instant Client-Side Search Filter ──
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('resource-search-bar');
+    const table = document.querySelector('.table-responsive table');
+    const recordCountInfo = document.getElementById('record-count-info');
+    
+    if (searchInput && table) {
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
+        const totalRecords = rows.length;
+        
+        searchInput.addEventListener('input', function() {
+            const query = searchInput.value.toLowerCase().trim();
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                // Ignore empty rows or headers
+                if (!row.querySelector('td')) return;
+                
+                // Get text from searchable fields (ignoring action column)
+                const cells = Array.from(row.querySelectorAll('td')).slice(1, -1);
+                const text = cells.map(c => c.textContent).join(' ').toLowerCase();
+                
+                if (text.includes(query)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update strategic display count
+            if (recordCountInfo) {
+                if (query === '') {
+                    recordCountInfo.textContent = `Showing ${totalRecords} records`;
+                } else {
+                    recordCountInfo.textContent = `Found ${visibleCount} of ${totalRecords} records`;
+                }
+            }
+        });
+        
+        // Trigger auto-focus and initial search if search query is already in input
+        if (searchInput.value) {
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }
+});
+</script>
+{% endblock %}

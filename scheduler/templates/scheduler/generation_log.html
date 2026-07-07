@@ -1,0 +1,187 @@
+{% extends "scheduler/base.html" %}
+
+{% block title %}Generation Log — {{ timetable.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem;">
+  <div>
+    <h1 style="margin:0; font-size:1.6rem; font-weight:700; color:#e2e8f0;">
+      <span style="color:#7c3aed;">⚙</span> Generation Log
+    </h1>
+    <p style="margin:0.3rem 0 0; color:#94a3b8; font-size:0.92rem;">
+      Audit trail for <strong style="color:#c4b5fd;">{{ timetable.name }}</strong>
+      &nbsp;·&nbsp; {{ timetable.semester.name }}
+    </p>
+  </div>
+  <a href="{% url 'scheduler:timetable_detail' timetable.pk %}"
+     style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1.1rem;
+            background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.35);
+            border-radius:8px; color:#c4b5fd; text-decoration:none; font-size:0.88rem;
+            transition:all .2s;">
+    ← Back to Timetable
+  </a>
+</div>
+
+{% if not logs %}
+<div style="background:rgba(30,41,59,0.6); border:1px solid rgba(100,116,139,0.25);
+            border-radius:12px; padding:3rem; text-align:center; color:#94a3b8;">
+  <div style="font-size:3rem; margin-bottom:1rem; opacity:.4;">📋</div>
+  <p style="font-size:1rem; margin:0;">No generation runs yet for this timetable.</p>
+  <p style="font-size:0.85rem; margin:0.4rem 0 0; opacity:.7;">
+    Go back and click <strong>Generate Timetable</strong> to create the first run.
+  </p>
+</div>
+{% else %}
+
+<!-- Summary Bar -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:2rem;">
+  {% with latest=logs.0 %}
+  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
+              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
+    <div style="font-size:1.6rem; font-weight:700; color:#c4b5fd;">{{ logs|length }}</div>
+    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Total Runs</div>
+  </div>
+  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
+              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
+    <div style="font-size:1.6rem; font-weight:700;
+      {% if latest.status == 'OPTIMAL' %}color:#34d399;
+      {% elif latest.status == 'FEASIBLE' %}color:#60a5fa;
+      {% elif latest.status == 'INFEASIBLE' %}color:#f87171;
+      {% else %}color:#fbbf24;{% endif %}">
+      {{ latest.status }}
+    </div>
+    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Latest Status</div>
+  </div>
+  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
+              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
+    <div style="font-size:1.6rem; font-weight:700; color:#e2e8f0;">
+      {% if latest.solve_time_seconds %}{{ latest.solve_time_seconds|floatformat:2 }}s{% else %}—{% endif %}
+    </div>
+    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Last Solve Time</div>
+  </div>
+  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
+              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
+    <div style="font-size:1.6rem; font-weight:700; color:#e2e8f0;">{{ latest.courses_scheduled }}</div>
+    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Last Courses Placed</div>
+  </div>
+  {% endwith %}
+</div>
+
+<!-- Timeline -->
+<div style="position:relative;">
+  <!-- Vertical line -->
+  <div style="position:absolute; left:22px; top:0; bottom:0; width:2px;
+              background:linear-gradient(to bottom, rgba(124,58,237,0.6), rgba(124,58,237,0.05));
+              border-radius:2px;"></div>
+
+  {% for log in logs %}
+  <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem; position:relative;">
+    <!-- Status dot -->
+    <div style="flex-shrink:0; width:46px; display:flex; justify-content:center; padding-top:1rem;">
+      <div style="width:16px; height:16px; border-radius:50%; border:2px solid;
+        {% if log.status == 'OPTIMAL' %}background:#34d399; border-color:#34d399; box-shadow:0 0 8px rgba(52,211,153,0.5);
+        {% elif log.status == 'FEASIBLE' %}background:#60a5fa; border-color:#60a5fa; box-shadow:0 0 8px rgba(96,165,250,0.5);
+        {% elif log.status == 'INFEASIBLE' %}background:#f87171; border-color:#f87171; box-shadow:0 0 8px rgba(248,113,113,0.5);
+        {% else %}background:#fbbf24; border-color:#fbbf24; box-shadow:0 0 8px rgba(251,191,36,0.5);{% endif %}
+        z-index:1; position:relative;"></div>
+    </div>
+
+    <!-- Card -->
+    <div style="flex:1; background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
+                border-radius:12px; padding:1.2rem 1.5rem; transition:border-color .2s;"
+         onmouseover="this.style.borderColor='rgba(124,58,237,0.4)'"
+         onmouseout="this.style.borderColor='rgba(100,116,139,0.25)'">
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
+        <!-- Status badge + time -->
+        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+          <span style="padding:0.25rem 0.75rem; border-radius:20px; font-size:0.78rem; font-weight:600; letter-spacing:0.05em;
+            {% if log.status == 'OPTIMAL' %}background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3);
+            {% elif log.status == 'FEASIBLE' %}background:rgba(96,165,250,0.15); color:#60a5fa; border:1px solid rgba(96,165,250,0.3);
+            {% elif log.status == 'INFEASIBLE' %}background:rgba(248,113,113,0.15); color:#f87171; border:1px solid rgba(248,113,113,0.3);
+            {% else %}background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3);{% endif %}">
+            {{ log.get_status_display }}
+          </span>
+          <span style="color:#94a3b8; font-size:0.82rem;">
+            {{ log.created_at|date:"M j, Y" }} at {{ log.created_at|date:"H:i:s" }}
+          </span>
+        </div>
+
+        <!-- Score pill -->
+        {% if log.solver_score is not None %}
+        <span style="padding:0.2rem 0.7rem; border-radius:20px; font-size:0.78rem;
+                     background:rgba(124,58,237,0.12); color:#c4b5fd;
+                     border:1px solid rgba(124,58,237,0.25);">
+          Score: {{ log.solver_score }}
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Message -->
+      <p style="margin:0.75rem 0 0; color:#e2e8f0; font-size:0.9rem; line-height:1.5;">
+        {{ log.message }}
+      </p>
+
+      <!-- Stats row -->
+      <div style="display:flex; gap:1.5rem; margin-top:1rem; flex-wrap:wrap;">
+        {% if log.solve_time_seconds is not None %}
+        <div style="display:flex; align-items:center; gap:0.35rem; color:#94a3b8; font-size:0.82rem;">
+          <span>⏱</span>
+          <span>{{ log.solve_time_seconds|floatformat:3 }}s solve time</span>
+        </div>
+        {% endif %}
+        {% if log.status in "OPTIMAL FEASIBLE" %}
+        <div style="display:flex; align-items:center; gap:0.35rem; color:#94a3b8; font-size:0.82rem;">
+          <span>📚</span>
+          <span>{{ log.courses_scheduled }} courses placed</span>
+        </div>
+        {% if log.hard_conflicts_found > 0 %}
+        <div style="display:flex; align-items:center; gap:0.35rem; color:#f87171; font-size:0.82rem;">
+          <span>🚨</span>
+          <span>{{ log.hard_conflicts_found }} hard conflict{{ log.hard_conflicts_found|pluralize }}</span>
+        </div>
+        {% else %}
+        <div style="display:flex; align-items:center; gap:0.35rem; color:#34d399; font-size:0.82rem;">
+          <span>✓</span>
+          <span>No hard conflicts</span>
+        </div>
+        {% endif %}
+        {% if log.soft_conflicts_found > 0 %}
+        <div style="display:flex; align-items:center; gap:0.35rem; color:#fbbf24; font-size:0.82rem;">
+          <span>⚠</span>
+          <span>{{ log.soft_conflicts_found }} warning{{ log.soft_conflicts_found|pluralize }}</span>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Validation errors/warnings (collapsed) -->
+      {% if log.validation_errors %}
+      <details style="margin-top:0.75rem;">
+        <summary style="cursor:pointer; color:#f87171; font-size:0.82rem; font-weight:500;">
+          {{ log.validation_errors|length }} validation error{{ log.validation_errors|length|pluralize }}
+        </summary>
+        <ul style="margin:0.5rem 0 0; padding-left:1.2rem; color:#fca5a5; font-size:0.82rem; line-height:1.7;">
+          {% for err in log.validation_errors %}<li>{{ err }}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+
+      {% if log.validation_warnings %}
+      <details style="margin-top:0.5rem;">
+        <summary style="cursor:pointer; color:#fbbf24; font-size:0.82rem; font-weight:500;">
+          {{ log.validation_warnings|length }} validation warning{{ log.validation_warnings|length|pluralize }}
+        </summary>
+        <ul style="margin:0.5rem 0 0; padding-left:1.2rem; color:#fde68a; font-size:0.82rem; line-height:1.7;">
+          {% for w in log.validation_warnings %}<li>{{ w }}</li>{% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Confirm Remove Lecturer — {{ lecturer.name }} — Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 3rem auto;">
+    <div class="card" style="border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.02); padding: 2rem; border-radius: 12px;">
+        <div style="width: 56px; height: 56px; background: rgba(239,68,68,0.15); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; font-size: 1.8rem; font-weight: bold;">
+            !
+        </div>
+        
+        <h1 style="font-weight: 700; font-size: 1.8rem; margin: 0 0 1rem 0; color: var(--text-main);">Confirm Lecturer Removal</h1>
+        
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.5rem;">
+            Are you sure you want to completely remove <strong>{{ lecturer.name }}</strong> (Staff ID: {{ lecturer.staff_id|default:"N/A" }}) from the system?
+        </p>
+        
+        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1.8rem; border-left: 4px solid #ef4444;">
+            <p style="margin: 0; font-size: 0.85rem; color: #f87171; font-weight: 600;">Warning: This action is permanent!</p>
+            <ul style="margin: 0.5rem 0 0 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+                <li>The lecturer's profile and account login credentials will be deleted.</li>
+                <li>The lecturer will be unassigned from any courses they teach (courses will remain in the database but have their lecturer field cleared).</li>
+                <li>Any associated schedule slots in all timetables will be updated to clear their lecturer field.</li>
+            </ul>
+        </div>
+        
+        <form method="POST" style="display: flex; gap: 1rem; align-items: center;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" style="background: #ef4444; border-color: #ef4444; font-weight: 600; padding: 0.65rem 1.5rem; border-radius: 8px; color: white;">
+                Yes, Remove Lecturer
+            </button>
+            <a href="{% url 'scheduler:admin_lecturer_profile' lecturer.pk %}" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); font-weight: 600; padding: 0.65rem 1.5rem; border-radius: 8px; text-decoration: none;">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

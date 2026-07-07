@@ -1,0 +1,522 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}Lecturer Portal › Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_style %}
+.hero-card {
+    background: linear-gradient(135deg, #0c1a35 0%, #1e3a8a 55%, #2563eb 100%);
+    border-radius: 18px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(37,99,235,.3);
+}
+.hero-card::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.04);
+    pointer-events: none;
+}
+.hero-card::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 28%;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(249,115,22,.08);
+    pointer-events: none;
+}
+.hero-inner { display: flex; align-items: center; gap: 24px; position: relative; z-index: 1; }
+.hero-avatar {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.4rem; font-weight: 900; color: #fff;
+    border: 3px solid rgba(255,255,255,.25);
+    box-shadow: 0 6px 24px rgba(0,0,0,.4);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.hero-info { flex: 1; }
+.hero-greeting { font-size: 13px; opacity: .7; font-weight: 500; margin-bottom: 4px; }
+.hero-name { font-size: 26px; font-weight: 900; margin-bottom: 4px; letter-spacing: -.02em; line-height: 1.1; }
+.hero-sub { font-size: 13px; opacity: .65; margin-bottom: 14px; }
+.hero-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.hero-chip {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #fff;
+}
+.hero-chip.green { background: rgba(16,185,129,.25); border-color: rgba(16,185,129,.4); }
+.hero-chip.orange { background: rgba(249,115,22,.25); border-color: rgba(249,115,22,.4); }
+.hero-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: relative; z-index: 1; }
+.hero-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-size: 12px; font-weight: 700;
+    text-decoration: none;
+    transition: all .18s;
+    white-space: nowrap;
+}
+.hero-btn-orange { background: #f97316; color: #fff; }
+.hero-btn-orange:hover { background: #ea6c0a; }
+.hero-btn-glass { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+.hero-btn-glass:hover { background: rgba(255,255,255,.2); }
+
+/* KPI Stats */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.kpi-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: transform .18s, box-shadow .18s;
+    position: relative; overflow: hidden;
+}
+.kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+    border-radius: 4px 0 0 4px;
+}
+.kpi-card.blue::before { background: #2563eb; }
+.kpi-card.green::before { background: #10b981; }
+.kpi-card.orange::before { background: #f97316; }
+.kpi-card.purple::before { background: #8b5cf6; }
+.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+.kpi-icon {
+    width: 50px; height: 50px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+}
+.kpi-icon.blue { background: rgba(37,99,235,.08); }
+.kpi-icon.green { background: rgba(16,185,129,.08); }
+.kpi-icon.orange { background: rgba(249,115,22,.08); }
+.kpi-icon.purple { background: rgba(139,92,246,.08); }
+.kpi-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.kpi-value { font-size: 28px; font-weight: 900; color: var(--text); line-height: 1.1; }
+.kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+/* Next class banner */
+.next-class-banner {
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(249,115,22,.06), rgba(239,68,68,.04));
+    border: 1px solid rgba(249,115,22,.2);
+    border-radius: 14px;
+    margin-bottom: 24px;
+}
+.nc-pulse {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(249,115,22,.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,.3); }
+    50% { box-shadow: 0 0 0 8px rgba(249,115,22,.0); }
+}
+.nc-label { font-size: 10px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+.nc-title { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+.nc-meta { font-size: 12px; color: var(--text-muted); }
+.nc-time { margin-left: auto; text-align: right; flex-shrink: 0; }
+.nc-time-val { font-size: 22px; font-weight: 900; color: var(--accent); }
+.nc-time-lbl { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+/* Today's classes */
+.today-class-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.today-class-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: border-color .18s, box-shadow .18s;
+}
+.today-class-item:hover { border-color: var(--primary); box-shadow: 0 2px 12px rgba(37,99,235,.08); }
+.today-class-item.is-now {
+    border-color: rgba(16,185,129,.4);
+    background: rgba(16,185,129,.02);
+}
+.tc-time {
+    min-width: 72px;
+    padding: 8px 10px;
+    background: rgba(37,99,235,.06);
+    border: 1px solid rgba(37,99,235,.1);
+    border-radius: 10px;
+    text-align: center;
+}
+.tc-time-start { font-size: 15px; font-weight: 800; color: var(--primary); }
+.tc-time-end { font-size: 10px; color: var(--text-muted); }
+.tc-info { flex: 1; min-width: 0; }
+.tc-code { font-weight: 800; font-size: 14px; }
+.tc-name { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-meta { font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.tc-actions { display: flex; gap: 6px; }
+.status-now { background: #10b981; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; }
+.status-upcoming { background: #f97316; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 5px; }
+
+/* Bottom grid */
+.bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+}
+
+/* Notification items */
+.notif-row {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.notif-row:last-child { border-bottom: none; }
+.notif-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--primary);
+    flex-shrink: 0;
+    margin-top: 5px;
+}
+.notif-dot.warning { background: var(--warning); }
+.notif-dot.success { background: var(--success); }
+.notif-dot.danger  { background: var(--danger); }
+.notif-body { flex: 1; min-width: 0; }
+.notif-title { font-size: 12px; font-weight: 600; margin-bottom: 1px; }
+.notif-time { font-size: 10px; color: var(--text-muted); }
+
+/* Announcements */
+.ann-row { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+.ann-row:last-child { border-bottom: none; }
+.ann-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.ann-body { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.ann-meta { font-size: 10px; color: var(--text-light); margin-top: 4px; }
+
+/* Calendar widget */
+.cal-widget { font-size: 13px; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-month { font-weight: 800; font-size: 14px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+.cal-day-name { font-size: 10px; font-weight: 700; color: var(--text-muted); padding: 4px 0; }
+.cal-day {
+    padding: 6px 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: default;
+    transition: background .12s;
+}
+.cal-day.other { color: var(--text-light); }
+.cal-day.today {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+    border-radius: 50%;
+}
+.cal-day.has-class { background: rgba(37,99,235,.08); font-weight: 600; color: var(--primary); }
+.sem-info { margin-top: 12px; }
+.sem-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+.sem-row:last-child { border-bottom: none; }
+.sem-row .sk { color: var(--text-muted); font-weight: 500; }
+.sem-row .sv { font-weight: 700; }
+
+/* Quick actions */
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.qa-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 12px; font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+    transition: all .18s;
+    cursor: pointer;
+}
+.qa-btn:hover { background: var(--primary-lt); border-color: var(--primary); color: var(--primary); }
+
+@media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } .bottom-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) { .hero-inner { flex-direction: column; text-align: center; } .hero-actions { align-items: center; } .bottom-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+{% endblock %}
+
+{% block content %}
+{% load tz %}
+
+{% now "j N Y" as today_fmt %}
+{% now "G" as cur_hour %}
+
+<!-- Hero -->
+<div class="hero-card">
+    <div class="hero-inner">
+        <div class="hero-avatar">
+            {% if lecturer.profile_picture %}
+                <img src="{{ lecturer.profile_picture.url }}" alt="{{ lecturer.name }}" style="width:100%;height:100%;object-fit:cover;">
+            {% else %}
+                {{ lecturer.name|first|upper }}
+            {% endif %}
+        </div>
+        <div class="hero-info">
+            <div class="hero-greeting">{{ greeting }},</div>
+            <div class="hero-name">{{ lecturer.name }}</div>
+            <div class="hero-sub">
+                {{ lecturer.department.name }} &nbsp;·&nbsp;
+                {{ lecturer.department.faculty.name }} &nbsp;·&nbsp;
+                {% if lecturer.staff_id %}{{ lecturer.staff_id }}{% else %}STAFF-{{ lecturer.pk|stringformat:"04d" }}{% endif %}
+            </div>
+            <div class="hero-badges">
+                {% if timetable %}
+                    <span class="hero-chip green">Active: {{ timetable.semester.name }}</span>
+                {% else %}
+                    <span class="hero-chip orange">No Active Timetable</span>
+                {% endif %}
+                <span class="hero-chip">Email: {{ lecturer.email }}</span>
+                <span class="hero-chip">Workload Limit: {{ lecturer.max_hours_per_week }}h/wk</span>
+                {% if active_university %}
+                <span class="hero-chip">Campus: {{ active_university.name }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="hero-actions">
+            <a href="{% url 'scheduler:lecturer_portal_weekly_timetable' %}" class="hero-btn hero-btn-orange">View Timetable</a>
+            <a href="{% url 'scheduler:lecturer_attendance_report' %}" class="hero-btn hero-btn-glass">Attendance</a>
+            <a href="{% url 'scheduler:lecturer_portal_profile' %}" class="hero-btn hero-btn-glass">My Profile</a>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Stats -->
+<div class="kpi-grid">
+    <div class="kpi-card blue">
+        <div>
+            <div class="kpi-label">Classes / Week</div>
+            <div class="kpi-value">{{ total_slots }}</div>
+            <div class="kpi-sub">this semester</div>
+        </div>
+    </div>
+    <div class="kpi-card green">
+        <div>
+            <div class="kpi-label">Unique Courses</div>
+            <div class="kpi-value">{{ unique_courses_count }}</div>
+            <div class="kpi-sub">assigned to you</div>
+        </div>
+    </div>
+    <div class="kpi-card orange">
+        <div>
+            <div class="kpi-label">Hrs / Week</div>
+            <div class="kpi-value">{{ total_hours }}</div>
+            <div class="kpi-sub">of {{ lecturer.max_hours_per_week }}h max</div>
+        </div>
+    </div>
+    <div class="kpi-card purple">
+        <div>
+            <div class="kpi-label">Student Groups</div>
+            <div class="kpi-value">{{ unique_groups_count }}</div>
+            <div class="kpi-sub">this semester</div>
+        </div>
+    </div>
+</div>
+
+<!-- Next Class Banner -->
+{% if next_slot %}
+<div class="next-class-banner">
+    <div>
+        <div class="nc-label">Next Class Today</div>
+        <div class="nc-title">{{ next_slot.course.code }} — {{ next_slot.course.name }}</div>
+        <div class="nc-meta">
+            Room: {{ next_slot.room.name }} &nbsp;·&nbsp;
+            Group: {{ next_slot.student_group.name }}
+        </div>
+    </div>
+    <div class="nc-time">
+        <div class="nc-time-val">{{ next_slot.time_slot.start_time|time:"H:i" }}</div>
+        <div class="nc-time-lbl">Start Time</div>
+    </div>
+    <a href="{% url 'scheduler:lecturer_attendance_start' next_slot.id %}" class="btn btn-accent">
+        Take Attendance
+    </a>
+</div>
+{% endif %}
+
+<!-- Today's Classes -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <h2 style="font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;">
+        Today's Classes
+        {% if today_slots %}
+        <span class="badge badge-blue">{{ today_slots|length }} class{{ today_slots|length|pluralize }}</span>
+        {% endif %}
+        <span style="font-size:12px;font-weight:500;color:var(--text-muted);">{{ today_date }}</span>
+    </h2>
+    <a href="{% url 'scheduler:lecturer_portal_weekly_timetable' %}" class="btn btn-outline btn-sm">Full Timetable</a>
+</div>
+
+{% if today_slots %}
+<div class="today-class-list">
+    {% now "H:i" as now_str %}
+    {% for slot in today_slots %}
+    <div class="today-class-item {% if slot.is_now %}is-now{% endif %}">
+        <div class="tc-time">
+            <div class="tc-time-start">{{ slot.time_slot.start_time|time:"H:i" }}</div>
+            <div class="tc-time-end">{{ slot.time_slot.end_time|time:"H:i" }}</div>
+        </div>
+        <div class="tc-info">
+            <div class="tc-code">
+                {{ slot.course.code }}
+                {% if slot.is_now %}<span class="status-now">NOW</span>{% endif %}
+            </div>
+            <div class="tc-name">{{ slot.course.name }}</div>
+        </div>
+        <div class="tc-meta">
+            <span>Room: {{ slot.room.name }}</span>
+            <span>Group: {{ slot.student_group.name }}</span>
+            <span class="badge badge-gray">{{ slot.course.get_required_room_type_display }}</span>
+        </div>
+        <div class="tc-actions">
+            <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="btn btn-primary btn-sm">Take Attendance</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="lp-card" style="margin-bottom:24px;">
+    <div class="empty-state">
+        <div class="es-title">No Classes Today</div>
+        <div class="es-text">You have no scheduled classes today. Enjoy your day.</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Bottom 3-column grid -->
+<div class="bottom-grid">
+
+    <!-- Notifications -->
+    <div class="lp-card">
+        <div class="lp-card-header">
+            <h3>Notifications
+                {% if unread_count > 0 %}<span class="badge badge-red">{{ unread_count }}</span>{% endif %}
+            </h3>
+            <a href="{% url 'scheduler:notifications_list' %}" style="font-size:12px;color:var(--primary);font-weight:600;text-decoration:none;">View all</a>
+        </div>
+        <div class="lp-card-body" style="padding:12px 16px;">
+            {% if notifications %}
+                {% for notif in notifications %}
+                <div class="notif-row">
+                    <div class="notif-dot {{ notif.level }}"></div>
+                    <div class="notif-body">
+                        <div class="notif-title">{{ notif.title }}</div>
+                        <div class="notif-time">{{ notif.created_at|timesince }} ago</div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="padding:24px;">
+                    <div class="es-title">All caught up</div>
+                    <div class="es-text">No unread notifications.</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="lp-card">
+        <div class="lp-card-header">
+            <h3>Announcements</h3>
+        </div>
+        <div class="lp-card-body" style="padding:12px 16px;">
+            {% if announcements %}
+                {% for ann in announcements %}
+                <div class="ann-row">
+                    <div class="ann-title">{{ ann.title }}</div>
+                    <div class="ann-body">{{ ann.content|truncatewords:18 }}</div>
+                    <div class="ann-meta">{{ ann.created_at|date:"d M Y" }} {% if ann.university %}· {{ ann.university.name }}{% else %}· System-wide{% endif %}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state" style="padding:24px;">
+                    <div class="es-title">No Announcements</div>
+                    <div class="es-text">Nothing new from your institution.</div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Academic Calendar + Quick Actions -->
+    <div style="display:flex;flex-direction:column;gap:18px;">
+
+        {% if active_semester %}
+        <div class="lp-card">
+            <div class="lp-card-header">
+                <h3>Academic Calendar</h3>
+            </div>
+            <div class="lp-card-body" style="padding:16px;">
+                <div class="sem-info">
+                    <div class="sem-row">
+                        <span class="sk">Semester</span>
+                        <span class="sv">{{ active_semester.name }}</span>
+                    </div>
+                    <div class="sem-row">
+                        <span class="sk">Start Date</span>
+                        <span class="sv">{{ active_semester.start_date|date:"d M Y" }}</span>
+                    </div>
+                    <div class="sem-row">
+                        <span class="sk">End Date</span>
+                        <span class="sv">{{ active_semester.end_date|date:"d M Y" }}</span>
+                    </div>
+                    <div class="sem-row">
+                        <span class="sk">Status</span>
+                        <span class="sv">
+                            {% if active_semester.is_active %}
+                                <span class="badge badge-green">Active</span>
+                            {% else %}
+                                <span class="badge badge-gray">Inactive</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="lp-card">
+            <div class="lp-card-header">
+                <h3>Quick Actions</h3>
+            </div>
+            <div class="lp-card-body" style="padding:14px;">
+                <div class="qa-grid">
+                    <a href="{% url 'scheduler:lecturer_portal_weekly_timetable' %}" class="qa-btn">Timetable</a>
+                    <a href="{% url 'scheduler:lecturer_portal_courses' %}" class="qa-btn">Courses</a>
+                    <a href="{% url 'scheduler:lecturer_attendance_report' %}" class="qa-btn">Attendance</a>
+                    <a href="{% url 'scheduler:lecturer_portal_workload' %}" class="qa-btn">Workload</a>
+                    <a href="{% url 'scheduler:lecturer_portal_student_groups' %}" class="qa-btn">Groups</a>
+                    <a href="{% url 'scheduler:lecturer_portal_profile' %}" class="qa-btn">Profile</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

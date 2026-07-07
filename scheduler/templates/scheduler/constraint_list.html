@@ -1,0 +1,162 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Rules & Constraints Checklist - Timetable System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.5rem;">University Constraints Configurator</h1>
+    <p style="color: var(--text-muted);">Enable, disable, and configure specific hard/soft constraints for: <strong>{{ active_university.name }}</strong></p>
+</div>
+
+<div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Active Rules Checklist -->
+    <div class="card">
+        <div class="card-title">Constraint Rules Status</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+            Rules marked with <strong>✓</strong> are active. Add a new configuration on the right to override defaults or add restrictions.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Custom status-grid for rules -->
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Status</th>
+                            <th>Constraint Rule</th>
+                            <th>Severity</th>
+                            <th>Properties</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 1. Lecturer Availability -->
+                        <tr>
+                            <td><span style="color: var(--success); font-weight: 700; font-size: 1.2rem;">✓</span></td>
+                            <td><strong>Lecturer Availability</strong></td>
+                            <td><span class="badge badge-error">Hard</span></td>
+                            <td><span style="color:var(--text-muted);">Respects lecturer unavailable time slots</span></td>
+                            <td>-</td>
+                        </tr>
+                        <!-- 2. Room Capacity -->
+                        <tr>
+                            <td><span style="color: var(--success); font-weight: 700; font-size: 1.2rem;">✓</span></td>
+                            <td><strong>Room Capacity Checks</strong></td>
+                            <td><span class="badge badge-error">Hard</span></td>
+                            <td><span style="color:var(--text-muted);">Student Group size must fit Room capacity</span></td>
+                            <td>-</td>
+                        </tr>
+                        <!-- 3. Student Collisions -->
+                        <tr>
+                            <td><span style="color: var(--success); font-weight: 700; font-size: 1.2rem;">✓</span></td>
+                            <td><strong>No Student Group Collisions</strong></td>
+                            <td><span class="badge badge-error">Hard</span></td>
+                            <td><span style="color:var(--text-muted);">Student Group cannot attend two classes at once</span></td>
+                            <td>-</td>
+                        </tr>
+                        <!-- 4. Room type requirements -->
+                        <tr>
+                            <td><span style="color: var(--success); font-weight: 700; font-size: 1.2rem;">✓</span></td>
+                            <td><strong>Laboratory Space Requirement</strong></td>
+                            <td><span class="badge badge-error">Hard</span></td>
+                            <td><span style="color:var(--text-muted);">Lab courses must be scheduled in labs</span></td>
+                            <td>-</td>
+                        </tr>
+                        
+                        <!-- Custom university constraint configurations -->
+                        {% if constraints %}
+                            {% for c in constraints %}
+                            <tr>
+                                <td><span style="color: var(--success); font-weight: 700; font-size: 1.2rem;">✓</span></td>
+                                <td><strong>{{ c.name }}</strong></td>
+                                <td>
+                                    {% if c.is_hard %}
+                                        <span class="badge badge-error">Hard</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Soft</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span style="font-size:0.75rem; color:#86efac; font-family:monospace;">{{ c.parameters }}</span>
+                                </td>
+                                <td>
+                                    {% if active_role == 'admin' or active_role == 'scheduler' %}
+                                        <form method="POST" action="{% url 'scheduler:constraint_delete' c.pk %}" onsubmit="return confirm('Delete this constraint?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                                                Disable
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configure Rule Form (Only visible to Admin/Scheduler) -->
+    <div class="card">
+        {% if active_role == 'admin' or active_role == 'scheduler' %}
+            <div class="card-title">Add Constraint Config</div>
+            <form method="POST" action="{% url 'scheduler:constraint_create' %}">
+                {% csrf_token %}
+                <div class="form-group" style="display:none;">
+                    {{ form.university }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_name">Rule Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <span style="color: var(--danger); font-size: 0.8rem;">{{ form.name.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_constraint_type">Rule Type</label>
+                    {{ form.constraint_type }}
+                    {% if form.constraint_type.errors %}
+                        <span style="color: var(--danger); font-size: 0.8rem;">{{ form.constraint_type.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                    {{ form.is_hard }}
+                    <label class="form-label" for="id_is_hard" style="margin-bottom: 0; cursor: pointer;">Hard Constraint (Absolute block)</label>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="id_weight">Weight (Soft priority value)</label>
+                    {{ form.weight }}
+                    {% if form.weight.errors %}
+                        <span style="color: var(--danger); font-size: 0.8rem;">{{ form.weight.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_parameters_json">Parameters (JSON Format)</label>
+                    {{ form.parameters_json }}
+                    {% if form.parameters_json.errors %}
+                        <span style="color: var(--danger); font-size: 0.8rem;">{{ form.parameters_json.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">
+                    Save Rule Configuration
+                </button>
+            </form>
+        {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <h3>Read-Only Mode</h3>
+                <p style="font-size:0.85rem; margin-top:0.5rem;">Only Administrators and Schedulers can adjust rule parameters or enable new constraint configurations.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% block title %}Class Attendance{% endblock %}
+{% block page_title %}Class Attendance{% endblock %}
+{% block breadcrumb %}Lecturer Portal › Attendance › Mark{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block extra_style %}
+.attendance-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+.meta-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.student-list-container {
+    padding: 0;
+}
+.attendance-table th {
+    background: #f8fafc;
+    border-bottom: 2px solid var(--border);
+    padding: 12px 20px;
+}
+.attendance-table td {
+    padding: 12px 20px;
+}
+.checkbox-cell {
+    width: 60px;
+    text-align: center;
+}
+.attendance-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border-dark);
+    cursor: pointer;
+    accent-color: var(--success);
+}
+.attendance-checkbox:checked {
+    border-color: var(--success);
+}
+.status-pill {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.status-pill.present {
+    background: rgba(16,185,129,.1);
+    color: var(--success);
+}
+.status-pill.absent {
+    background: rgba(239,68,68,.1);
+    color: var(--danger);
+}
+.bulk-controls {
+    display: flex;
+    gap: 12px;
+    padding: 14px 20px;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+}
+@media (max-width: 900px) {
+    .attendance-layout {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="lp-page-header">
+    <div>
+        <h1>Take Class Attendance</h1>
+        <div class="subtitle">
+            {{ session.schedule_slot.course.code }} — {{ session.schedule_slot.course.name }}
+        </div>
+    </div>
+</div>
+
+<div class="attendance-layout">
+    <!-- Student List Form -->
+    <div class="lp-card student-list-container">
+        <form method="post" id="attendanceForm">
+            {% csrf_token %}
+            <div class="bulk-controls">
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAll(true)">Select All</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="setAll(false)">Deselect All</button>
+                <span style="font-size:12px; color:var(--text-muted); margin-left:auto;">
+                    Selected: <strong id="selectedCount">{{ present_count }}</strong> / {{ total }}
+                </span>
+            </div>
+
+            <table class="lp-table attendance-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">Present</th>
+                        <th>Student Name</th>
+                        <th>Reg No / ID</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td class="checkbox-cell">
+                            <input type="checkbox" name="present" value="{{ r.id }}" 
+                                   class="attendance-checkbox" {% if r.is_present %}checked{% endif %}
+                                   onchange="updateCounts()">
+                        </td>
+                        <td><strong>{{ r.student_name }}</strong></td>
+                        <td><span style="font-family:monospace; color:var(--text-muted);">{{ r.student_id|default:"N/A" }}</span></td>
+                        <td>
+                            <span class="status-pill {% if r.is_present %}present{% else %}absent{% endif %}" id="status-{{ r.id }}">
+                                {% if r.is_present %}Present{% else %}Absent{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-state">No students found in this group.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div style="padding: 20px; display:flex; justify-content:flex-end; gap:12px; border-top: 1px solid var(--border);">
+                {% if session.is_active %}
+                <button type="submit" name="action" value="save" class="btn btn-outline">Save Draft</button>
+                <button type="submit" name="action" value="close" class="btn btn-primary" onclick="return confirm('Are you sure you want to finalize and close this attendance session?')">Finalize & Close</button>
+                {% else %}
+                <span class="badge badge-gray">Closed on {{ session.closed_at|date:"d M Y H:i" }}</span>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Meta Panel & Summary -->
+    <div class="meta-panel">
+        <div class="lp-card">
+            <div class="lp-card-header">
+                <h3>Session details</h3>
+            </div>
+            <div class="lp-card-body" style="padding: 16px;">
+                <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                    <div><span style="color:var(--text-muted);">Date:</span> <strong>{{ session.date|date:"d M Y" }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Room:</span> <strong>{{ session.schedule_slot.room.name }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Time:</span> <strong>{{ session.schedule_slot.time_slot.start_time|time:"H:i" }} – {{ session.schedule_slot.time_slot.end_time|time:"H:i" }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Student Group:</span> <strong>{{ session.schedule_slot.student_group.name }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Session Status:</span> 
+                        {% if session.is_active %}
+                        <span class="badge badge-green">Active / Open</span>
+                        {% else %}
+                        <span class="badge badge-gray">Closed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lp-card">
+            <div class="lp-card-header">
+                <h3>Summary</h3>
+            </div>
+            <div class="lp-card-body" style="padding: 16px;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>Present:</span>
+                        <strong style="color:var(--success);" id="summaryPresent">{{ present_count }}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px;">
+                        <span>Absent:</span>
+                        <strong style="color:var(--danger);" id="summaryAbsent">{{ absent_count }}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:13px; border-top:1px solid var(--border); padding-top:8px;">
+                        <span>Total Group Size:</span>
+                        <strong>{{ total }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+function setAll(checked) {
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checked;
+        const statusSpan = document.getElementById('status-' + cb.value);
+        if (statusSpan) {
+            statusSpan.innerText = checked ? 'Present' : 'Absent';
+            statusSpan.className = 'status-pill ' + (checked ? 'present' : 'absent');
+        }
+    });
+    updateCounts();
+}
+
+function updateCounts() {
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    let present = 0;
+    checkboxes.forEach(cb => {
+        if (cb.checked) present++;
+        const statusSpan = document.getElementById('status-' + cb.value);
+        if (statusSpan) {
+            statusSpan.innerText = cb.checked ? 'Present' : 'Absent';
+            statusSpan.className = 'status-pill ' + (cb.checked ? 'present' : 'absent');
+        }
+    });
+    const total = checkboxes.length;
+    const absent = total - present;
+    
+    document.getElementById('selectedCount').innerText = present;
+    document.getElementById('summaryPresent').innerText = present;
+    document.getElementById('summaryAbsent').innerText = absent;
+}
+{% endblock %}

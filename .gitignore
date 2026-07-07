@@ -1,0 +1,47 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+db.sqlite3
+db.sqlite3-shm
+db.sqlite3-wal
+*.log
+staticfiles/
+media/
+
+# Environment & secrets
+.env
+client_secret.json
+firebase_credentials.json
+*.pem
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Excel temp files
+~$*.xlsx
+
+# Scratch
+scratch_*.py
+scratch/
+
+# Large archives & sample data
+*.rar
+*.zip
+
+# Large sample Excel files (kept as .example or documented separately)
+*_import_*.xlsx

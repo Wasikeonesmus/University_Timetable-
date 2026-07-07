@@ -1,0 +1,394 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Import Preview - University Timetable System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-weight: 800; font-size: 2.25rem; margin-bottom: 0.5rem; letter-spacing: -0.025em; background: linear-gradient(135deg, var(--primary), var(--info)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">📥 Intelligent Import Preview</h1>
+    <p style="color: var(--text-muted); font-size: 1rem;">
+        Review the detected structure and mapped columns for <strong style="color: var(--text);">{{ file_name }}</strong> before importing into <strong style="color: var(--primary);">{{ active_university.name }}</strong>.
+    </p>
+</div>
+
+<!-- Main Grid Layout -->
+<div style="display: flex; flex-direction: column; gap: 2rem;">
+
+    <!-- Top Summary Status Panel -->
+    <div style="background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; display: grid; grid-template-columns: 1.5fr 1fr; gap: 1px;">
+        
+        <!-- Left: Format Details -->
+        <div style="padding: 2rem; background: var(--card-bg);">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Detected File Format</div>
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                {% if format_info.type == 'flat_timetable' %}
+                    📅 Flat Timetable 
+                {% elif format_info.type == 'separate_entities' %}
+                    🗂️ Separate Entity Sheets
+                {% else %}
+                    📄 Single Sheet Entity List
+                {% endif %}
+                <span style="font-size: 0.75rem; font-weight: 500; background: rgba(6, 182, 212, 0.1); color: var(--info); padding: 4px 10px; border-radius: 9999px; border: 1px solid rgba(6, 182, 212, 0.2);">
+                    {{ format_info.sheets|length }} sheet{{ format_info.sheets|length|pluralize }} detected
+                </span>
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 0;">
+                {% if format_info.type == 'flat_timetable' %}
+                    The file is parsed as a single or multi-sheet flat timetable listing. The engine will extract distinct campuses, programs, lecturers, rooms, time slots, student groups, and courses.
+                {% elif format_info.type == 'separate_entities' %}
+                    The engine found sheets that map to individual database entities. These sheets will be processed sequentially to prevent foreign key errors.
+                {% else %}
+                    This file contains a single list representing a single type of resource.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Right: Confidence Gauge -->
+        <div style="padding: 2rem; background: rgba(13, 148, 136, 0.02); display: flex; flex-direction: column; justify-content: center; align-items: center; border-left: 1px solid var(--border); text-align: center;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Mapping Confidence</div>
+            
+            {% widthratio format_info.confidence 1 100 as conf_pct %}
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+                <!-- Simple SVG circle progress -->
+                <svg width="80" height="80" viewBox="0 0 36 36" style="transform: rotate(-90deg);">
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--border)" stroke-width="3" />
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--success)" stroke-dasharray="{{ conf_pct }}, 100" stroke-width="3" stroke-linecap="round" />
+                </svg>
+                <div style="position: absolute; font-size: 1.25rem; font-weight: 800; color: var(--text);">{{ conf_pct }}%</div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Matches 200+ column aliases</div>
+        </div>
+    </div>
+
+    <!-- Warnings List (if any exist) -->
+    {% if entities.warnings %}
+    <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius); padding: 1.25rem; display: flex; gap: 1rem; align-items: start;">
+        <span style="font-size: 1.5rem; line-height: 1;">⚠️</span>
+        <div>
+            <h4 style="font-weight: 700; color: #d97706; margin-bottom: 0.25rem; font-size: 0.95rem;">System Healing & Auto-generations</h4>
+            <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.85rem; color: #92400e; line-height: 1.5;">
+                {% for warning in entities.warnings %}
+                    <li>{{ warning }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Column Mappings Accordion -->
+    <div style="background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 1.5rem;">
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+            🗺️ Column Mapping Details
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for sheet in format_info.sheets %}
+            <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: rgba(255,255,255,0.01);">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Sheet: <strong style="color: var(--primary);">{{ sheet.name }}</strong></span>
+                    <span style="font-size: 0.8rem; background: rgba(0,0,0,0.03); padding: 3px 8px; border-radius: 6px; font-weight: normal; color: var(--text-muted);">
+                        Type: {{ sheet.detected_type|title }}
+                    </span>
+                </div>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    {% if sheet.mappings %}
+                        {% for mapping in sheet.mappings %}
+                            <div style="display: inline-flex; align-items: center; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; font-size: 0.78rem;">
+                                <span style="background: #e2e8f0; padding: 4px 8px; font-weight: 600; color: #475569;">
+                                    {{ mapping.header }}
+                                </span>
+                                <span style="padding: 4px 8px; color: #0f172a; font-weight: 700; background: rgba(13, 148, 136, 0.05);">
+                                    &rarr; {{ mapping.sys_key|title }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <span style="font-size: 0.82rem; color: var(--text-muted); font-style: italic;">No columns could be mapped automatically.</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Entity Summary Cards Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+        
+        <!-- Campuses Found -->
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏫</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.campuses|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Campuses</div>
+        </div>
+
+        <!-- Programs Found -->
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎓</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.programs|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Programs</div>
+        </div>
+
+        <!-- Lecturers Found -->
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👨‍🏫</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.lecturers|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Lecturers</div>
+        </div>
+
+        <!-- Rooms Found -->
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚪</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.rooms|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Rooms</div>
+        </div>
+
+        <!-- Student Groups Found -->
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.student_groups|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Student Groups</div>
+        </div>
+
+        <!-- Courses Found -->
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📚</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.courses|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Courses</div>
+        </div>
+
+        <!-- Time Slots Found -->
+        {% if entities.time_slots %}
+        <div class="summary-card" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; box-shadow: var(--shadow-sm); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='var(--shadow-sm)'">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏱️</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--text);">{{ entities.time_slots|length }}</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">Time Slots</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Data Preview Tabs Section -->
+    <div style="background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden;">
+        
+        <!-- Tab Headers -->
+        <div style="display: flex; gap: 2px; background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--border); padding: 8px 8px 0; overflow-x: auto;">
+            {% if entities.courses %}
+                <button onclick="switchTab('courses-preview')" class="tab-btn active" style="padding: 10px 16px; border: none; background: transparent; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 6px 6px 0 0; font-size: 0.85rem; transition: all 0.2s;">📚 Courses Preview</button>
+            {% endif %}
+            {% if entities.lecturers %}
+                <button onclick="switchTab('lecturers-preview')" class="tab-btn" style="padding: 10px 16px; border: none; background: transparent; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 6px 6px 0 0; font-size: 0.85rem; transition: all 0.2s;">👨‍🏫 Lecturers Preview</button>
+            {% endif %}
+            {% if entities.rooms %}
+                <button onclick="switchTab('rooms-preview')" class="tab-btn" style="padding: 10px 16px; border: none; background: transparent; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 6px 6px 0 0; font-size: 0.85rem; transition: all 0.2s;">🚪 Rooms Preview</button>
+            {% endif %}
+            {% if entities.student_groups %}
+                <button onclick="switchTab('groups-preview')" class="tab-btn" style="padding: 10px 16px; border: none; background: transparent; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 6px 6px 0 0; font-size: 0.85rem; transition: all 0.2s;">👥 Student Groups Preview</button>
+            {% endif %}
+            {% if entities.time_slots %}
+                <button onclick="switchTab('slots-preview')" class="tab-btn" style="padding: 10px 16px; border: none; background: transparent; font-weight: 600; color: var(--text-muted); cursor: pointer; border-radius: 6px 6px 0 0; font-size: 0.85rem; transition: all 0.2s;">⏱️ Time Slots Preview</button>
+            {% endif %}
+        </div>
+
+        <!-- Tab Contents -->
+        <div style="padding: 1.5rem;">
+            
+            <!-- Courses Preview -->
+            {% if entities.courses %}
+            <div id="courses-preview" class="tab-content" style="display: block;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                            <th style="padding: 10px;">Code</th>
+                            <th style="padding: 10px;">Course Title</th>
+                            <th style="padding: 10px;">Required Room Type</th>
+                            <th style="padding: 10px;">Lecturer Email</th>
+                            <th style="padding: 10px;">Student Group</th>
+                            <th style="padding: 10px;">Program</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in entities.courses|slice:":5" %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 10px; font-weight: 700; color: var(--primary);">{{ course.code }}</td>
+                            <td style="padding: 10px; font-weight: 600; color: var(--text);">{{ course.name }}</td>
+                            <td style="padding: 10px;"><span style="background: rgba(13, 148, 136, 0.06); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.78rem;">{{ course.required_room_type }}</span></td>
+                            <td style="padding: 10px; color: var(--text-muted);">{{ course.lecturer }}</td>
+                            <td style="padding: 10px;">{{ course.student_group }}</td>
+                            <td style="padding: 10px;">{{ course.program }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Lecturers Preview -->
+            {% if entities.lecturers %}
+            <div id="lecturers-preview" class="tab-content" style="display: none;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                            <th style="padding: 10px;">Name</th>
+                            <th style="padding: 10px;">Email</th>
+                            <th style="padding: 10px;">Department</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lec in entities.lecturers|slice:":5" %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 10px; font-weight: 600; color: var(--text);">{{ lec.name }}</td>
+                            <td style="padding: 10px; color: var(--primary);">{{ lec.email }}</td>
+                            <td style="padding: 10px;">{{ lec.department }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Rooms Preview -->
+            {% if entities.rooms %}
+            <div id="rooms-preview" class="tab-content" style="display: none;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                            <th style="padding: 10px;">Room Name</th>
+                            <th style="padding: 10px;">Capacity</th>
+                            <th style="padding: 10px;">Room Type</th>
+                            <th style="padding: 10px;">Campus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rm in entities.rooms|slice:":5" %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 10px; font-weight: 600; color: var(--text);">{{ rm.name }}</td>
+                            <td style="padding: 10px; font-weight: 700; color: var(--orange);">{{ rm.capacity }}</td>
+                            <td style="padding: 10px;"><span style="background: rgba(13, 148, 136, 0.06); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.78rem;">{{ rm.room_type }}</span></td>
+                            <td style="padding: 10px;">{{ rm.campus }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Student Groups Preview -->
+            {% if entities.student_groups %}
+            <div id="groups-preview" class="tab-content" style="display: none;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                            <th style="padding: 10px;">Group Name</th>
+                            <th style="padding: 10px;">Size</th>
+                            <th style="padding: 10px;">Program</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gp in entities.student_groups|slice:":5" %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 10px; font-weight: 600; color: var(--text);">{{ gp.name }}</td>
+                            <td style="padding: 10px; font-weight: 700; color: var(--primary);">{{ gp.size }}</td>
+                            <td style="padding: 10px;">{{ gp.program }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Time Slots Preview -->
+            {% if entities.time_slots %}
+            <div id="slots-preview" class="tab-content" style="display: none;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted);">
+                            <th style="padding: 10px;">Day</th>
+                            <th style="padding: 10px;">Start Time</th>
+                            <th style="padding: 10px;">End Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in entities.time_slots|slice:":5" %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 10px; font-weight: 600; color: var(--text);">
+                                {% if slot.day_of_week == 1 %}Monday
+                                {% elif slot.day_of_week == 2 %}Tuesday
+                                {% elif slot.day_of_week == 3 %}Wednesday
+                                {% elif slot.day_of_week == 4 %}Thursday
+                                {% elif slot.day_of_week == 5 %}Friday
+                                {% elif slot.day_of_week == 6 %}Saturday
+                                {% elif slot.day_of_week == 7 %}Sunday
+                                {% endif %}
+                            </td>
+                            <td style="padding: 10px;">{{ slot.start_time|time:"H:i" }}</td>
+                            <td style="padding: 10px;">{{ slot.end_time|time:"H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Confirm / Cancel Action Form -->
+    <div style="display: flex; gap: 1rem; align-items: center; justify-content: flex-start; margin-top: 1rem;">
+        <form method="POST" action="{% url 'scheduler:import_resources' %}">
+            {% csrf_token %}
+            <input type="hidden" name="confirm" value="yes">
+            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), #34d399); border: none; font-weight: 600; padding: 0.75rem 2rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius); transition: all 0.2s; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);"
+                    onmouseover="this.style.opacity='0.95';this.style.transform='translateY(-1px)'"
+                    onmouseout="this.style.opacity='1';this.style.transform='translateY(0)'">
+                ⚡ Confirm & Import Now
+            </button>
+        </form>
+        <a href="{% url 'scheduler:import_resources' %}" class="btn btn-secondary" style="padding: 0.75rem 2rem; font-size: 0.95rem; border-radius: var(--radius); font-weight: 500;">
+            Cancel & Re-upload
+        </a>
+    </div>
+
+</div>
+
+<!-- Styles & Script for Tab navigation -->
+<style>
+    .tab-btn {
+        border-bottom: 2px solid transparent !important;
+    }
+    .tab-btn.active {
+        color: var(--primary) !important;
+        border-bottom: 2px solid var(--primary) !important;
+        background: rgba(26, 86, 219, 0.03) !important;
+    }
+    .tab-btn:hover:not(.active) {
+        color: var(--text) !important;
+        background: rgba(0,0,0,0.01) !important;
+    }
+</style>
+
+<script>
+    function switchTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(function(el) {
+            el.style.display = 'none';
+        });
+        
+        // Show the active tab content
+        const target = document.getElementById(tabId);
+        if (target) {
+            target.style.display = 'block';
+        }
+        
+        // Update active class on tab buttons
+        document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            btn.classList.remove('active');
+        });
+        
+        // Find the clicked button and add active class
+        const clickedBtn = Array.from(document.querySelectorAll('.tab-btn')).find(function(btn) {
+            return btn.textContent.toLowerCase().includes(tabId.split('-')[0]);
+        });
+        if (clickedBtn) {
+            clickedBtn.classList.add('active');
+        }
+    }
+</script>
+{% endblock %}

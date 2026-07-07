@@ -1,0 +1,258 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Data Import Engine - University Timetable System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.5rem;">📥 Data Import Engine</h1>
+    <p style="color: var(--text-muted);">Import Rooms, Lecturers, Student Groups, or Courses from Excel (.xlsx) or CSV files directly into <strong style="color: var(--text-main);">{{ active_university.name }}</strong>.</p>
+</div>
+
+<!-- Main Split Workspace -->
+<div class="grid-3" style="grid-template-columns: 1.5fr 1fr; gap: 1.5rem; align-items: start;">
+    
+    <!-- Left Column: Upload Form -->
+    <div class="card" style="padding: 1.5rem;">
+        <div class="card-title" style="margin-bottom: 1.25rem;">Upload Data File</div>
+
+        {% if import_errors %}
+            <div style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; color: #fca5a5; font-size: 0.85rem;">
+                <strong style="color: #ef4444; display: block; margin-bottom: 0.5rem;">✕ Data Validation Failed (Transaction Rolled Back)</strong>
+                <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.6;">
+                    {% for err in import_errors %}
+                        <li>{{ err }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" action="{% url 'scheduler:import_resources' %}">
+            {% csrf_token %}
+            
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label class="form-label" for="import_type">Resource Type</label>
+                <select id="import_type" name="import_type" class="form-select" onchange="showSchemaGuide()" style="max-width: 380px;">
+                    <option value="smart" {% if import_type == 'smart' or not import_type %}selected{% endif %}>⚡ Smart Import (Auto-Detect Format)</option>
+                    <option value="all" {% if import_type == 'all' %}selected{% endif %}>⚡ Import All at Once (Multi-Sheet Excel)</option>
+                    <option value="room" {% if import_type == 'room' %}selected{% endif %}>Rooms / Venues only</option>
+                    <option value="lecturer" {% if import_type == 'lecturer' %}selected{% endif %}>Lecturers / Staff only</option>
+                    <option value="student_group" {% if import_type == 'student_group' %}selected{% endif %}>Student Groups / Classes only</option>
+                    <option value="course" {% if import_type == 'course' %}selected{% endif %}>Courses / Units only</option>
+                </select>
+            </div>
+
+            <!-- Upload Drag Drop Zone -->
+            <div style="border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem; text-align: center; background: rgba(255,255,255,0.01); transition: all 0.2s; cursor: pointer; margin-bottom: 1.5rem;"
+                 onmouseover="this.style.borderColor='var(--primary)';this.style.background='rgba(13, 148, 136, 0.03)'"
+                 onmouseout="this.style.borderColor='var(--border)';this.style.background='rgba(255,255,255,0.01)'"
+                 onclick="document.getElementById('file_input').click()">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 0.75rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-main); margin-bottom: 0.25rem;">Select file or drag & drop here</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Supports .xlsx (Excel) or .csv files up to 5MB</div>
+                
+                <input type="file" id="file_input" name="file" accept=".csv, .xlsx" style="display: none;" onchange="updateFileName(this)">
+                <div id="file_name_display" style="margin-top: 0.75rem; font-weight: bold; color: var(--primary); font-size: 0.85rem; display: none;"></div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #0d9488, #2dd4bf); border: none;">Start Import</button>
+                <a href="{% url 'scheduler:resources_manager' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right Column: Schema Helper Guide -->
+    <div class="card" style="padding: 1.5rem;">
+        <div class="card-title" style="margin-bottom: 0.75rem;">💡 Import Schema Templates</div>
+        <p style="color: var(--text-muted); font-size: 0.82rem; line-height: 1.5; margin-bottom: 1.25rem;">
+            Files must have headers in the first row. The system automatically cleans extra spaces, capitalization, and resolves structural objects.
+        </p>
+
+        <!-- Room Guide -->
+        <div id="guide-room" class="guide-box">
+            <h4 style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; margin-bottom: 0.5rem;">Rooms Schema</h4>
+            <table style="font-size: 0.75rem; width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 4px;">Header</th>
+                        <th style="padding: 4px;">Type</th>
+                        <th style="padding: 4px;">Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">capacity</td><td style="padding: 4px;">Number</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">room_type</td><td style="padding: 4px;">Lecture / Lab</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">campus_name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#34d399;">No (Auto)</td></tr>
+                </tbody>
+            </table>
+            <div style="font-size: 0.72rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 0.5rem; border-radius: 6px;">
+                <strong>Example CSV:</strong><br>
+                <code>name,capacity,room_type,campus_name</code><br>
+                <code>Auditorium 1,120,Lecture,Main Campus</code>
+            </div>
+        </div>
+
+        <!-- Lecturer Guide -->
+        <div id="guide-lecturer" class="guide-box" style="display: none;">
+            <h4 style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; margin-bottom: 0.5rem;">Lecturers Schema</h4>
+            <table style="font-size: 0.75rem; width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 4px;">Header</th>
+                        <th style="padding: 4px;">Type</th>
+                        <th style="padding: 4px;">Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">email</td><td style="padding: 4px;">Email</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">department_name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#34d399;">No (Auto)</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">max_hours</td><td style="padding: 4px;">Number</td><td style="padding: 4px; color:#34d399;">No (Default 20)</td></tr>
+                </tbody>
+            </table>
+            <div style="font-size: 0.72rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 0.5rem; border-radius: 6px;">
+                <strong>Example CSV:</strong><br>
+                <code>name,email,department_name,max_hours</code><br>
+                <code>Dr. Alice Smith,alice@uni.edu,Computer Science,24</code>
+            </div>
+        </div>
+
+        <!-- Student Group Guide -->
+        <div id="guide-student_group" class="guide-box" style="display: none;">
+            <h4 style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; margin-bottom: 0.5rem;">Student Groups Schema</h4>
+            <table style="font-size: 0.75rem; width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 4px;">Header</th>
+                        <th style="padding: 4px;">Type</th>
+                        <th style="padding: 4px;">Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">size</td><td style="padding: 4px;">Number</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">program_name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#34d399;">No (Auto)</td></tr>
+                </tbody>
+            </table>
+            <div style="font-size: 0.72rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 0.5rem; border-radius: 6px;">
+                <strong>Example CSV:</strong><br>
+                <code>name,size,program_name</code><br>
+                <code>Software Eng Year 1,45,BSc Software Engineering</code>
+            </div>
+        </div>
+
+        <!-- Course Guide -->
+        <div id="guide-course" class="guide-box" style="display: none;">
+            <h4 style="font-weight: 700; color: var(--text-main); font-size: 0.9rem; margin-bottom: 0.5rem;">Courses Schema</h4>
+            <table style="font-size: 0.75rem; width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 4px;">Header</th>
+                        <th style="padding: 4px;">Type</th>
+                        <th style="padding: 4px;">Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">code</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">duration_slots</td><td style="padding: 4px;">Number</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">required_room_type</td><td style="padding: 4px;">Lecture / Lab</td><td style="padding: 4px; color:#ef4444;">Yes</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">lecturer_email</td><td style="padding: 4px;">Email</td><td style="padding: 4px; color:#34d399;">No</td></tr>
+                    <tr><td style="padding: 4px; color:#2dd4bf;">student_group_name</td><td style="padding: 4px;">Text</td><td style="padding: 4px; color:#34d399;">No</td></tr>
+                </tbody>
+            </table>
+            <div style="font-size: 0.72rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 0.5rem; border-radius: 6px;">
+                <strong>Example CSV:</strong><br>
+                <code>code,name,duration_slots,required_room_type,lecturer_email,student_group_name</code><br>
+                <code>CS101,Intro to CS,1,Lecture,alice@uni.edu,Software Eng Year 1</code>
+            </div>
+        </div>
+
+        <!-- Smart Import Guide -->
+        <div id="guide-smart" class="guide-box" style="display: block;">
+            <div style="background: linear-gradient(135deg, rgba(13,148,136,0.15), rgba(99,102,241,0.15)); border: 1px solid rgba(13,148,136,0.4); border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem;">
+                <h4 style="font-weight: 700; color: #2dd4bf; font-size: 0.95rem; margin-bottom: 0.5rem;">⚡ Smart Import (Auto-Detect)</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    Upload <strong>any Excel (.xlsx) or CSV (.csv) file</strong>. The system will automatically detect the structure:
+                </p>
+                <ul style="font-size: 0.78rem; color: var(--text-muted); padding-left: 1.2rem; line-height: 1.5; margin-bottom: 0.75rem;">
+                    <li><strong>Flat Timetable</strong>: A list of sessions containing Day, Time, Room, Course, and Lecturer.</li>
+                    <li><strong>Separate Entity Sheets</strong>: Multiple sheets named Rooms, Lecturers, Courses, etc.</li>
+                    <li><strong>Single Sheet list</strong>: A list of courses, rooms, or lecturers.</li>
+                </ul>
+                <div style="font-size: 0.72rem; color: #fbbf24; background: rgba(251,191,36,0.08); padding: 0.5rem; border-radius: 6px; border-left: 3px solid #fbbf24;">
+                    <strong>How it works:</strong> Columns are matched using 200+ aliases (e.g. <em>"VENUE"</em> mapped to <em>"Room"</em>). You will review the detected entities on a preview screen before anything is written to the database.
+                </div>
+            </div>
+        </div>
+
+        <!-- All-at-once Guide -->
+        <div id="guide-all" class="guide-box" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(13,148,136,0.15), rgba(99,102,241,0.15)); border: 1px solid rgba(13,148,136,0.4); border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem;">
+                <h4 style="font-weight: 700; color: #2dd4bf; font-size: 0.95rem; margin-bottom: 0.5rem;">⚡ Import All at Once — Single Excel File</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                    Upload <strong>one Excel (.xlsx) file</strong> with up to 4 sheets. The system automatically detects each sheet by its name and imports everything in the correct order.
+                </p>
+                <table style="font-size: 0.78rem; width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                            <th style="padding: 5px;">Sheet Name</th>
+                            <th style="padding: 5px;">Also Accepted As</th>
+                            <th style="padding: 5px;">Required Columns</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 5px; color:#2dd4bf; font-weight:600;">Rooms</td>
+                            <td style="padding: 5px; color:var(--text-muted); font-size:0.72rem;">Venues, Locations, Halls</td>
+                            <td style="padding: 5px; color:#f9fafb; font-size:0.72rem;">venue/name, capacity/seats, type</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 5px; color:#2dd4bf; font-weight:600;">Lecturers</td>
+                            <td style="padding: 5px; color:var(--text-muted); font-size:0.72rem;">Staff, Teachers, Instructors</td>
+                            <td style="padding: 5px; color:#f9fafb; font-size:0.72rem;">name/instructor, email</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 5px; color:#2dd4bf; font-weight:600;">Students</td>
+                            <td style="padding: 5px; color:var(--text-muted); font-size:0.72rem;">Groups, Classes, Cohorts, Sections</td>
+                            <td style="padding: 5px; color:#f9fafb; font-size:0.72rem;">student/name, size/enrolment</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px; color:#2dd4bf; font-weight:600;">Courses</td>
+                            <td style="padding: 5px; color:var(--text-muted); font-size:0.72rem;">Units, Modules, Subjects</td>
+                            <td style="padding: 5px; color:#f9fafb; font-size:0.72rem;">code, name, hours/duration, type</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="font-size: 0.72rem; color: #fbbf24; background: rgba(251,191,36,0.08); padding: 0.5rem; border-radius: 6px; border-left: 3px solid #fbbf24;">
+                    <strong>⚠ Note:</strong> Only Excel (.xlsx) files are supported for multi-sheet import. Column headers are flexible — use any common name (e.g. <em>venue</em> instead of <em>room</em>, <em>enrolment</em> instead of <em>size</em>).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateFileName(input) {
+        const display = document.getElementById('file_name_display');
+        if (input.files && input.files.length > 0) {
+            display.textContent = '📄 Selected File: ' + input.files[0].name;
+            display.style.display = 'block';
+        } else {
+            display.style.display = 'none';
+        }
+    }
+
+    function showSchemaGuide() {
+        const val = document.getElementById('import_type').value;
+        document.querySelectorAll('.guide-box').forEach(el => {
+            el.style.display = 'none';
+        });
+        const guide = document.getElementById('guide-' + val);
+        if (guide) guide.style.display = 'block';
+    }
+    // Show correct guide on page load
+    document.addEventListener('DOMContentLoaded', showSchemaGuide);
+</script>
+{% endblock %}

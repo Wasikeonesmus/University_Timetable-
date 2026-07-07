@@ -1,0 +1,99 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% block title %}Student Groups{% endblock %}
+{% block page_title %}Student Groups{% endblock %}
+{% block breadcrumb %}Lecturer Portal › Student Groups{% endblock %}
+{% block nav_groups %}active{% endblock %}
+
+{% block extra_style %}
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.group-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform .18s, box-shadow .18s;
+}
+.group-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+.group-card-header {
+    padding: 18px 20px 12px;
+    background: linear-gradient(135deg, #f0f7ff, #e8f2ff);
+    border-bottom: 1px solid rgba(37,99,235,.1);
+}
+.group-name { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.group-program { font-size: 11px; color: var(--text-muted); }
+.group-card-body { padding: 16px 20px; }
+.group-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+.group-stat-row:last-child { border-bottom: none; }
+.group-stat-row .gk { color: var(--text-muted); font-weight: 500; }
+.group-stat-row .gv { font-weight: 700; }
+.size-indicator {
+    display: flex; align-items: center; gap: 6px;
+}
+.size-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+{% endblock %}
+
+{% block content %}
+<div class="lp-page-header">
+    <div>
+        <h1>Student Groups</h1>
+        <div class="subtitle">{{ groups_data|length }} group{{ groups_data|length|pluralize }} you teach this semester</div>
+    </div>
+</div>
+
+{% if groups_data %}
+<div class="groups-grid">
+    {% for item in groups_data %}
+    {% with g=item.group %}
+    <div class="group-card">
+        <div class="group-card-header">
+            <div class="group-name">{{ g.name }}</div>
+            <div class="group-program">{{ g.program.name }} — {{ g.program.department.name }}</div>
+        </div>
+        <div class="group-card-body">
+            <div class="group-stat-row">
+                <span class="gk">Group Size</span>
+                <span class="gv">
+                    <div class="size-indicator">
+                        <div class="size-dot" style="background:{% if g.size < 30 %}#10b981{% elif g.size < 60 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+                        {{ g.size }} students
+                    </div>
+                </span>
+            </div>
+            <div class="group-stat-row">
+                <span class="gk">Weekly Sessions</span>
+                <span class="gv">
+                    <span class="badge badge-blue">{{ item.sessions }} session{{ item.sessions|pluralize }}</span>
+                </span>
+            </div>
+            {% if item.courses %}
+            <div class="group-stat-row">
+                <span class="gk">Courses</span>
+                <span class="gv" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+                    {% for code in item.courses %}
+                    <span class="badge badge-gray" style="font-size:10px;">{{ code }}</span>
+                    {% endfor %}
+                </span>
+            </div>
+            {% endif %}
+            {% if g.parent_group %}
+            <div class="group-stat-row">
+                <span class="gk">Part of</span>
+                <span class="gv" style="font-size:12px;color:var(--text-muted);">{{ g.parent_group.name }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="lp-card">
+    <div class="empty-state">
+        <div class="es-title">No Student Groups Found</div>
+        <div class="es-text">No student groups are linked to your schedule slots in the active timetable.</div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

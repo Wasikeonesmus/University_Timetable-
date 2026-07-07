@@ -1,0 +1,182 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block breadcrumb %}Lecturer Portal › My Profile{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block extra_style %}
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 24px;
+}
+.profile-card-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 30px 20px;
+}
+.profile-avatar-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--danger));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem; font-weight: 900; color: #fff;
+    border: 4px solid #fff;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+.profile-name-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+.profile-role-sub {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 20px;
+}
+.profile-stat-box {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    margin-top: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+.stat-box-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.stat-box-val {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+}
+.stat-box-lbl {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-align: center;
+}
+.form-group-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.form-group-block label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.profile-input {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    outline: none;
+    font-family: inherit;
+    background: #f8fafc;
+}
+.profile-input:focus {
+    border-color: var(--primary);
+    background: #fff;
+}
+.profile-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+@media (max-width: 900px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="lp-page-header">
+    <div>
+        <h1>My Profile</h1>
+        <div class="subtitle">Manage your staff credentials and personal description</div>
+    </div>
+</div>
+
+<div class="profile-grid">
+    <!-- Left Column: Avatar & Summary -->
+    <div class="lp-card profile-card-left">
+        <div class="profile-avatar-large">
+            {% if lecturer.profile_picture %}
+                <img src="{{ lecturer.profile_picture.url }}" alt="{{ lecturer.name }}" style="width:100%;height:100%;object-fit:cover;">
+            {% else %}
+                {{ lecturer.name|first|upper }}
+            {% endif %}
+        </div>
+        <h2 class="profile-name-title">{{ lecturer.name }}</h2>
+        <div class="profile-role-sub">{{ lecturer.department.name }}</div>
+
+        <div style="width:100%; text-align:left; font-size:13px; color:var(--text-muted); display:flex; flex-direction:column; gap:10px; margin-bottom:10px;">
+            <div><strong>University:</strong> {{ active_university.name }}</div>
+            <div><strong>Faculty:</strong> {{ lecturer.department.faculty.name }}</div>
+            <div><strong>Email:</strong> {{ lecturer.email }}</div>
+            <div><strong>Weekly Hours Limit:</strong> {{ lecturer.max_hours_per_week }} hours</div>
+            <div><strong>Daily Class Limit:</strong> {{ lecturer.max_slots_per_day }} classes</div>
+        </div>
+
+        <div class="profile-stat-box">
+            <div class="stat-box-item">
+                <span class="stat-box-val">{{ total_courses }}</span>
+                <span class="stat-box-lbl">Courses</span>
+            </div>
+            <div class="stat-box-item">
+                <span class="stat-box-val">{{ total_slots }}</span>
+                <span class="stat-box-lbl">Weekly Classes</span>
+            </div>
+            <div class="stat-box-item">
+                <span class="stat-box-val">{{ total_sessions_taken }}</span>
+                <span class="stat-box-lbl">Attendance Runs</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Settings Form -->
+    <div class="lp-card">
+        <div class="lp-card-header">
+            <h3>Modify Credentials</h3>
+        </div>
+        <div class="lp-card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group-block">
+                    <label for="staff_id">Staff ID (Employee ID)</label>
+                    <input type="text" name="staff_id" id="staff_id" class="profile-input" 
+                           placeholder="e.g. EMP/2024/001" value="{{ lecturer.staff_id|default:'' }}">
+                    <span style="font-size:11px; color:var(--text-muted);">This is your official university employee identification code.</span>
+                </div>
+
+                <div class="form-group-block">
+                    <label for="bio">Professional Biography (Bio)</label>
+                    <textarea name="bio" id="bio" class="profile-input profile-textarea" 
+                              placeholder="Tell students and administrators about your teaching fields, qualifications, or experience...">{{ bio }}</textarea>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

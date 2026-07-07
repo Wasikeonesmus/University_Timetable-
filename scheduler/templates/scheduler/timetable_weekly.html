@@ -1,0 +1,793 @@
+{% load scheduler_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ timetable.name }} — {{ university.name }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  /* ── Base ─────────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand:    #0f766e; /* Teal theme matching screenshot */
+    --brand-2:  #0d9488;
+    --accent:   #06b6d4;
+    --bg:       #f1f5f9; /* Slate 100 background */
+    --surface:  #ffffff;
+    --border:   #cbd5e1; /* Slate 300 border for clean grid */
+    --text:     #1e293b;
+    --muted:    #64748b;
+    --radius:   12px;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Screen-only UI controls ─────────────────────────────────────── */
+  .screen-only { display: block; }
+
+  /* ── Header / Brand ──────────────────────────────────────────────── */
+  .tt-header {
+    background: linear-gradient(135deg, #0f766e 0%, #115e59 60%, #134e4a 100%);
+    color: white;
+    padding: 1.8rem 2.5rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .tt-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top right, rgba(255,255,255,0.1) 0%, transparent 60%);
+  }
+
+  .tt-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .tt-logo-circle {
+    width: 58px; height: 58px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 800; color: white;
+    flex-shrink: 0;
+    backdrop-filter: blur(6px);
+    letter-spacing: -1px;
+  }
+
+  .tt-uni-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .tt-uni-sub {
+    font-size: 0.82rem;
+    opacity: 0.75;
+    margin-top: 0.2rem;
+    font-weight: 400;
+  }
+
+  .tt-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    position: relative;
+  }
+
+  .tt-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: white;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ── Filter Toggle Bar ───────────────────────────────────────────── */
+  .filter-bar {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.9rem 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+  }
+
+  .filter-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .toggle-group {
+    display: flex;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8fafc;
+  }
+  .toggle-btn {
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .toggle-btn:hover { background: #e2e8f0; color: var(--text); }
+  .toggle-btn.active {
+    background: var(--brand);
+    color: white;
+  }
+
+  .filter-select {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.45rem 2rem 0.45rem 0.75rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    color: var(--text);
+    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0.6rem center;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .filter-spacer { flex: 1; }
+
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-print {
+    background: var(--brand);
+    color: white;
+  }
+  .btn-print:hover { background: #0f766e; opacity: 0.9; }
+  .btn-back {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: var(--text);
+  }
+  .btn-back:hover { background: #f1f5f9; }
+
+  /* ── Timetable Grid ──────────────────────────────────────────────── */
+  .tt-body {
+    padding: 2rem 2.5rem 3rem;
+  }
+
+  .schedule-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0f766e; /* Dark teal matching the screenshot */
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 1.4;
+  }
+
+  .tt-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    background: white;
+  }
+
+  .tt-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+  }
+
+  /* Header row styling */
+  .tt-table thead th {
+    padding: 1rem 0.75rem;
+    text-align: center;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #475569; /* Slate 600 */
+    background: #f8fafc; /* Slate 50 */
+    border-bottom: 2px solid var(--border);
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .tt-table thead th:last-child {
+    border-right: none;
+  }
+
+  .th-time {
+    width: 110px;
+    text-align: center !important;
+    font-weight: 700 !important;
+  }
+
+  /* Body rows styling */
+  .tt-table tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+  .tt-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .td-time {
+    padding: 1.25rem 0.75rem;
+    background: #f8fafc;
+    border-right: 1px solid var(--border);
+    vertical-align: middle;
+    text-align: center;
+  }
+  .time-hour {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  .time-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .td-cell {
+    padding: 0.75rem;
+    vertical-align: top;
+    border-right: 1px solid var(--border);
+    min-width: 160px;
+    background: white;
+  }
+  .td-cell:last-child {
+    border-right: none;
+  }
+
+  /* ── Premium Lecturer/Course Card ────────────────────────────────── */
+  .class-card {
+    border-radius: 8px;
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    color: #1e293b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    border: none;
+    height: 100%;
+    min-height: 130px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .class-card:last-child {
+    margin-bottom: 0;
+  }
+  .class-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.1), 0 0 10px rgba(80,140,255,0.05);
+  }
+
+  /* Soft premium glassmorphic styles per day of the week */
+  .class-card.day-1 { background: rgba(59, 130, 246, 0.08); border: 1.5px solid rgba(59, 130, 246, 0.18); border-left: 4.5px solid #3b82f6 !important; }
+  .class-card.day-2 { background: rgba(249, 115, 22, 0.08); border: 1.5px solid rgba(249, 115, 22, 0.18); border-left: 4.5px solid #ea580c !important; }
+  .class-card.day-3 { background: rgba(139, 92, 246, 0.08); border: 1.5px solid rgba(139, 92, 246, 0.18); border-left: 4.5px solid #8b5cf6 !important; }
+  .class-card.day-4 { background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.18); border-left: 4.5px solid #ef4444 !important; }
+  .class-card.day-5 { background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.18); border-left: 4.5px solid #10b981 !important; }
+  .class-card.day-6 { background: rgba(168, 85, 247, 0.08); border: 1.5px solid rgba(168, 85, 247, 0.18); border-left: 4.5px solid #a855f7 !important; }
+  .class-card.day-7 { background: rgba(236, 72, 153, 0.08); border: 1.5px solid rgba(236, 72, 153, 0.18); border-left: 4.5px solid #ec4899 !important; }
+
+
+  /* Ended and Ongoing slots styles */
+  .class-card.ended {
+    opacity: 0.55;
+    filter: grayscale(30%);
+    border: 1.5px dashed rgba(0, 0, 0, 0.2) !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+  .class-card.ongoing {
+    border: 2px solid #10b981 !important;
+    box-shadow: 0 0 14px rgba(16,185,129,0.35) !important;
+  }
+  .badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #10b981;
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    animation: pulse-green 2s infinite;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: white;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.7);
+    animation: dotpulse 1.8s infinite;
+  }
+  @keyframes dotpulse {
+    0%   { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+    70%  { transform: scale(1);   box-shadow: 0 0 0 4px rgba(255,255,255,0); }
+    100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
+  @keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(16,185,129, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(16,185,129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129, 0); }
+  }
+
+
+  /* Lecturer row layout */
+  .card-lecturer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: 100%;
+    margin-bottom: 0.4rem;
+  }
+
+  /* Lecturer avatar circular styling */
+  .card-avatar-container {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.85);
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .card-lecturer-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .card-course-info {
+    font-size: 0.82rem;
+    font-weight: 700;
+    opacity: 0.95;
+    line-height: 1.3;
+    margin-bottom: 0.6rem;
+    width: 100%;
+  }
+
+  /* Metadata items with icons */
+  .card-meta-row {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: auto; /* Push metadata to bottom of card */
+  }
+  .card-meta-item {
+    font-size: 0.64rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 600;
+    padding: 0.2rem 0.45rem;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    color: #475569;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-meta-item svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  /* Empty state slots */
+  .td-empty {
+    background-color: white;
+  }
+
+  /* ── Legend / Footer ──────────────────────────────────────────────── */
+  .tt-footer {
+    padding: 1.5rem 2.5rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 4px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    color: var(--muted);
+  }
+  .empty-state-icon { font-size: 3.5rem; opacity: 0.25; margin-bottom: 1.2rem; }
+  .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 0.5rem; }
+
+  /* ── Print Customizations ────────────────────────────────────────── */
+  @media print {
+    .screen-only, .filter-bar { display: none !important; }
+    body { background: white; }
+    .tt-body { padding: 0.5rem; }
+    .schedule-title { color: #0f766e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tt-table-wrapper { box-shadow: none; border: 1px solid #cbd5e1; }
+    .class-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; break-inside: avoid; }
+    
+    @page {
+      size: A4 landscape;
+      margin: 1cm;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── University Brand Header ──────────────────────────────────── -->
+<div class="tt-header screen-only">
+  <div class="tt-brand-row">
+    <div class="tt-logo-circle">
+      {{ university.code|slice:":2"|upper }}
+    </div>
+    <div>
+      <div class="tt-uni-name">{{ university.name }}</div>
+      <div class="tt-uni-sub">Academic Timetable Management System · {{ semester.name }}</div>
+    </div>
+  </div>
+
+  <div class="tt-meta-row">
+    <span class="tt-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      {{ semester.start_date|date:"M j, Y" }} – {{ semester.end_date|date:"M j, Y" }}
+    </span>
+    <span class="tt-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      {{ timetable.name }}
+    </span>
+    {% if selected_filter_name %}
+    <span class="tt-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      {{ selected_filter_name }}
+    </span>
+    {% endif %}
+    <span class="tt-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Generated {{ timetable.created_at|date:"M j, Y" }}
+    </span>
+  </div>
+</div>
+
+<!-- ── Filter Bar (screen only) ─────────────────────────────────── -->
+<div class="filter-bar screen-only">
+  <span class="filter-label">View by:</span>
+
+  <!-- Type toggle -->
+  <div class="toggle-group">
+    <a href="?filter_type=group{% if filter_id and filter_type == 'group' %}&filter_id={{ filter_id }}{% endif %}"
+       class="toggle-btn {% if filter_type == 'group' %}active{% endif %}">
+      👥 Student Group
+    </a>
+    <a href="?filter_type=lecturer{% if filter_id and filter_type == 'lecturer' %}&filter_id={{ filter_id }}{% endif %}"
+       class="toggle-btn {% if filter_type == 'lecturer' %}active{% endif %}">
+      👨‍🏫 Lecturer
+    </a>
+    <a href="?filter_type=room{% if filter_id and filter_type == 'room' %}&filter_id={{ filter_id }}{% endif %}"
+       class="toggle-btn {% if filter_type == 'room' %}active{% endif %}">
+      🏛 Room
+    </a>
+  </div>
+
+  <!-- Entity selector -->
+  <form method="GET" id="filter-form" style="display:flex; align-items:center; gap:0.6rem;">
+    <input type="hidden" name="filter_type" value="{{ filter_type }}">
+    {% if filter_type == 'lecturer' or filter_type == 'group' %}
+      <input type="text" id="filter-search" placeholder="Type to search..." autocomplete="off"
+             style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.45rem 0.75rem; font-size: 0.85rem; font-family: inherit; color: var(--text); background: white; width: 180px; outline: none; transition: border-color 0.15s;"
+             onfocus="this.style.borderColor='var(--brand)'" onblur="this.style.borderColor='#cbd5e1'">
+    {% endif %}
+    <select name="filter_id" id="filter-select-el" class="filter-select" onchange="document.getElementById('filter-form').submit()">
+      {% if filter_type == 'group' %}
+        {% for g in student_groups %}
+          <option value="{{ g.id }}" {% if filter_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+        {% endfor %}
+      {% elif filter_type == 'room' %}
+        {% for r in rooms %}
+          <option value="{{ r.id }}" {% if filter_id == r.id %}selected{% endif %}>{{ r.name }}</option>
+        {% endfor %}
+      {% elif filter_type == 'lecturer' %}
+        {% for l in lecturers %}
+          <option value="{{ l.id }}" {% if filter_id == l.id %}selected{% endif %}>{{ l.name }}</option>
+        {% endfor %}
+      {% endif %}
+    </select>
+  </form>
+
+  <div class="filter-spacer"></div>
+
+  <!-- Actions -->
+  <button class="action-btn btn-print" onclick="window.print()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print / Save PDF
+  </button>
+  <a href="{% url 'scheduler:timetable_detail' timetable.pk %}" class="action-btn btn-back">
+    ← Interactive View
+  </a>
+</div>
+
+<!-- ── Timetable Body ─────────────────────────────────────────────── -->
+<div class="tt-body">
+
+  <h2 class="schedule-title">
+    TEACHING & LEARNING SCHEDULE FOR {{ selected_filter_name|upper }}
+  </h2>
+
+  {% if slot_numbers %}
+  <div class="tt-table-wrapper">
+    <table class="tt-table">
+      <thead>
+        <tr>
+          <th class="th-time">Time (EAT)</th>
+          {% for day in days %}
+            <th class="th-day">
+              <div>{{ day.label }}</div>
+              {% if day.date %}
+                <div style="font-size: 10px; color: #64748b; font-weight: 500; margin-top: 2px;">{{ day.date|date:"M d" }}</div>
+              {% endif %}
+            </th>
+          {% endfor %}
+
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot_num in slot_numbers %}
+        <tr>
+          <!-- Time column -->
+          <td class="td-time">
+            {% with label=slot_time_labels|dict_key:slot_num %}
+            <span class="time-hour">
+              {% if label %}
+                {{ label.start }}
+              {% else %}
+                P{{ slot_num }}
+              {% endif %}
+            </span>
+            <span class="time-sub">
+              {% if label %}
+                {{ label.range }}
+              {% endif %}
+            </span>
+            {% endwith %}
+          </td>
+
+
+          <!-- Day columns -->
+          {% for day in days %}
+          {% with cell=grid|dict_key:slot_num|dict_key:day.num %}
+            {% if not cell.is_merged %}
+            <td class="td-cell {% if not cell.slots %}td-empty{% endif %}" {% if cell.rowspan > 1 %}rowspan="{{ cell.rowspan }}"{% endif %}>
+              {% if cell.slots %}
+              {% for slot in cell.slots %}
+              <!-- Colorful class card based on day of week to match screenshot exactly -->
+              <div class="class-card day-{{ day.num }} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}">
+                
+                <!-- Lecturer inline avatar row -->
+                <div class="card-lecturer-row" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem; min-width: 0;">
+                    {% if slot.lecturer %}
+                    <div class="card-lecturer-name" title="{{ slot.lecturer.name }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ slot.lecturer.name }}</div>
+                    {% else %}
+                    <div class="card-lecturer-name">TBD Lecturer</div>
+                    {% endif %}
+                  </div>
+                  {% if slot.is_ongoing %}
+                    <span class="badge-live"><span class="pulse-dot"></span>Live</span>
+                  {% elif slot.has_ended %}
+                    <span style="font-size: 0.62rem; color: rgba(255,255,255,0.8); font-weight: 800; background: rgba(255,255,255,0.15); padding: 0.15rem 0.45rem; border-radius: 20px; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.25); white-space: nowrap; flex-shrink: 0; line-height: 1;">Ended</span>
+                  {% endif %}
+                </div>
+
+
+                <!-- Course details -->
+                <div class="card-course-info">
+                  <strong>{{ slot.course.code }}</strong>: {{ slot.course.name }}
+                </div>
+
+                <!-- Metadata block with horizontal tags -->
+                <div class="card-meta-row">
+                  <div class="card-meta-item" title="Delivery Mode">
+                    <!-- Monitor icon -->
+                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                    {% if slot.room.room_type == 'Lab' %}Physical Lab{% else %}Online{% endif %}
+                  </div>
+                  <div class="card-meta-item" title="Time of Day">
+                    <!-- Sun icon -->
+                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                    {% if slot.time_slot.start_time.hour < 12 %}Morning{% else %}Afternoon{% endif %}
+                  </div>
+                  {% if filter_type != 'room' %}
+                  <div class="card-meta-item" title="Room Location">
+                    <!-- Home icon -->
+                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    Room: {{ slot.room.name }}
+                  </div>
+                  {% endif %}
+                  {% if filter_type != 'group' %}
+                  <div class="card-meta-item" title="Student Group">
+                    <!-- Users icon -->
+                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    {{ slot.student_group.name }}
+                  </div>
+                  {% endif %}
+                </div>
+
+              </div>
+              {% endfor %}
+              {% endif %}
+            </td>
+            {% endif %}
+          {% endwith %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">📅</div>
+    <h3>No timetable data yet</h3>
+    <p>Generate the timetable first, then come back to view it here.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Footer / Legend ────────────────────────────────────────────── -->
+<div class="tt-footer screen-only">
+  <div style="flex:1; font-size:0.72rem; color:var(--muted);">
+    {{ university.name }} · {{ timetable.name }} · {{ semester.name }}
+    &nbsp;·&nbsp; Printed on <script>document.write(new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))</script>
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#3b82f6;"></span> Monday (Blue)
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#ea580c;"></span> Tuesday / Thursday (Orange)
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#854d0e;"></span> Wednesday (Bronze)
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#0d9488;"></span> Friday (Teal)
+  </div>
+  <div class="legend-item">
+    <span class="legend-dot" style="background:#7c3aed;"></span> Weekend (Purple)
+  </div>
+</div>
+
+<script>
+  // Highlight today's column
+  const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const today = days[new Date().getDay()];
+  document.querySelectorAll('.th-day').forEach(th => {
+    if (th.textContent.trim().toLowerCase() === today) {
+      th.style.boxShadow = 'inset 0 -3px 0 #0f766e';
+      th.style.fontWeight = '800';
+    }
+  });
+
+  // Search filter for dropdown
+  document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("filter-search");
+    const selectEl = document.getElementById("filter-select-el");
+    const form = document.getElementById("filter-form");
+    if (!searchInput || !selectEl) return;
+    
+    // Store all original options
+    const originalOptions = Array.from(selectEl.options).map(opt => ({
+        value: opt.value,
+        text: opt.text,
+        selected: opt.selected
+    }));
+    
+    searchInput.addEventListener("input", function() {
+        const query = searchInput.value.toLowerCase().trim();
+        selectEl.innerHTML = "";
+        
+        const filtered = originalOptions.filter(opt => opt.text.toLowerCase().includes(query));
+        
+        if (filtered.length > 0) {
+            filtered.forEach((opt, idx) => {
+                const isSel = query ? (idx === 0) : opt.selected;
+                const newOpt = new Option(opt.text, opt.value, isSel, isSel);
+                selectEl.add(newOpt);
+            });
+        } else {
+            const emptyOpt = new Option("No matches found", "", false, false);
+            emptyOpt.disabled = true;
+            selectEl.add(emptyOpt);
+        }
+    });
+
+    form.addEventListener("submit", function(e) {
+        if (selectEl.value === "") {
+            e.preventDefault();
+        }
+    });
+  });
+</script>
+
+</body>
+</html>

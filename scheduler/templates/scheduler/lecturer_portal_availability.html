@@ -1,0 +1,61 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% load scheduler_tags %}
+
+{% block title %}My Availability — Lecturer Portal{% endblock %}
+{% block page_title %}My Availability{% endblock %}
+{% block breadcrumb %}Lecturer Portal › My Availability{% endblock %}
+{% block nav_availability %}active{% endblock %}
+
+{% block content %}
+<div class="lp-card" style="max-width: 1000px; margin: 0 auto; padding: 2rem;">
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text);">📅 Set Your Availability</h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5;">
+            Toggle the checkboxes below to indicate when you are available to teach. Checked slots represent times you can be scheduled, and unchecked slots represent times you are unavailable. You can also add notes (e.g. "Research hours" or "Part-time limit").
+        </p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div style="display: flex; flex-direction: column; gap: 1.8rem;">
+            {% for day_num, d in days.items %}
+            <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.015);">
+                <div style="background: rgba(0,0,0,0.1); padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 0.95rem; color: var(--primary);">
+                    {{ d.label }}
+                </div>
+                
+                <div style="padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for s in d.slots %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                        <!-- Checkbox + Label -->
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="checkbox" name="slot_{{ s.ts.id }}" id="slot_{{ s.ts.id }}" {% if s.is_available %}checked{% endif %}
+                                   style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                            <label for="slot_{{ s.ts.id }}" style="font-size: 0.88rem; font-weight: 600; cursor: pointer; user-select: none; color: var(--text);">
+                                Slot {{ s.ts.slot_number }} ({{ s.ts.start_time|time:"H:i" }} – {{ s.ts.end_time|time:"H:i" }})
+                            </label>
+                        </div>
+                        
+                        <!-- Note input -->
+                        <div style="flex: 1; max-width: 400px; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.78rem; color: var(--text-muted); white-space: nowrap;">Reason/Note:</span>
+                            <input type="text" name="note_{{ s.ts.id }}" value="{{ s.note }}" placeholder="Optional constraint note..."
+                                   style="width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.6rem; background: var(--surface); color: var(--text-main); font-size: 0.82rem; outline: none; transition: border-color 0.15s;"
+                                   onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="lp-btn lp-btn-primary" style="background: var(--primary); color: white; border: none; font-weight: 600; padding: 0.75rem 2rem; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='var(--primary-dk)'" onmouseout="this.style.background='var(--primary)'">
+                Save Availability Preferences
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

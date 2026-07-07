@@ -1,0 +1,57 @@
+{% extends 'scheduler/base.html' %}
+{% block title %}University Setup Wizard{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:0 auto;">
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:0.5rem;">University Setup Wizard</h2>
+    <p style="color:var(--text-muted);margin-bottom:1.5rem;">
+        Create your university, default teaching hours (Mon–Fri), and an active semester in one step.
+    </p>
+
+    {% if university %}
+    <div class="card" style="padding:1rem 1.25rem;margin-bottom:1rem;">
+        <div style="font-weight:600;">Current university: {{ university.name }} ({{ university.code }})</div>
+        <div style="color:var(--text-muted);font-size:0.85rem;margin-top:0.35rem;">
+            Time slots configured: {% if has_timeslots %}Yes{% else %}No{% endif %}
+            &nbsp;·&nbsp;
+            Semester configured: {% if has_semester %}Yes{% else %}No{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" class="card" style="padding:1.5rem;display:grid;gap:1rem;">
+        {% csrf_token %}
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:0.35rem;">University name</label>
+            <input type="text" name="university_name" class="form-control" required
+                   value="{{ university.name|default:'' }}" placeholder="e.g. Kenyatta University">
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:0.35rem;">University code</label>
+            <input type="text" name="university_code" class="form-control" required maxlength="50"
+                   value="{{ university.code|default:'' }}" placeholder="e.g. KU">
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:0.35rem;">Main campus name</label>
+            <input type="text" name="campus_name" class="form-control" value="Main Campus">
+        </div>
+        <div>
+            <label style="display:block;font-weight:600;margin-bottom:0.35rem;">Semester name</label>
+            <input type="text" name="semester_name" class="form-control" required placeholder="e.g. Fall 2026">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div>
+                <label style="display:block;font-weight:600;margin-bottom:0.35rem;">Start date</label>
+                <input type="date" name="start_date" class="form-control" required>
+            </div>
+            <div>
+                <label style="display:block;font-weight:600;margin-bottom:0.35rem;">End date</label>
+                <input type="date" name="end_date" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" style="padding:0.75rem 1.25rem;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;">
+            Run Setup
+        </button>
+    </form>
+</div>
+{% endblock %}

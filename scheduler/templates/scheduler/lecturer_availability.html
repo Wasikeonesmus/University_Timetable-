@@ -1,0 +1,100 @@
+{% extends 'scheduler/base.html' %}
+{% block title %}Lecturer Availability – Timetable System{% endblock %}
+
+{% block content %}
+<div style="max-width:1000px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+            <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:0.25rem;">
+                📅 Lecturer Availability
+            </h2>
+            <p style="color:var(--text-muted);font-size:0.875rem;">
+                {% if is_own %}Set your unavailable time slots below.{% else %}Manage availability for any lecturer.{% endif %}
+            </p>
+        </div>
+        {% if not is_own %}
+        <form method="get" style="display:flex;gap:0.5rem;align-items:center;">
+            <select name="lecturer_id" id="id_select_lecturer" class="form-select" style="min-width:200px;" onchange="this.form.submit()">
+                {% for lec in all_lecturers %}
+                <option value="{{ lec.id }}" {% if lec.id == lecturer.id %}selected{% endif %}>{{ lec.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    {% for message in messages %}
+    <div style="padding:0.875rem;border-radius:10px;margin-bottom:1rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;">
+        ✓ {{ message }}
+    </div>
+    {% endfor %}
+
+    <div class="card" style="padding:1.5rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border);">
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#0f766e);display:flex;align-items:center;justify-content:center;font-size:1.25rem;">👤</div>
+            <div>
+                <div style="font-weight:700;font-size:1.1rem;">{{ lecturer.name }}</div>
+                <div style="color:var(--text-muted);font-size:0.85rem;">{{ lecturer.email }} · {{ lecturer.department.name }}</div>
+            </div>
+            <div style="margin-left:auto;">
+                <span style="padding:0.3rem 0.75rem;background:var(--primary);border-radius:999px;font-size:0.75rem;font-weight:600;color:#fff;">
+                    Max {{ lecturer.max_hours_per_week }}h/week
+                </span>
+            </div>
+        </div>
+
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.25rem;">
+            ✅ = Available &nbsp; ❌ = Unavailable &nbsp;&nbsp;
+            <strong style="color:var(--text-main);">Check the box</strong> to mark a slot as available.
+            Unchecked = unavailable (solver will not assign classes here).
+        </p>
+
+        {% if not days %}
+        <div style="text-align:center;padding:2rem;color:var(--text-muted);">
+            No time slots defined for this university yet.
+            <a href="{% url 'scheduler:resources_manager' %}?tab=timeslot" style="color:var(--primary);">Add time slots →</a>
+        </div>
+        {% else %}
+        <form method="post" id="availability-form">
+            {% csrf_token %}
+            {% for day_num, day_data in days.items %}
+            <div style="margin-bottom:1.5rem;">
+                <h3 style="font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:0.75rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);">
+                    {{ day_data.label }}
+                </h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem;">
+                    {% for slot_data in day_data.slots %}
+                    <label for="slot_{{ slot_data.ts.id }}" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;border-radius:10px;border:1px solid {% if slot_data.is_available %}var(--primary){% else %}var(--danger){% endif %};background:{% if slot_data.is_available %}rgba(16,185,129,0.08){% else %}rgba(244,63,94,0.08){% endif %};cursor:pointer;transition:all 0.2s;">
+                        <input type="checkbox"
+                               id="slot_{{ slot_data.ts.id }}"
+                               name="slot_{{ slot_data.ts.id }}"
+                               {% if slot_data.is_available %}checked{% endif %}
+                               style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer;"
+                               onchange="this.closest('label').style.borderColor=this.checked?'var(--primary)':'var(--danger)';this.closest('label').style.background=this.checked?'rgba(16,185,129,0.08)':'rgba(244,63,94,0.08)'">
+                        <div>
+                            <div style="font-size:0.85rem;font-weight:600;">Slot {{ slot_data.ts.slot_number }}</div>
+                            <div style="font-size:0.78rem;color:var(--text-muted);">{{ slot_data.ts.start_time|time:"H:i" }} – {{ slot_data.ts.end_time|time:"H:i" }}</div>
+                        </div>
+                        <span style="margin-left:auto;font-size:1rem;">{% if slot_data.is_available %}✅{% else %}❌{% endif %}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+                <button type="submit" id="btn-save-availability" style="padding:0.8rem 2rem;background:linear-gradient(135deg,var(--primary-dark,#0d5a4f),var(--primary));border:none;border-radius:10px;color:#fff;font-weight:600;font-size:0.95rem;cursor:pointer;transition:all 0.2s;">
+                    💾 Save Availability
+                </button>
+                <button type="button" id="btn-mark-all" onclick="document.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change'))})" style="padding:0.8rem 1.5rem;background:rgba(16,185,129,0.1);border:1px solid var(--primary);border-radius:10px;color:var(--primary);font-weight:600;cursor:pointer;">
+                    Mark All Available
+                </button>
+                <button type="button" id="btn-clear-all" onclick="document.querySelectorAll('input[type=checkbox]').forEach(c=>{c.checked=false;c.dispatchEvent(new Event('change'))})" style="padding:0.8rem 1.5rem;background:rgba(244,63,94,0.1);border:1px solid var(--danger,#f43f5e);border-radius:10px;color:#f43f5e;font-weight:600;cursor:pointer;">
+                    Mark All Unavailable
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

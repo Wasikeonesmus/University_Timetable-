@@ -1,0 +1,207 @@
+{% extends 'scheduler/lecturer_portal_base.html' %}
+{% load scheduler_tags %}
+{% block title %}Teaching Workload{% endblock %}
+{% block page_title %}Teaching Workload{% endblock %}
+{% block breadcrumb %}Lecturer Portal › Workload{% endblock %}
+{% block nav_workload %}active{% endblock %}
+
+{% block extra_style %}
+.workload-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+.gauge-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+}
+.gauge-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin-bottom: 20px;
+}
+.gauge-outer {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.gauge-inner {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.gauge-val {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1;
+}
+.gauge-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-top: 4px;
+}
+.chart-card {
+    padding: 24px;
+}
+.bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+.bar-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 60px;
+    align-items: center;
+    gap: 12px;
+}
+.bar-day {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+}
+.bar-track {
+    background: #e2e8f0;
+    height: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--purple));
+    border-radius: 8px;
+}
+.bar-val {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: right;
+}
+.slots-list {
+    margin-top: 24px;
+}
+@media (max-width: 900px) {
+    .workload-container {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="lp-page-header">
+    <div>
+        <h1>Teaching Workload</h1>
+        <div class="subtitle">Detailed analysis of your weekly schedule allocation</div>
+    </div>
+</div>
+
+<div class="workload-container">
+    <!-- Workload Gauge -->
+    <div class="lp-card gauge-card">
+        <h3>Weekly Workload</h3>
+        <div class="gauge-wrap" style="margin-top:20px;">
+            <div class="gauge-outer" style="background: conic-gradient({% if workload_pct > 100 %}var(--danger) 0% 100%{% else %}var(--primary) 0% {{ workload_pct }}%, #e2e8f0 {{ workload_pct }}% 100%{% endif %});">
+                <div class="gauge-inner">
+                    <span class="gauge-val">{{ total_hours }}h</span>
+                    <span class="gauge-label">Allocated</span>
+                </div>
+            </div>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom: 8px;">
+            Weekly Workload Limit: <strong>{{ lecturer.max_hours_per_week }} hours</strong>
+        </p>
+        <span class="badge {% if workload_pct <= 80 %}badge-green{% elif workload_pct <= 100 %}badge-orange{% else %}badge-red{% endif %}">
+            {{ workload_pct }}% Utilization
+        </span>
+    </div>
+
+    <!-- Bar Chart Daily Allocation -->
+    <div class="lp-card chart-card">
+        <h3>Daily Workload</h3>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">
+            Daily Class Limit: max <strong>{{ lecturer.max_slots_per_day }} classes/day</strong>
+        </div>
+        <div class="bar-chart">
+            {% for day_num, day_name in day_names.items %}
+                {% with hours=day_hours|dict_key:day_num slots_count=day_slots|dict_key:day_num %}
+                <div class="bar-row" style="grid-template-columns: 80px 1fr 100px;">
+                    <div class="bar-day">{{ day_name }}</div>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: {% if lecturer.max_slots_per_day > 0 %}{% widthratio slots_count lecturer.max_slots_per_day 100 %}{% else %}0{% endif %}%;
+                                    background: {% if slots_count > lecturer.max_slots_per_day %}var(--danger){% else %}linear-gradient(90deg, var(--primary), var(--purple)){% endif %};"></div>
+                    </div>
+                    <div class="bar-val" style="font-size:11px; font-weight:700;">
+                        {{ slots_count }} / {{ lecturer.max_slots_per_day }} classes
+                        {% if slots_count > lecturer.max_slots_per_day %}
+                            <span style="color:var(--danger); display:block; font-size:9px; font-weight:800;">Overloaded</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Slots Table -->
+<div class="lp-card slots-list">
+    <div class="lp-card-header">
+        <h3>Schedule Slots Breakdown</h3>
+    </div>
+    <div class="lp-table-wrap" style="overflow-x:auto;">
+        <table class="lp-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time Slot</th>
+                    <th>Course</th>
+                    <th>Student Group</th>
+                    <th>Room</th>
+                    <th>Room Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for slot in slots %}
+                <tr>
+                    <td><strong>{{ slot.time_slot.get_day_of_week_display }}</strong></td>
+                    <td>{{ slot.time_slot.start_time|time:"H:i" }} – {{ slot.time_slot.end_time|time:"H:i" }}</td>
+                    <td>
+                        <span style="font-weight:700; color:var(--primary);">{{ slot.course.code }}</span><br>
+                        <span style="font-size:11px; color:var(--text-muted);">{{ slot.course.name }}</span>
+                    </td>
+                    <td>{{ slot.student_group.name }}</td>
+                    <td>{{ slot.room.name }}</td>
+                    <td>
+                        <span class="badge {% if slot.course.required_room_type == 'Lab' %}badge-purple{% elif slot.course.required_room_type == 'Seminar' %}badge-green{% else %}badge-blue{% endif %}">
+                            {{ slot.course.get_required_room_type_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="empty-state">No schedule slots recorded for this timetable.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

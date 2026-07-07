@@ -1,0 +1,318 @@
+{% extends 'scheduler/base.html' %}
+{% block title %}Teaching History – {{ lecturer.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Teaching History ─────────────────────────────────── */
+.hist-hero {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem 1.75rem;
+    background: linear-gradient(135deg, #0f2044 0%, #1a56db 100%);
+    border-radius: 14px;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+.hist-hero::before {
+    content: '';
+    position: absolute; top: -30px; right: -30px;
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+}
+.hist-avatar {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,#f97316,#1a56db);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 800;
+    color: #fff;
+    border: 3px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+}
+.hist-hero-info h1 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.15rem; }
+.hist-hero-info .sub { font-size: 0.82rem; opacity: 0.8; }
+
+/* Summary bar */
+.summary-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.sum-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex; align-items: center; gap: 0.875rem;
+    box-shadow: var(--shadow-sm);
+}
+.sum-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+}
+.sum-icon.blue { background: rgba(26,86,219,0.1); }
+.sum-icon.green { background: rgba(16,185,129,0.1); }
+.sum-icon.orange { background: rgba(249,115,22,0.1); }
+.sum-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.sum-value { font-size: 1.5rem; font-weight: 800; color: var(--text); line-height: 1; }
+
+/* Semester group */
+.sem-group {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.18s ease;
+}
+.sem-group:hover { box-shadow: var(--shadow); }
+
+.sem-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(90deg, rgba(26,86,219,0.06), transparent);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    gap: 1rem;
+}
+.sem-header-left { display: flex; align-items: center; gap: 0.875rem; }
+.sem-icon {
+    width: 38px; height: 38px; border-radius: 9px;
+    background: rgba(26,86,219,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+.sem-name { font-size: 1rem; font-weight: 700; color: var(--text); }
+.sem-tt { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem; }
+.sem-meta { display: flex; align-items: center; gap: 0.75rem; }
+.sem-badge {
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem; font-weight: 700;
+}
+.sem-badge.active { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+.sem-badge.draft { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+.sem-badge.inactive { background: rgba(100,116,139,0.1); color: var(--text-muted); border: 1px solid var(--border); }
+.sem-count { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+.chevron { transition: transform 0.2s ease; }
+.chevron.open { transform: rotate(180deg); }
+
+/* Slots table */
+.slots-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.slots-table th {
+    padding: 0.65rem 1rem;
+    font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: #f8fafc;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.slots-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.83rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+.slots-table tbody tr:last-child td { border-bottom: none; }
+.slots-table tbody tr:hover { background: #f8fafc; }
+
+.course-pill {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: 5px;
+    font-size: 0.75rem; font-weight: 700;
+}
+.course-pill.lecture { background: rgba(26,86,219,0.1); color: #1a56db; }
+.course-pill.lab { background: rgba(249,115,22,0.1); color: #f97316; }
+.course-pill.seminar { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+
+.day-chip {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.7rem; font-weight: 700;
+    background: rgba(26,86,219,0.08);
+    color: var(--primary);
+}
+
+/* Empty state */
+.empty-hist {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.empty-hist .emoji { font-size: 3.5rem; margin-bottom: 1rem; }
+.empty-hist h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.empty-hist p { color: var(--text-muted); font-size: 0.875rem; }
+
+@media (max-width: 768px) {
+    .summary-bar { grid-template-columns: 1fr 1fr; }
+    .hist-hero { flex-direction: column; text-align: center; }
+    .sem-meta { flex-direction: column; align-items: flex-end; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1100px;margin:0 auto;">
+
+    <!-- ── Hero ── -->
+    <div class="hist-hero">
+        <div class="hist-avatar">{{ lecturer.name|first|upper }}</div>
+        <div class="hist-hero-info">
+            <h1>Teaching History</h1>
+            <div class="sub">{{ lecturer.name }} · {{ lecturer.department.name }} · {{ lecturer.department.faculty.campus.university.name }}</div>
+        </div>
+    </div>
+
+    <!-- ── Summary bar ── -->
+    <div class="summary-bar">
+        <div class="sum-card">
+            <div class="sum-icon blue">🗂️</div>
+            <div>
+                <div class="sum-label">Semesters</div>
+                <div class="sum-value">{{ history_list|length }}</div>
+            </div>
+        </div>
+        <div class="sum-card">
+            <div class="sum-icon green">📅</div>
+            <div>
+                <div class="sum-label">Total Scheduled Slots</div>
+                <div class="sum-value">{{ grand_total_slots }}</div>
+            </div>
+        </div>
+        <div class="sum-card">
+            <div class="sum-icon orange">📚</div>
+            <div>
+                <div class="sum-label">Max Hrs/Week</div>
+                <div class="sum-value">{{ lecturer.max_hours_per_week }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── History list ── -->
+    {% if history_list %}
+    {% for entry in history_list %}
+    <div class="sem-group">
+        <!-- Collapsible header -->
+        <div class="sem-header" onclick="toggleSem({{ forloop.counter }})">
+            <div class="sem-header-left">
+                <div class="sem-icon">📆</div>
+                <div>
+                    <div class="sem-name">{{ entry.semester.name }}</div>
+                    <div class="sem-tt">{{ entry.timetable.name }}</div>
+                </div>
+            </div>
+            <div class="sem-meta">
+                {% if entry.timetable.is_active %}
+                <span class="sem-badge active">● Active</span>
+                {% else %}
+                <span class="sem-badge inactive">Archive</span>
+                {% endif %}
+                <span class="sem-count">{{ entry.courses_count }} course{{ entry.courses_count|pluralize }} · {{ entry.total_slots }} slot{{ entry.total_slots|pluralize }}</span>
+                <svg class="chevron" id="chev-{{ forloop.counter }}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+        </div>
+
+        <!-- Slots table (initially visible for current semester) -->
+        <div id="sem-body-{{ forloop.counter }}" style="{% if not forloop.first %}display:none;{% endif %}">
+            <table class="slots-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Course</th>
+                        <th>Room</th>
+                        <th>Student Group</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for slot in entry.slots %}
+                    <tr>
+                        <td>
+                            <span class="day-chip">{{ slot.time_slot.get_day_of_week_display|slice:":3"|upper }}</span>
+                        </td>
+                        <td>
+                            <span style="font-weight:600;">{{ slot.time_slot.start_time|time:"H:i" }}</span>
+                            <span style="color:var(--text-muted);"> – {{ slot.time_slot.end_time|time:"H:i" }}</span>
+                        </td>
+                        <td>
+                            <div style="font-weight:700;">{{ slot.course.code }}</div>
+                            <div style="color:var(--text-muted);font-size:0.78rem;">{{ slot.course.name }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight:600;">{{ slot.room.name }}</div>
+                            <div style="color:var(--text-muted);font-size:0.72rem;">Cap: {{ slot.room.capacity }}</div>
+                        </td>
+                        <td style="color:var(--text-muted);">{{ slot.student_group.name }}</td>
+                        <td>
+                            <span class="course-pill {% if slot.course.required_room_type == 'Lab' %}lab{% elif slot.course.required_room_type == 'Seminar' %}seminar{% else %}lecture{% endif %}">
+                                {{ slot.course.required_room_type }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div class="empty-hist">
+        <div class="emoji">📭</div>
+        <h3>No teaching history yet</h3>
+        <p>Your scheduled classes will appear here once a timetable is generated and you are assigned courses.</p>
+    </div>
+    {% endif %}
+
+    <!-- Back link -->
+    <div style="margin-top:1.5rem;">
+        <a href="{% url 'scheduler:lecturer_my_schedule' %}" style="color:var(--primary);text-decoration:none;font-size:0.875rem;font-weight:600;">
+            ← Back to My Timetable
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSem(idx) {
+    const body = document.getElementById('sem-body-' + idx);
+    const chev = document.getElementById('chev-' + idx);
+    if (!body) return;
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? '' : 'none';
+    chev.classList.toggle('open', isHidden);
+}
+
+// Open all active ones by default (first one already open via inline style)
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark open chevrons for visible sections
+    document.querySelectorAll('[id^="sem-body-"]').forEach(function(body) {
+        const idx = body.id.replace('sem-body-', '');
+        const chev = document.getElementById('chev-' + idx);
+        if (body.style.display !== 'none' && chev) {
+            chev.classList.add('open');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,209 @@
+{% extends 'scheduler/base.html' %}
+{% load scheduler_tags %}
+
+{% block title %}Manage Lecturer Profile — {{ lecturer.name }} — Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        <a href="/resources/?tab=lecturer" style="color: var(--primary); text-decoration: none; font-weight: 500;">Resources</a> &rsaquo; 
+        <a href="/resources/?tab=lecturer" style="color: var(--primary); text-decoration: none; font-weight: 500;">Lecturers</a> &rsaquo; 
+        <span>{{ lecturer.name }}</span>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 54px; height: 54px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: white;">
+                {{ lecturer.name|first|upper }}
+            </div>
+            <div>
+                <h1 style="font-weight: 700; font-size: 1.8rem; margin: 0; line-height: 1.2; display: flex; align-items: center; gap: 0.5rem;">
+                    {{ lecturer.name }}
+                    {% if lecturer.is_active %}
+                        <span style="font-size: 0.72rem; font-weight: 600; background: rgba(16,185,129,0.15); color: #10b981; padding: 0.15rem 0.5rem; border-radius: 20px; border: 1px solid rgba(16,185,129,0.3);">Active</span>
+                    {% else %}
+                        <span style="font-size: 0.72rem; font-weight: 600; background: rgba(239,68,68,0.15); color: #ef4444; padding: 0.15rem 0.5rem; border-radius: 20px; border: 1px solid rgba(239,68,68,0.3);">Inactive</span>
+                    {% endif %}
+                </h1>
+                <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.2rem;">{{ lecturer.department.name }} &middot; ID: {{ lecturer.staff_id|default:"Not Set" }}</p>
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'scheduler:admin_lecturer_delete' lecturer.pk %}" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem; transition: background 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.2)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+                Remove Lecturer
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid-3" style="grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Left Column: Edit Form -->
+    <div class="card">
+        <div class="card-title">Edit Lecturer Information</div>
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="name" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Lecturer Name</label>
+                <input type="text" name="name" id="name" value="{{ lecturer.name }}" required
+                       style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text-main); outline: none;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="email" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Email Address</label>
+                <input type="email" name="email" id="email" value="{{ lecturer.email }}" required
+                       style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text-main); outline: none;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="staff_id" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Staff ID / Employee Code</label>
+                <input type="text" name="staff_id" id="staff_id" value="{{ lecturer.staff_id|default:'' }}" placeholder="e.g. EMP/2024/001"
+                       style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text-main); outline: none;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="department" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Department</label>
+                <select name="department" id="department" required
+                        style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text-main); outline: none;">
+                    {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if lecturer.department_id == dept.id %}selected{% endif %}>{{ dept.name }} ({{ dept.faculty.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid-2" style="gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="max_hours_per_week" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Max Hours / Week</label>
+                    <input type="number" name="max_hours_per_week" id="max_hours_per_week" value="{{ lecturer.max_hours_per_week }}" required min="1"
+                           style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text-main); outline: none;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="max_slots_per_day" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Max Slots / Day</label>
+                    <input type="number" name="max_slots_per_day" id="max_slots_per_day" value="{{ lecturer.max_slots_per_day }}" required min="1"
+                           style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text-main); outline: none;">
+                </div>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.6rem; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                <input type="checkbox" name="is_active" id="is_active" {% if lecturer.is_active %}checked{% endif %} style="width: 17px; height: 17px; cursor: pointer;">
+                <label for="is_active" style="font-size: 0.88rem; font-weight: 600; cursor: pointer; user-select: none;">Active in System (Allows scheduling slots & login)</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.65rem; border-radius: 8px; font-weight: 600;">Save Changes</button>
+        </form>
+    </div>
+
+    <!-- Right Column: Workload, Student Groups & History -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Workload Stats Panel -->
+        <div class="card">
+            <div class="card-title">Workload Summary</div>
+            
+            <div style="margin-top: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">
+                    <span>Weekly Teaching Load</span>
+                    <span>{{ total_hours }} / {{ lecturer.max_hours_per_week }} hrs</span>
+                </div>
+                <div style="width: 100%; height: 10px; background: rgba(0,0,0,0.15); border-radius: 5px; overflow: hidden; margin-bottom: 1rem;">
+                    <div style="width: {% widthratio total_hours lecturer.max_hours_per_week 100 %}%; height: 100%; background: var(--primary);"></div>
+                </div>
+                
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem;">
+                    Daily class distributions compared to <strong>{{ lecturer.max_slots_per_day }} classes/day</strong> limit:
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% for d_num, d_name in day_names.items %}
+                        {% with count=day_slots|dict_key:d_num %}
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; padding: 0.35rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 5px;">
+                            <span>{{ d_name }}</span>
+                            <span style="font-weight: 700; color: {% if count > lecturer.max_slots_per_day %}#ef4444{% else %}var(--text-main){% endif %};">
+                                {{ count }} / {{ lecturer.max_slots_per_day }} slots
+                                {% if count > lecturer.max_slots_per_day %}
+                                    <span style="font-size: 0.7rem; font-weight: 800; background: rgba(239,68,68,0.15); padding: 0.1rem 0.3rem; border-radius: 4px;">Overloaded</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Groups Taught -->
+        <div class="card">
+            <div class="card-title">Assigned Student Groups</div>
+            <div style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto;">
+                {% if student_groups %}
+                    <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                        {% for g in student_groups %}
+                            <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                                <div>
+                                    <div style="font-size: 0.88rem; font-weight: 600;">{{ g.name }}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ g.program.name }}</div>
+                                </div>
+                                <span class="badge badge-info" style="font-size: 0.75rem; font-weight: 700;">{{ g.size }} students</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 1rem;">No student groups assigned to courses taught by this lecturer.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Availability preferences -->
+        <div class="card">
+            <div class="card-title">Availability Exclusions</div>
+            <div style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto;">
+                {% if unavailable_slots %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                        {% for ts in unavailable_slots %}
+                            <span style="font-size: 0.78rem; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; padding: 0.25rem 0.5rem;">
+                                {{ ts.get_day_of_week_display|slice:":3" }} &middot; {{ ts.start_time|time:"H:i" }}–{{ ts.end_time|time:"H:i" }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 1rem;">Lecturer is available for all scheduling slots.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Timetable Schedule -->
+        <div class="card">
+            <div class="card-title">Schedule in Timetable: {{ timetable.name }}</div>
+            <div style="margin-top: 0.5rem; max-height: 250px; overflow-y: auto;">
+                {% if slots %}
+                    <div class="table-responsive">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                                    <th style="padding: 0.4rem 0.2rem; color: var(--text-muted);">Time</th>
+                                    <th style="padding: 0.4rem 0.2rem; color: var(--text-muted);">Course</th>
+                                    <th style="padding: 0.4rem 0.2rem; color: var(--text-muted);">Group</th>
+                                    <th style="padding: 0.4rem 0.2rem; color: var(--text-muted);">Room</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in slots %}
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 0.5rem 0.2rem; font-weight: 600;">{{ s.time_slot.get_day_of_week_display|slice:":3" }} &middot; {{ s.time_slot.start_time|time:"H:i" }}</td>
+                                        <td style="padding: 0.5rem 0.2rem;"><span style="font-family: monospace; font-weight: 700; color: var(--primary);">{{ s.course.code }}</span></td>
+                                        <td style="padding: 0.5rem 0.2rem;">{{ s.student_group.name }}</td>
+                                        <td style="padding: 0.5rem 0.2rem;">{{ s.room.name }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; padding: 1.5rem;">No classes scheduled in the active timetable.</p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

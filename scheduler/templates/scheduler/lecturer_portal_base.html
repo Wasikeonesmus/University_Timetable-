@@ -1,0 +1,767 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Lecturer Portal{% endblock %} — UniSchedule</title>
+    <meta name="description" content="Lecturer Portal — University Timetabling System">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* ── Design Tokens ─────────────────────────────────────────────────── */
+        :root {
+            --bg:           #f0f4f8;
+            --card-bg:      #ffffff;
+            --sidebar-bg:   #0c1a35;
+            --sidebar-w:    256px;
+            --header-h:     64px;
+            --primary:      #2563eb;
+            --primary-dk:   #1d4ed8;
+            --primary-lt:   #eff6ff;
+            --accent:       #f97316;
+            --accent-dk:    #ea6c0a;
+            --success:      #10b981;
+            --danger:       #ef4444;
+            --warning:      #f59e0b;
+            --info:         #06b6d4;
+            --purple:       #8b5cf6;
+            --text:         #0f172a;
+            --text-muted:   #64748b;
+            --text-light:   #94a3b8;
+            --border:       #e2e8f0;
+            --border-dark:  #cbd5e1;
+            --radius:       12px;
+            --radius-sm:    8px;
+            --shadow-sm:    0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow:       0 4px 20px rgba(0,0,0,.08);
+            --shadow-lg:    0 8px 40px rgba(0,0,0,.12);
+            --transition:   0.18s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ── Reset ─────────────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            font-size: 14px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Sidebar ───────────────────────────────────────────────────────── */
+        .lp-sidebar {
+            width: var(--sidebar-w);
+            background: var(--sidebar-bg);
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: transform var(--transition);
+        }
+        .lp-sidebar::-webkit-scrollbar { width: 3px; }
+        .lp-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .lp-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+
+        /* Brand */
+        .lp-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            height: var(--header-h);
+            background: rgba(255,255,255,.03);
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+        .lp-brand-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(37,99,235,.4);
+        }
+        .lp-brand-text strong {
+            display: block;
+            font-size: 14px; font-weight: 800;
+            color: #fff;
+            letter-spacing: -.01em;
+        }
+        .lp-brand-text span {
+            font-size: 10px; font-weight: 500;
+            color: rgba(255,255,255,.4);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        /* Lecturer info strip */
+        .lp-user-strip {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .lp-user-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--danger));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 16px; color: #fff;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,.15);
+        }
+        .lp-user-name {
+            font-size: 13px; font-weight: 700; color: #fff;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .lp-user-dept {
+            font-size: 10px; color: rgba(255,255,255,.4);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* Nav */
+        .lp-nav { padding: 12px 12px; flex: 1; }
+        .lp-nav-section {
+            font-size: 9.5px; font-weight: 700;
+            color: rgba(255,255,255,.28);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            padding: 16px 8px 6px;
+        }
+        .lp-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 9px;
+            color: rgba(255,255,255,.55);
+            text-decoration: none;
+            font-size: 13px; font-weight: 500;
+            transition: var(--transition);
+            margin-bottom: 2px;
+            position: relative;
+        }
+        .lp-nav-link .lp-nav-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: var(--transition);
+        }
+        .lp-nav-link:hover {
+            background: rgba(255,255,255,.07);
+            color: #fff;
+        }
+        .lp-nav-link:hover .lp-nav-icon { background: rgba(255,255,255,.08); }
+        .lp-nav-link.active {
+            background: rgba(37,99,235,.18);
+            color: #fff;
+            font-weight: 600;
+        }
+        .lp-nav-link.active .lp-nav-icon {
+            background: rgba(37,99,235,.3);
+        }
+        .lp-nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 4px; bottom: 4px;
+            width: 3px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0;
+        }
+        .lp-nav-badge {
+            margin-left: auto;
+            background: var(--accent);
+            color: #fff;
+            font-size: 10px; font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+        .lp-nav-badge.green { background: var(--success); }
+
+        /* Sidebar footer */
+        .lp-sidebar-footer {
+            padding: 14px 20px;
+            border-top: 1px solid rgba(255,255,255,.06);
+        }
+        .lp-footer-link {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: rgba(255,255,255,.4);
+            text-decoration: none;
+            font-size: 12px; font-weight: 500;
+            transition: var(--transition);
+            margin-bottom: 2px;
+        }
+        .lp-footer-link:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.7); }
+
+        /* ── Main Layout ───────────────────────────────────────────────────── */
+        .lp-main {
+            margin-left: var(--sidebar-w);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ── Topbar ─────────────────────────────────────────────────────────── */
+        .lp-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            height: var(--header-h);
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 1px 0 rgba(0,0,0,.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            gap: 16px;
+        }
+        .lp-topbar-left {
+            display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0;
+        }
+        .lp-topbar-right {
+            display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+        }
+
+        /* Mobile toggle */
+        .lp-menu-toggle {
+            display: none;
+            align-items: center; justify-content: center;
+            width: 36px; height: 36px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            background: none;
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+        .lp-menu-toggle:hover { background: var(--bg); }
+
+        /* Page title */
+        .lp-page-title {
+            font-size: 15px; font-weight: 700;
+            color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .lp-breadcrumb {
+            font-size: 12px; color: var(--text-muted); font-weight: 500;
+        }
+
+        /* Semester chip */
+        .lp-semester-chip {
+            display: flex; align-items: center; gap: 6px;
+            background: var(--primary-lt);
+            border: 1px solid rgba(37,99,235,.15);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 11px; font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        /* Icon button */
+        .lp-icon-btn {
+            position: relative;
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            color: var(--text-muted);
+        }
+        .lp-icon-btn:hover { background: var(--bg); border-color: var(--border-dark); color: var(--text); }
+        .lp-notif-dot {
+            position: absolute;
+            top: 7px; right: 7px;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            border: 2px solid #fff;
+        }
+        .lp-notif-count {
+            position: absolute;
+            top: 5px; right: 5px;
+            min-width: 16px; height: 16px;
+            border-radius: 8px;
+            background: var(--danger);
+            color: #fff;
+            font-size: 9px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 3px;
+            border: 2px solid #fff;
+        }
+
+        /* User menu */
+        .lp-user-menu {
+            position: relative;
+        }
+        .lp-user-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 10px 5px 5px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .lp-user-btn:hover { background: var(--bg); }
+        .lp-user-btn .av {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 12px; color: #fff;
+        }
+        .lp-user-btn .nm {
+            font-size: 12px; font-weight: 600; color: var(--text);
+        }
+        .lp-user-btn .rl {
+            font-size: 9.5px; font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .lp-dropdown {
+            position: absolute; right: 0; top: calc(100% + 6px);
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            padding: 6px;
+            display: none;
+            z-index: 500;
+        }
+        .lp-dropdown.show { display: block; }
+        .lp-dd-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 13px; font-weight: 500;
+            color: var(--text);
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .lp-dd-item:hover { background: var(--bg); }
+        .lp-dd-item.danger { color: var(--danger); }
+        .lp-dd-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+        /* ── Content ─────────────────────────────────────────────────────── */
+        .lp-content {
+            padding: 28px;
+            flex: 1;
+        }
+
+        /* ── Cards ──────────────────────────────────────────────────────── */
+        .lp-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+        .lp-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .lp-card-header h3 {
+            font-size: 14px; font-weight: 700;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .lp-card-body { padding: 20px; }
+
+        /* ── Badges / Pills ─────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex; align-items: center;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+        }
+        .badge-blue  { background: rgba(37,99,235,.1); color: var(--primary); }
+        .badge-green { background: rgba(16,185,129,.1); color: var(--success); }
+        .badge-orange{ background: rgba(249,115,22,.1); color: var(--accent); }
+        .badge-red   { background: rgba(239,68,68,.1);  color: var(--danger); }
+        .badge-purple{ background: rgba(139,92,246,.1); color: var(--purple); }
+        .badge-gray  { background: #f1f5f9; color: var(--text-muted); }
+
+        /* ── Buttons ────────────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dk); }
+        .btn-accent  { background: var(--accent); color: #fff; }
+        .btn-accent:hover  { background: var(--accent-dk); }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover { background: var(--bg); border-color: var(--border-dark); }
+        .btn-danger  { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-sm { padding: 5px 11px; font-size: 12px; }
+        .btn-lg { padding: 11px 22px; font-size: 14px; }
+
+        /* ── Messages/Alerts ─────────────────────────────────────────────── */
+        .alert {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .alert-success { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); color: #065f46; }
+        .alert-warning { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); color: #92400e; }
+        .alert-error   { background: rgba(239,68,68,.08);  border: 1px solid rgba(239,68,68,.2);  color: #991b1b; }
+        .alert-info    { background: rgba(6,182,212,.08);  border: 1px solid rgba(6,182,212,.2);  color: #155e75; }
+
+        /* ── Table ────────────────────────────────────────────────────────── */
+        .lp-table { width: 100%; border-collapse: collapse; }
+        .lp-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 11px; font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: .05em;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+        }
+        .lp-table td {
+            padding: 12px 14px;
+            font-size: 13px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        .lp-table tr:last-child td { border-bottom: none; }
+        .lp-table tr:hover td { background: #fafbfc; }
+
+        /* ── Empty state ─────────────────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
+        .empty-state .es-icon { font-size: 40px; margin-bottom: 12px; opacity: .5; }
+        .empty-state .es-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+        .empty-state .es-text { font-size: 13px; line-height: 1.5; }
+
+        /* ── Page header ─────────────────────────────────────────────────── */
+        .lp-page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+        .lp-page-header h1 {
+            font-size: 22px; font-weight: 800;
+            color: var(--text);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .lp-page-header .subtitle {
+            font-size: 13px; color: var(--text-muted); margin-top: 2px;
+        }
+
+        /* ── Responsive ─────────────────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .lp-sidebar {
+                transform: translateX(-100%);
+            }
+            .lp-sidebar.open {
+                transform: translateX(0);
+            }
+            .lp-main {
+                margin-left: 0;
+            }
+            .lp-menu-toggle { display: flex; }
+            .lp-content { padding: 16px; }
+        }
+
+        /* ── Overlay ─────────────────────────────────────────────────────── */
+        .lp-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.4);
+            z-index: 250;
+        }
+        .lp-overlay.show { display: block; }
+
+        /* ── Progress bar ─────────────────────────────────────────────────── */
+        .progress-bar-wrap {
+            background: #e2e8f0;
+            border-radius: 99px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: var(--primary);
+            transition: width .6s ease;
+        }
+        .progress-bar-fill.green  { background: var(--success); }
+        .progress-bar-fill.orange { background: var(--accent); }
+        .progress-bar-fill.red    { background: var(--danger); }
+
+        {% block extra_style %}{% endblock %}
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- Mobile overlay -->
+<div class="lp-overlay" id="lpOverlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+<aside class="lp-sidebar" id="lpSidebar">
+
+    <!-- Brand -->
+    <a href="{% url 'scheduler:lecturer_portal_dashboard' %}" class="lp-brand">
+        <div class="lp-brand-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path></svg>
+        </div>
+        <div class="lp-brand-text">
+            <strong>UniSchedule</strong>
+            <span>Lecturer Portal</span>
+        </div>
+    </a>
+
+    <!-- User strip -->
+    {% if lecturer %}
+    <div class="lp-user-strip">
+        <div class="lp-user-avatar">{{ lecturer.name|first|upper }}</div>
+        <div style="min-width:0;">
+            <div class="lp-user-name">{{ lecturer.name }}</div>
+            <div class="lp-user-dept">{{ lecturer.department.name }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Nav -->
+    <nav class="lp-nav">
+        <div class="lp-nav-section">Overview</div>
+
+        <a href="{% url 'scheduler:lecturer_portal_dashboard' %}"
+           class="lp-nav-link {% block nav_dashboard %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+            </span>
+            Dashboard
+        </a>
+
+        <a href="{% url 'scheduler:lecturer_portal_weekly_timetable' %}"
+           class="lp-nav-link {% block nav_timetable %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+            Weekly Timetable
+        </a>
+
+        <div class="lp-nav-section">Teaching</div>
+
+        <a href="{% url 'scheduler:lecturer_portal_courses' %}"
+           class="lp-nav-link {% block nav_courses %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5v-15z"></path></svg>
+            </span>
+            My Courses
+        </a>
+
+        <a href="{% url 'scheduler:lecturer_portal_student_groups' %}"
+           class="lp-nav-link {% block nav_groups %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </span>
+            Student Groups
+        </a>
+
+        <a href="{% url 'scheduler:lecturer_portal_workload' %}"
+           class="lp-nav-link {% block nav_workload %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </span>
+            Teaching Workload
+        </a>
+
+        <div class="lp-nav-section">Attendance</div>
+
+        <a href="{% url 'scheduler:lecturer_attendance_report' %}"
+           class="lp-nav-link {% block nav_attendance %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </span>
+            Attendance Report
+        </a>
+
+        <div class="lp-nav-section">Communication</div>
+
+        <a href="{% url 'scheduler:notifications_list' %}"
+           class="lp-nav-link {% block nav_notifications %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </span>
+            Notifications
+            {% if unread_count and unread_count > 0 %}
+            <span class="lp-nav-badge">{{ unread_count }}</span>
+            {% endif %}
+        </a>
+
+        <div class="lp-nav-section">Account</div>
+
+        <a href="{% url 'scheduler:lecturer_availability' %}"
+           class="lp-nav-link {% block nav_availability %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+            My Availability
+        </a>
+
+        <a href="{% url 'scheduler:lecturer_portal_profile' %}"
+           class="lp-nav-link {% block nav_profile %}{% endblock %}">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </span>
+            My Profile
+        </a>
+
+        <a href="{% url 'scheduler:lecturer_availability' %}"
+           class="lp-nav-link">
+            <span class="lp-nav-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </span>
+            Availability
+        </a>
+    </nav>
+
+    <!-- Footer -->
+    <div class="lp-sidebar-footer">
+        <a href="{% url 'scheduler:dashboard' %}" class="lp-footer-link">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            Back to Admin View
+        </a>
+        <a href="{% url 'accounts:logout' %}" class="lp-footer-link" style="color:rgba(239,68,68,.6);">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Sign Out
+        </a>
+    </div>
+</aside>
+
+<!-- ── Main ──────────────────────────────────────────────────────────── -->
+<div class="lp-main">
+
+    <!-- Topbar -->
+    <header class="lp-topbar">
+        <div class="lp-topbar-left">
+            <button class="lp-menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
+            <div>
+                <div class="lp-page-title">{% block page_title %}Lecturer Portal{% endblock %}</div>
+                <div class="lp-breadcrumb">{% block breadcrumb %}Lecturer Portal{% endblock %}</div>
+            </div>
+            {% if active_semester %}
+            <span class="lp-semester-chip">
+                {{ active_semester.name }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="lp-topbar-right">
+
+            <!-- Notifications bell -->
+            <a href="{% url 'scheduler:notifications_list' %}" class="lp-icon-btn" title="Notifications">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                {% if unread_count and unread_count > 0 %}
+                <span class="lp-notif-count">{{ unread_count }}</span>
+                {% endif %}
+            </a>
+
+            <!-- User dropdown -->
+            <div class="lp-user-menu">
+                <div class="lp-user-btn" onclick="toggleUserMenu()">
+                    <div class="av">{{ lecturer.name|first|upper|default:request.user.username|first|upper }}</div>
+                    <div>
+                        <div class="nm">{{ lecturer.name|default:request.user.username }}</div>
+                        <div class="rl">Lecturer</div>
+                    </div>
+                    <span style="font-size:10px;color:var(--text-muted);margin-left:2px;">▾</span>
+                </div>
+                <div class="lp-dropdown" id="userMenu">
+                    <a href="{% url 'scheduler:lecturer_portal_profile' %}" class="lp-dd-item">My Profile</a>
+                    <a href="{% url 'scheduler:lecturer_availability' %}" class="lp-dd-item">Availability</a>
+                    <div class="lp-dd-divider"></div>
+                    <a href="{% url 'accounts:logout' %}" class="lp-dd-item danger">Sign Out</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Django messages -->
+    {% if messages %}
+    <div style="padding: 0 28px; padding-top: 16px;">
+        {% for msg in messages %}
+        <div class="alert alert-{% if msg.tags == 'error' %}error{% elif msg.tags == 'success' %}success{% elif msg.tags == 'warning' %}warning{% else %}info{% endif %}">
+            {{ msg }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page content -->
+    <main class="lp-content">
+        {% block content %}{% endblock %}
+    </main>
+
+</div><!-- /.lp-main -->
+
+<script>
+function toggleSidebar() {
+    document.getElementById('lpSidebar').classList.toggle('open');
+    document.getElementById('lpOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+    document.getElementById('lpSidebar').classList.remove('open');
+    document.getElementById('lpOverlay').classList.remove('show');
+}
+function toggleUserMenu() {
+    document.getElementById('userMenu').classList.toggle('show');
+}
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('userMenu');
+    if (!e.target.closest('.lp-user-menu')) {
+        menu.classList.remove('show');
+    }
+});
+{% block extra_js %}{% endblock %}
+</script>
+</body>
+</html>

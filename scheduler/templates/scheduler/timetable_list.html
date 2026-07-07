@@ -1,0 +1,91 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Timetable Versions - Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.5rem;">Timetable Versions</h1>
+    <p style="color: var(--text-muted);">View, create, and generate schedules for university semesters.</p>
+</div>
+
+<div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+    <!-- Timetable List -->
+    <div class="card">
+        <div class="card-title">All Timetables</div>
+        {% if timetables %}
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timetable Name</th>
+                            <th>Semester</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tt in timetables %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'scheduler:timetable_detail' tt.pk %}" style="color: #2dd4bf; text-decoration: none; font-weight: 600;">
+                                    {{ tt.name }}
+                                </a>
+                            </td>
+                            <td>{{ tt.semester.name }}</td>
+                            <td>
+                                {% if tt.is_active %}
+                                <span class="badge badge-success">Active</span>
+                                {% else %}
+                                <span class="badge badge-info">Draft</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ tt.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{% url 'scheduler:timetable_detail' tt.pk %}" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.7rem;">Open Grid</a>
+                                    <a href="{% url 'scheduler:timetable_conflicts' tt.pk %}" class="btn btn-warning" style="font-size: 0.75rem; padding: 0.35rem 0.7rem;">Conflicts</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <p>No timetable versions available. Use the form on the right to create one.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Create Timetable Form -->
+    <div class="card">
+        <div class="card-title">Create New Timetable</div>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="id_name">Version/Timetable Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <span style="color: var(--danger); font-size: 0.8rem;">{{ form.name.errors.0 }}</span>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="id_semester">Semester</label>
+                {{ form.semester }}
+                {% if form.semester.errors %}
+                    <span style="color: var(--danger); font-size: 0.8rem;">{{ form.semester.errors.0 }}</span>
+                {% endif %}
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 1.5rem;">
+                {{ form.is_active }}
+                <label class="form-label" for="id_is_active" style="margin-bottom: 0; cursor: pointer;">Set as Active Timetable</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                Create Version
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

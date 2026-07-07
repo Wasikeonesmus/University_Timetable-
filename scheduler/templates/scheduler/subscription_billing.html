@@ -1,0 +1,127 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Subscription & Billing - Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div class="card" style="border: 1px solid var(--border); padding: 2rem; background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow);">
+    <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.25rem; margin-bottom: 2rem;">
+        <h1 style="font-weight: 800; font-size: 1.8rem; letter-spacing: -0.02em; color: var(--primary);">
+            Subscription & Usage limits
+        </h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Manage billing, upgrade subscription tiers, and review institution usage parameters.
+        </p>
+    </div>
+
+    <!-- Active Plan Header -->
+    <div style="background: linear-gradient(135deg, var(--sidebar-bg), #1a365d); color: white; padding: 2rem; border-radius: 8px; margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+        <div>
+            <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: rgba(255,255,255,0.7); display: block; margin-bottom: 0.25rem;">Active Plan</span>
+            <h2 style="font-weight: 800; font-size: 2rem; margin: 0; color: white;">
+                {{ subscription.get_tier_display }}
+            </h2>
+            <p style="font-size: 0.9rem; color: rgba(255,255,255,0.8); margin-top: 0.5rem;">
+                Status: <strong style="color: var(--success);">{{ subscription.get_status_display }}</strong> | Renewing: {{ subscription.end_date|default:"Never (Auto-renew)" }}
+            </p>
+        </div>
+        <span class="badge badge-info" style="font-size: 1rem; padding: 0.5rem 1.25rem; background-color: var(--primary); color: white; border: 1px solid rgba(255,255,255,0.2);">
+            {{ subscription.tier|upper }}
+        </span>
+    </div>
+
+    <!-- Usage Metrics Section -->
+    <h3 style="font-weight: 700; font-size: 1.2rem; margin-bottom: 1rem; color: var(--text);">Resource Consumption</h3>
+    <div class="grid-2" style="margin-bottom: 3rem; gap: 1.5rem;">
+        <!-- Rooms Limit -->
+        <div style="border: 1px solid var(--border); padding: 1.5rem; border-radius: 8px; background-color: rgba(0,0,0,0.01);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-weight: 600; font-size: 0.95rem; color: var(--text);">Rooms Capacity</span>
+                <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary);">{{ rooms_count }} / {{ subscription.max_rooms }}</span>
+            </div>
+            <div style="background-color: var(--border); height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 0.5rem;">
+                <div style="background: linear-gradient(90deg, var(--primary), var(--info)); width: {{ rooms_pct }}%; height: 100%; border-radius: 5px;"></div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Using {{ rooms_pct }}% of your available rooms limit.</p>
+        </div>
+
+        <!-- Courses Limit -->
+        <div style="border: 1px solid var(--border); padding: 1.5rem; border-radius: 8px; background-color: rgba(0,0,0,0.01);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-weight: 600; font-size: 0.95rem; color: var(--text);">Courses Limit</span>
+                <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary);">{{ courses_count }} / {{ subscription.max_courses }}</span>
+            </div>
+            <div style="background-color: var(--border); height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 0.5rem;">
+                <div style="background: linear-gradient(90deg, var(--primary), var(--info)); width: {{ courses_pct }}%; height: 100%; border-radius: 5px;"></div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.8rem;">Using {{ courses_pct }}% of your active courses limit.</p>
+        </div>
+    </div>
+
+    <!-- Tier Upgrades -->
+    <h3 style="font-weight: 700; font-size: 1.2rem; margin-bottom: 1.5rem; color: var(--text);">Change Subscription Plan</h3>
+    <div style="display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
+        <!-- Free Plan -->
+        <div style="flex: 1; min-width: 250px; border: 1px solid {% if subscription.tier == 'free' %}var(--primary){% else %}var(--border){% endif %}; padding: 2rem; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; background: var(--card-bg); transition: var(--transition); box-shadow: {% if subscription.tier == 'free' %}var(--shadow){% else %}none{% endif %};">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.25rem; color: var(--text); margin-bottom: 0.5rem;">Free Tier</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">For testing out features and small departments.</p>
+                <div style="font-size: 2.25rem; font-weight: 800; color: var(--text); margin-bottom: 1.5rem;">$0 <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500;">/ month</span></div>
+                <ul style="list-style: none; padding: 0; margin-bottom: 2rem; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Up to 10 Rooms</li>
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Up to 50 Courses</li>
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Core Solver Engine</li>
+                </ul>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="tier" value="free">
+                <button type="submit" class="btn {% if subscription.tier == 'free' %}btn-secondary{% else %}btn-primary{% endif %}" style="width: 100%;" {% if subscription.tier == 'free' %}disabled{% endif %}>
+                    {% if subscription.tier == 'free' %}Active Plan{% else %}Downgrade{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <!-- Growth Plan -->
+        <div style="flex: 1; min-width: 250px; border: 1px solid {% if subscription.tier == 'growth' %}var(--primary){% else %}var(--border){% endif %}; padding: 2rem; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; background: var(--card-bg); transition: var(--transition); box-shadow: {% if subscription.tier == 'growth' %}var(--shadow){% else %}none{% endif %};">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.25rem; color: var(--text); margin-bottom: 0.5rem;">Growth Tier</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Ideal for single-campus colleges and growing schools.</p>
+                <div style="font-size: 2.25rem; font-weight: 800; color: var(--text); margin-bottom: 1.5rem;">$199 <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500;">/ month</span></div>
+                <ul style="list-style: none; padding: 0; margin-bottom: 2rem; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Up to 30 Rooms</li>
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Up to 150 Courses</li>
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Calendar Integrations</li>
+                </ul>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="tier" value="growth">
+                <button type="submit" class="btn {% if subscription.tier == 'growth' %}btn-secondary{% else %}btn-primary{% endif %}" style="width: 100%;" {% if subscription.tier == 'growth' %}disabled{% endif %}>
+                    {% if subscription.tier == 'growth' %}Active Plan{% else %}Upgrade Plan{% endif %}
+                </button>
+            </form>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div style="flex: 1; min-width: 250px; border: 1px solid {% if subscription.tier == 'enterprise' %}var(--primary){% else %}var(--border){% endif %}; padding: 2rem; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; background: var(--card-bg); transition: var(--transition); box-shadow: {% if subscription.tier == 'enterprise' %}var(--shadow){% else %}none{% endif %};">
+            <div>
+                <h4 style="font-weight: 800; font-size: 1.25rem; color: var(--text); margin-bottom: 0.5rem;">Enterprise Tier</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">For large universities with multi-campuses.</p>
+                <div style="font-size: 2.25rem; font-weight: 800; color: var(--text); margin-bottom: 1.5rem;">$499 <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500;">/ month</span></div>
+                <ul style="list-style: none; padding: 0; margin-bottom: 2rem; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Up to 100 Rooms</li>
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Up to 500 Courses</li>
+                    <li style="display: flex; align-items: center; gap: 0.5rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Priority Support & SLA</li>
+                </ul>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="tier" value="enterprise">
+                <button type="submit" class="btn {% if subscription.tier == 'enterprise' %}btn-secondary{% else %}btn-primary{% endif %}" style="width: 100%;" {% if subscription.tier == 'enterprise' %}disabled{% endif %}>
+                    {% if subscription.tier == 'enterprise' %}Active Plan{% else %}Upgrade Plan{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

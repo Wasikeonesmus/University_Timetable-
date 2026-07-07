@@ -1,0 +1,410 @@
+{% extends 'scheduler/base.html' %}
+{% load scheduler_tags %}
+{% block title %}My Timetable – {{ lecturer.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Lecturer Portal – My Timetable ───────────────────────────── */
+.lp-hero {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #0f2044 0%, #1a56db 100%);
+    border-radius: 14px;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.lp-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.lp-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f97316, #1a56db);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    border: 3px solid rgba(255,255,255,0.25);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.lp-hero-info { flex: 1; }
+.lp-hero-info h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.2rem; }
+.lp-hero-info .dept { font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.5rem; }
+.lp-hero-info .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.lp-badge {
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem; font-weight: 700;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+}
+.lp-badge.active-badge { background: rgba(16,185,129,0.3); border-color: rgba(16,185,129,0.5); }
+
+/* Stats strip */
+.stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.stat-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.stat-icon.blue { background: rgba(26,86,219,0.1); }
+.stat-icon.green { background: rgba(16,185,129,0.1); }
+.stat-icon.orange { background: rgba(249,115,22,0.1); }
+.stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+
+/* Email warning */
+.email-warn {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    font-size: 0.875rem; font-weight: 500;
+    color: #92400e;
+}
+.email-warn a { color: #b45309; font-weight: 700; text-decoration: underline; }
+
+/* Timetable header bar */
+.tt-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;
+}
+.tt-header h2 { font-size: 1.1rem; font-weight: 700; }
+.tt-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.btn-export {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.18s ease;
+}
+.btn-export.ics { background: rgba(26,86,219,0.1); color: var(--primary); border: 1px solid rgba(26,86,219,0.25); }
+.btn-export.ics:hover { background: var(--primary); color: #fff; }
+.btn-export.gcal { background: #4285F4; color: #fff; }
+.btn-export.gcal:hover { background: #357ae8; }
+
+/* Weekly grid */
+.timetable-wrap { overflow-x: auto; border-radius: 12px; box-shadow: var(--shadow); }
+.timetable-grid {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.timetable-grid th {
+    background: linear-gradient(135deg, #0f2044, #1a56db);
+    color: #fff;
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    text-align: center; white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,0.1);
+}
+.timetable-grid th.today-col {
+    background: linear-gradient(135deg, #f97316, #ef4444);
+}
+.time-cell {
+    background: #f8fafc;
+    text-align: center;
+    padding: 0.6rem 0.75rem;
+    min-width: 70px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+.time-cell .slot-num { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+.time-cell .slot-time { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+.time-cell .slot-end { font-size: 0.72rem; color: var(--text-muted); }
+
+.grid-cell {
+    padding: 0.5rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    min-width: 140px;
+}
+.grid-cell.today-cell { background: rgba(249,115,22,0.04); }
+.grid-cell.empty { background: #fafbfc; }
+
+/* Class card inside grid */
+.class-card {
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    border-left: 3px solid;
+    transition: transform 0.15s ease;
+    cursor: default;
+}
+.class-card:hover { transform: scale(1.02); }
+.class-card.type-lecture { background: rgba(26,86,219,0.08); border-color: #1a56db; }
+.class-card.type-lab { background: rgba(249,115,22,0.08); border-color: #f97316; }
+.class-card.type-seminar { background: rgba(139,92,246,0.08); border-color: #8b5cf6; }
+.class-card .course-code { font-weight: 800; font-size: 0.8rem; margin-bottom: 0.2rem; }
+.class-card .course-name { color: var(--text-muted); font-size: 0.72rem; margin-bottom: 0.3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.class-card .meta-row { display: flex; align-items: center; gap: 0.3rem; color: var(--text-muted); font-size: 0.7rem; }
+.type-badge {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.65rem; font-weight: 700;
+    margin-top: 0.3rem;
+}
+.type-badge.lecture { background: rgba(26,86,219,0.12); color: #1a56db; }
+.type-badge.lab { background: rgba(249,115,22,0.12); color: #f97316; }
+.type-badge.seminar { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+
+/* Google Calendar card */
+.gcal-card {
+    margin-top: 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+}
+.gcal-card .gcal-icon { font-size: 1.75rem; }
+.gcal-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.2rem; }
+.gcal-card p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+
+/* Today badge */
+.today-badge {
+    font-size: 0.65rem; font-weight: 700;
+    background: #f97316; color: #fff;
+    border-radius: 4px; padding: 0.1rem 0.4rem;
+    margin-left: 0.4rem; vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .stats-strip { grid-template-columns: 1fr; }
+    .lp-hero { flex-direction: column; text-align: center; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div style="max-width:1200px;margin:0 auto;">
+
+    {% if email_missing %}
+    <div class="email-warn">
+        ⚠️ Your email address is not set.
+        <a href="{% url 'accounts:profile' %}">Update your profile →</a>
+        to ensure you receive important timetable notifications.
+    </div>
+    {% endif %}
+
+    <!-- ── Hero profile header ── -->
+    <div class="lp-hero">
+        <div class="lp-avatar">{{ lecturer.name|first|upper }}</div>
+        <div class="lp-hero-info">
+            <h1>{{ lecturer.name }}</h1>
+            <div class="dept">{{ lecturer.department.name }} · {{ lecturer.department.faculty.campus.university.name }}</div>
+            <div class="badges">
+                <span class="lp-badge">📧 {{ lecturer.email }}</span>
+                <span class="lp-badge">⏱️ Max {{ lecturer.max_hours_per_week }}h/week</span>
+                {% if timetable %}
+                <span class="lp-badge active-badge">✅ {{ timetable.semester.name }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Quick stats ── -->
+    <div class="stats-strip">
+        <div class="stat-card">
+            <div class="stat-icon blue">📅</div>
+            <div>
+                <div class="stat-label">Classes This Week</div>
+                <div class="stat-value">{{ total_slots }}</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">📚</div>
+            <div>
+                <div class="stat-label">Unique Courses</div>
+                <div class="stat-value">{{ unique_courses_count }}</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">🕐</div>
+            <div>
+                <div class="stat-label">Teaching Hours/Week</div>
+                <div class="stat-value">{{ total_hours }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Timetable section ── -->
+    <div class="tt-header">
+        <div>
+            <h2>📅 My Weekly Timetable
+                {% if timetable %}
+                <span style="font-size:0.75rem;font-weight:600;padding:0.2rem 0.6rem;background:rgba(26,86,219,0.1);color:var(--primary);border-radius:6px;margin-left:0.5rem;">{{ timetable.name }}</span>
+                {% endif %}
+            </h2>
+        </div>
+        {% if timetable %}
+        <div class="tt-actions">
+            <a href="{% url 'scheduler:export_timetable_ics' timetable.pk %}?filter_type=lecturer&filter_id={{ lecturer.id }}" class="btn-export ics">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Export ICS
+            </a>
+            {% if request.user.google_token %}
+            <a href="{% url 'scheduler:sync_to_google_calendar' %}" class="btn-export gcal">
+                🔄 Sync Google Calendar
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if timetable and slot_numbers %}
+
+    <div class="timetable-wrap">
+        <table class="timetable-grid">
+            <thead>
+                <tr>
+                    <th style="width:80px;">Time</th>
+                    {% for day in days_in_slots %}
+                    <th>
+                        {{ day_labels_map|dict_key:day }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for slot_num in slot_numbers %}
+                {% with row=grid|dict_key:slot_num %}
+                <tr>
+                    <!-- Time column: get time from first day's cell -->
+                    {% with first_cell=row|dict_key:days_in_slots.0 %}
+                    <td class="time-cell">
+                        <div class="slot-num">Slot {{ slot_num }}</div>
+                        {% if first_cell.time_slot %}
+                        <div class="slot-time">{{ first_cell.time_slot.start_time|time:"H:i" }}</div>
+                        <div class="slot-end">{{ first_cell.time_slot.end_time|time:"H:i" }}</div>
+                        {% endif %}
+                    </td>
+                    {% endwith %}
+
+                    {% for day in days_in_slots %}
+                    {% with cell=row|dict_key:day %}
+                    <td class="grid-cell {% if not cell.slots %}empty{% endif %}" data-dow="{{ day }}">
+                        {% for s in cell.slots %}
+                        <div class="class-card type-{% if s.course.required_room_type == 'Lab' %}lab{% elif s.course.required_room_type == 'Seminar' %}seminar{% else %}lecture{% endif %}">
+                            <div class="course-code">{{ s.course.code }}</div>
+                            <div class="course-name" title="{{ s.course.name }}">{{ s.course.name }}</div>
+                            <div class="meta-row">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                                {{ s.room.name }}
+                            </div>
+                            <div class="meta-row">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                {{ s.student_group.name }}
+                            </div>
+                            <span class="type-badge {% if s.course.required_room_type == 'Lab' %}lab{% elif s.course.required_room_type == 'Seminar' %}seminar{% else %}lecture{% endif %}">
+                                {{ s.course.required_room_type }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </td>
+                    {% endwith %}
+                    {% endfor %}
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% elif timetable and not slot_numbers %}
+    <div class="card" style="padding:3rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+        <div style="font-weight:700;margin-bottom:0.5rem;">No classes scheduled yet</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">You have no assigned classes in the current timetable.</div>
+    </div>
+
+    {% else %}
+    <div class="card" style="padding:3rem;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:1rem;">🗓️</div>
+        <div style="font-weight:700;margin-bottom:0.5rem;">No active timetable</div>
+        <div style="color:var(--text-muted);font-size:0.875rem;">No timetable has been generated for your university yet.</div>
+    </div>
+    {% endif %}
+
+    <!-- ── Google Calendar / iCal sync ── -->
+    <div class="gcal-card">
+        <div class="gcal-icon">📆</div>
+        <div style="flex:1;">
+            <h3>Calendar Sync</h3>
+            <p>Keep your timetable in sync with your calendar app.</p>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                {% if request.user.google_token %}
+                <span style="font-size:0.78rem;padding:0.25rem 0.7rem;background:rgba(16,185,129,0.12);color:#10b981;border-radius:6px;font-weight:600;">
+                    ✓ Google Connected ({{ request.user.google_token.email }})
+                </span>
+                <a href="{% url 'accounts:google_calendar_disconnect' %}" style="font-size:0.78rem;color:#ef4444;text-decoration:none;">Disconnect</a>
+                {% else %}
+                <a href="{% url 'accounts:google_calendar_connect' %}"
+                   style="padding:0.5rem 1.1rem;background:#4285F4;border-radius:8px;color:#fff;text-decoration:none;font-size:0.8rem;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+                    Connect Google Calendar
+                </a>
+                {% endif %}
+                <a href="{{ webcal_url }}"
+                   style="padding:0.5rem 1.1rem;background:rgba(26,86,219,0.1);border:1px solid rgba(26,86,219,0.2);border-radius:8px;color:var(--primary);text-decoration:none;font-size:0.8rem;font-weight:600;">
+                    📲 Subscribe (iCal / Webcal)
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Highlight today's column
+(function() {
+    const jsDay = new Date().getDay(); // 0=Sun,1=Mon,...
+    // Map JS day to our day_of_week (1=Mon,...,7=Sun)
+    const dayMap = {0:7,1:1,2:2,3:3,4:4,5:5,6:6};
+    const todayDow = dayMap[jsDay];
+    document.querySelectorAll('[data-dow]').forEach(el => {
+        if (parseInt(el.dataset.dow) === todayDow) {
+            el.classList.add('today-cell');
+        }
+    });
+})();
+</script>
+{% endblock %}
