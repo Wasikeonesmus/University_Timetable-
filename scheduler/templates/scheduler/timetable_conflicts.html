@@ -41,13 +41,39 @@
             <div class="badge badge-success" style="display: block; width: 100%; text-align: center; margin-top: 1.5rem; padding: 0.5rem;">
                 Schedule is 100% clean!
             </div>
-        {% else %}
-            <form method="POST" action="{% url 'scheduler:timetable_generate' timetable.pk %}" style="margin-top: 1.5rem;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                    Re-run Solver Engine
+            <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <button type="button" onclick="triggerAutoFix(this)" class="btn" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; font-weight: 600; padding: 0.6rem 1rem; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                    🪄 Auto-Resolve Conflicts Now
                 </button>
-            </form>
+                <form method="POST" action="{% url 'scheduler:timetable_generate' timetable.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                        ⚡ Re-run Solver Engine
+                    </button>
+                </form>
+            </div>
+            <script>
+                function triggerAutoFix(btn) {
+                    if (!confirm("Attempt automatic resolution for all fixable room and schedule conflicts?")) return;
+                    btn.disabled = true;
+                    btn.textContent = "⏳ Resolving Conflicts...";
+                    fetch(`/timetables/{{ timetable.pk }}/conflicts/autofix/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(`Auto-Resolution Finished!\nFixed: ${data.fixed_count || 0} conflict(s).`);
+                        window.location.reload();
+                    })
+                    .catch(err => {
+                        window.location.reload();
+                    });
+                }
+            </script>
         {% endif %}
     </div>
 
