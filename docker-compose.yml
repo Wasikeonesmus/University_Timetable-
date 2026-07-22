@@ -43,7 +43,7 @@ services:
       - EMAIL_PORT=587
       - EMAIL_USE_TLS=True
       - EMAIL_HOST_USER=wasikeonesmus980@gmail.com
-      - EMAIL_HOST_PASSWORD=fvhrywocghgmdyci
+      - EMAIL_HOST_PASSWORD=cwperndraozbcjwj
       - DEFAULT_FROM_EMAIL=UniSchedule System <wasikeonesmus980@gmail.com>
     depends_on:
       - db
