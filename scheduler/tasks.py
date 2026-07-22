@@ -740,6 +740,12 @@ def verify_and_notify_lecturer_record(submitted_email, submitted_name=None, staf
             dept = Department.objects.filter(faculty__campus__university_id=university_id).first()
         if not dept:
             dept = Department.objects.first()
+        if not dept:
+            from scheduler.models import Faculty, Campus, University
+            uni = University.objects.first() or University.objects.create(name="Default University", code="UNI")
+            campus = Campus.objects.filter(university=uni).first() or Campus.objects.create(university=uni, name="Main Campus", code="MAIN")
+            faculty = Faculty.objects.filter(campus=campus).first() or Faculty.objects.create(campus=campus, name="General Faculty", code="FAC")
+            dept = Department.objects.create(faculty=faculty, name="General Department", code="GEN")
 
         name_str = (submitted_name or submitted_email_clean.split('@')[0].replace('.', ' ').title()).strip()
         lecturer = Lecturer.objects.create(

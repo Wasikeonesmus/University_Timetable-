@@ -8046,24 +8046,43 @@ def public_lecturer_onboarding(request, token=None):
     else:
         if lookup_query:
             lecturer = Lecturer.objects.filter(
-                Q(email__iexact=lookup_query) | Q(staff_id__iexact=lookup_query) | Q(name__icontains=lookup_query)
+                Q(email__iexact=lookup_query) |
+                Q(staff_id__iexact=lookup_query) |
+                Q(name__icontains=lookup_query) |
+                Q(user__email__iexact=lookup_query) |
+                Q(user__username__iexact=lookup_query)
             ).first()
 
-            if lecturer and '@' in lookup_query and lecturer.email != lookup_query.lower():
+            if lecturer and '@' in lookup_query and (not lecturer.email or lecturer.email.lower() != lookup_query.lower()):
                 lecturer.email = lookup_query.lower()
                 lecturer.save(update_fields=['email'])
 
             if not lecturer:
                 default_dept = Department.objects.first()
+                if not default_dept:
+                    from scheduler.models import Faculty, Campus, University
+                    uni = University.objects.first() or University.objects.create(name="Default University", code="UNI")
+                    campus = Campus.objects.filter(university=uni).first() or Campus.objects.create(university=uni, name="Main Campus", code="MAIN")
+                    faculty = Faculty.objects.filter(campus=campus).first() or Faculty.objects.create(campus=campus, name="General Faculty", code="FAC")
+                    default_dept = Department.objects.create(faculty=faculty, name="General Department", code="GEN")
+
                 email_str = lookup_query if '@' in lookup_query else f"{lookup_query.lower().replace(' ', '')}@university.edu"
                 name_str = lookup_query.split('@')[0].replace('.', ' ').replace('_', ' ').title() if '@' in lookup_query else lookup_query
-                lecturer = Lecturer.objects.create(
-                    name=name_str,
-                    email=email_str,
-                    department=default_dept,
-                    is_verified=True
-                )
-                messages.info(request, f"New faculty profile created for '{lecturer.name}'. A verification email has been sent to {lecturer.email}.")
+                try:
+                    lecturer = Lecturer.objects.create(
+                        name=name_str,
+                        email=email_str,
+                        department=default_dept,
+                        is_verified=True
+                    )
+                    messages.info(request, f"New faculty profile created for '{lecturer.name}'. Verification details sent to {lecturer.email}.")
+                except Exception as create_err:
+                    import logging
+                    logging.getLogger(__name__).error(f"[Onboarding Create Error] {create_err}")
+                    return render(request, 'scheduler/public_onboarding_lookup.html', {
+                        'error': f"Could not create faculty profile for '{lookup_query}': {create_err}",
+                        'query': lookup_query
+                    })
         else:
             return render(request, 'scheduler/public_onboarding_lookup.html')
 
