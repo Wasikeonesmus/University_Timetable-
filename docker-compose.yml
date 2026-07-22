@@ -32,20 +32,23 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - SECRET_KEY=django-insecure-prod-key-goes-here-12345
-      - DEBUG=True
-      - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
-      - REDIS_URL=redis://redis:6379/1
+    env_file:
+      - .env
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-prod-key-goes-here-12345}
+      - DEBUG=${DEBUG:-True}
+      - DATABASE_URL=${DATABASE_URL:-postgres://timetable_user:timetable_pass@db:5432/timetable_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/1}
       - ALLOWED_HOSTS=*
       - CSRF_TRUSTED_ORIGINS=http://167.233.37.95,http://localhost,http://127.0.0.1
       - EMAIL_BACKEND=scheduler.email_backend.IPv4EmailBackend
-      - EMAIL_HOST=smtp.gmail.com
-      - EMAIL_PORT=587
-      - EMAIL_USE_TLS=True
-      - EMAIL_USE_SSL=False
-      - EMAIL_HOST_USER=wasikeonesmus980@gmail.com
-      - EMAIL_HOST_PASSWORD=cwperndraozbcjwj
-      - DEFAULT_FROM_EMAIL=UniSchedule System <wasikeonesmus980@gmail.com>
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-UniSchedule System <wasikeonesmus980@gmail.com>}
     depends_on:
       - db
       - redis
@@ -56,19 +59,21 @@ services:
     command: python manage.py qcluster
     volumes:
       - .:/app
+    env_file:
+      - .env
     environment:
-      - SECRET_KEY=django-insecure-prod-key-goes-here-12345
-      - DEBUG=True
-      - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
-      - REDIS_URL=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-prod-key-goes-here-12345}
+      - DEBUG=${DEBUG:-True}
+      - DATABASE_URL=${DATABASE_URL:-postgres://timetable_user:timetable_pass@db:5432/timetable_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/1}
       - EMAIL_BACKEND=scheduler.email_backend.IPv4EmailBackend
-      - EMAIL_HOST=smtp.gmail.com
-      - EMAIL_PORT=587
-      - EMAIL_USE_TLS=True
-      - EMAIL_USE_SSL=False
-      - EMAIL_HOST_USER=wasikeonesmus980@gmail.com
-      - EMAIL_HOST_PASSWORD=cwperndraozbcjwj
-      - DEFAULT_FROM_EMAIL=UniSchedule System <wasikeonesmus980@gmail.com>
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-UniSchedule System <wasikeonesmus980@gmail.com>}
     depends_on:
       - db
       - redis
