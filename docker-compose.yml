@@ -31,7 +31,6 @@ services:
       - .:/app
     ports:
       - "8000:8000"
-      - "80:8000"
     environment:
       - SECRET_KEY=django-insecure-prod-key-goes-here-12345
       - DEBUG=True
