@@ -7,6 +7,7 @@ class IPv4SMTPConnection(smtplib.SMTP_SSL):
     def _get_socket(self, host, port, timeout):
         infos = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
         err = None
+        source_address = getattr(self, 'source_address', None)
         for res in infos:
             af, socktype, proto, canonname, sa = res
             sock = None
@@ -14,8 +15,8 @@ class IPv4SMTPConnection(smtplib.SMTP_SSL):
                 sock = socket.socket(af, socktype, proto)
                 if timeout is not None:
                     sock.settimeout(timeout)
-                if self.source_address:
-                    sock.bind(self.source_address)
+                if source_address:
+                    sock.bind(source_address)
                 sock.connect(sa)
                 return sock
             except socket.error as e:
@@ -33,6 +34,7 @@ class IPv4SMTPTLSConnection(smtplib.SMTP):
     def _get_socket(self, host, port, timeout):
         infos = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
         err = None
+        source_address = getattr(self, 'source_address', None)
         for res in infos:
             af, socktype, proto, canonname, sa = res
             sock = None
@@ -40,8 +42,8 @@ class IPv4SMTPTLSConnection(smtplib.SMTP):
                 sock = socket.socket(af, socktype, proto)
                 if timeout is not None:
                     sock.settimeout(timeout)
-                if self.source_address:
-                    sock.bind(self.source_address)
+                if source_address:
+                    sock.bind(source_address)
                 sock.connect(sa)
                 return sock
             except socket.error as e:
@@ -64,12 +66,13 @@ class IPv4EmailBackend(EmailBackend):
         if self.connection:
             return False
         connection_class = IPv4SMTPConnection if self.use_ssl else IPv4SMTPTLSConnection
+        source_addr = getattr(self, 'source_address', None)
         try:
             self.connection = connection_class(
                 self.host,
                 self.port,
                 timeout=self.timeout,
-                source_address=self.source_address,
+                source_address=source_addr,
             )
             if not self.use_ssl and self.use_tls:
                 self.connection.starttls()
