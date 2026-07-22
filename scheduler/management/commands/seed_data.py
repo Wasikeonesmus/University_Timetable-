@@ -15,6 +15,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             # Clean up old data
             self.stdout.write("Clearing existing data...")
+            TimeSlot.objects.all().delete()
             University.objects.all().delete()
 
             # ==========================================
@@ -64,8 +65,9 @@ class Command(BaseCommand):
             ]
             for d_num, d_name in days_asu:
                 for s_num, start, end, is_eve in slots_asu:
-                    ts = TimeSlot.objects.create(
-                        university=uni_asu, day_of_week=d_num, start_time=start, end_time=end, slot_number=s_num, is_evening=is_eve
+                    ts, _ = TimeSlot.objects.get_or_create(
+                        university=uni_asu, day_of_week=d_num, slot_number=s_num,
+                        defaults={'start_time': start, 'end_time': end, 'is_evening': is_eve}
                     )
                     asu_timeslots.append(ts)
 
@@ -138,8 +140,9 @@ class Command(BaseCommand):
             ]
             for d_num, d_name in days_ku:
                 for s_num, start, end, is_eve in slots_ku:
-                    TimeSlot.objects.create(
-                        university=uni_ku, day_of_week=d_num, start_time=start, end_time=end, slot_number=s_num, is_evening=is_eve
+                    TimeSlot.objects.get_or_create(
+                        university=uni_ku, day_of_week=d_num, slot_number=s_num,
+                        defaults={'start_time': start, 'end_time': end, 'is_evening': is_eve}
                     )
 
             # Courses
