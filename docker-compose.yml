@@ -26,7 +26,7 @@ services:
   web:
     build: .
     container_name: timetable_web
-    command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn timetable_project.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 2
     volumes:
       - .:/app
     ports:
