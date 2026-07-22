@@ -380,17 +380,21 @@ def detect_conflicts(slots, university):
                         }
                     })
 
+def _is_virtual(room):
+    if getattr(room, 'is_virtual', False):
+        return True
+    name_lower = room.name.lower()
+    return any(keyword in name_lower for keyword in ('zoom', 'online', 'virtual', 'teams', 'meet', 'remote', 'webex'))
+
             # 2. Campus Travel and Building Travel Check
             if len(day_slots) > 1:
                 for i in range(len(day_slots) - 1):
                     s1 = day_slots[i]
                     s2 = day_slots[i+1]
                     if s2.time_slot.slot_number - s1.time_slot.slot_number == 1:
-                        # Virtual/online rooms have no physical location.
-                        # Use the explicit is_virtual flag (set on the Room model)
-                        # instead of guessing from the room name.
-                        r1_virtual = s1.room.is_virtual
-                        r2_virtual = s2.room.is_virtual
+                        # Virtual/online rooms (ZOOM, Online, Teams) have no physical location.
+                        r1_virtual = _is_virtual(s1.room)
+                        r2_virtual = _is_virtual(s2.room)
                         if r1_virtual or r2_virtual:
                             pass  # no travel penalty for virtual rooms
                         elif s1.room.campus_id != s2.room.campus_id:
@@ -501,7 +505,7 @@ def detect_conflicts(slots, university):
                     s1 = day_slots[i]
                     s2 = day_slots[i+1]
                     if s2.time_slot.slot_number - s1.time_slot.slot_number == 1:
-                        if s1.room.is_virtual or s2.room.is_virtual:
+                        if _is_virtual(s1.room) or _is_virtual(s2.room):
                             continue
                         if s1.room_id in room_building_map and s2.room_id in room_building_map:
                             b1 = room_building_map[s1.room_id]

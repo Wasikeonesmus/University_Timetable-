@@ -1176,8 +1176,8 @@ def import_entities(university, entities_dict) -> dict:
                     room_obj.capacity = capacity
                     room_obj.room_type = room_type
                     upd_rooms.append(room_obj)
-            else:
-                room_cache[r_key] = Room(campus=c_obj, name=name, capacity=capacity, room_type=room_type)
+                is_virt = any(k in name.lower() for k in ('zoom', 'online', 'virtual', 'teams', 'meet', 'remote', 'webex'))
+                room_cache[r_key] = Room(campus=c_obj, name=name, capacity=capacity, room_type=room_type, is_virtual=is_virt)
                 new_rooms.append(room_cache[r_key])
                 
         if new_rooms:
