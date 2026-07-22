@@ -768,20 +768,15 @@ def verify_and_notify_lecturer_record(submitted_email, submitted_name=None, staf
             lecturer.save(update_fields=['is_verified'])
 
         # Handle user credentials securely
-        password_display = "(Specified during account registration)"
-        complex_password = None
-        
-        if not preserve_password or not lecturer.user:
-            import secrets
-            import string
-            alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
-            complex_password = "".join(secrets.choice(alphabet) for _ in range(12))
-            password_display = complex_password
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+        complex_password = "".join(secrets.choice(alphabet) for _ in range(12))
+        password_display = complex_password
 
         if lecturer.user:
             user = lecturer.user
-            if complex_password:
-                user.set_password(complex_password)
+            user.set_password(complex_password)
             if email and '@' in email:
                 user.email = email
             user.save()
@@ -793,7 +788,7 @@ def verify_and_notify_lecturer_record(submitted_email, submitted_name=None, staf
             while User.objects.filter(username=un).exists():
                 un = f"{base_un}{c}"
                 c += 1
-            user = User.objects.create_user(username=un, email=email, password=complex_password or 'wasike123')
+            user = User.objects.create_user(username=un, email=email, password=complex_password)
             lecturer.user = user
             lecturer.save(update_fields=['user'])
 
@@ -804,6 +799,8 @@ def verify_and_notify_lecturer_record(submitted_email, submitted_name=None, staf
             user=user,
             defaults={'role': 'lecturer', 'university': uni, 'lecturer': lecturer}
         )
+
+        base_url = getattr(settings, 'SITE_URL', None) or 'http://167.233.37.95'
 
         # Fetch active timetable schedule slots for this verified lecturer
         from scheduler.models import ScheduleSlot, Timetable
@@ -902,7 +899,7 @@ def verify_and_notify_lecturer_record(submitted_email, submitted_name=None, staf
                                 <div><strong>Email Address (Login):</strong> <code style="background:#dbeafe; padding:2px 6px; border-radius:4px; font-family:monospace; color:#1e40af;">{email}</code></div>
                                 <div><strong>Password:</strong> <code style="background:#dbeafe; padding:2px 6px; border-radius:4px; font-family:monospace; color:#1e40af;">{password_display}</code></div>
                                 <div style="margin-top:8px; font-size:12px; color:#1d4ed8;">
-                                    Direct Sign In: <a href="http://127.0.0.1:8000/accounts/login/" style="color:#1d4ed8; font-weight:700; text-decoration:underline;">http://127.0.0.1:8000/accounts/login/</a>
+                                    Direct Sign In: <a href="{base_url}/accounts/login/" style="color:#1d4ed8; font-weight:700; text-decoration:underline;">{base_url}/accounts/login/</a>
                                 </div>
                             </div>
                         </div>
@@ -941,7 +938,7 @@ def verify_and_notify_lecturer_record(submitted_email, submitted_name=None, staf
 
                         <!-- CTA Action Button -->
                         <div style="text-align:center; margin-top:28px; margin-bottom:16px;">
-                            <a href="http://127.0.0.1:8000/portal/timetable/" style="display:inline-block; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; font-weight:700; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:8px; box-shadow:0 2px 10px rgba(37,99,235,0.25);">
+                            <a href="{base_url}/portal/timetable/" style="display:inline-block; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; font-weight:700; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:8px; box-shadow:0 2px 10px rgba(37,99,235,0.25);">
                                 View Full Interactive Schedule
                             </a>
                         </div>
