@@ -1894,24 +1894,25 @@ def resources_manager(request):
         form = form_class(request.POST)
         
         # Apply field restrictions for safety
-        if tab == 'campus':
-            form.fields['university'].queryset = University.objects.filter(id=uni.id)
-        elif tab == 'faculty':
-            form.fields['campus'].queryset = Campus.objects.filter(university=uni)
-        elif tab == 'department':
-            form.fields['faculty'].queryset = Faculty.objects.filter(campus__university=uni)
-        elif tab == 'course':
-            form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
-            form.fields['lecturer'].queryset = Lecturer.objects.filter(department__faculty__campus__university=uni)
-            form.fields['student_group'].queryset = StudentGroup.objects.filter(program__department__faculty__campus__university=uni)
-        elif tab == 'lecturer':
-            form.fields['department'].queryset = Department.objects.filter(faculty__campus__university=uni)
-        elif tab == 'studentgroup':
-            form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
-        elif tab == 'room':
-            form.fields['campus'].queryset = Campus.objects.filter(university=uni)
-        elif tab == 'timeslot':
-            form.fields['university'].queryset = University.objects.filter(id=uni.id)
+        if uni:
+            if tab == 'campus':
+                form.fields['university'].queryset = University.objects.filter(id=uni.id)
+            elif tab == 'faculty':
+                form.fields['campus'].queryset = Campus.objects.filter(university=uni)
+            elif tab == 'department':
+                form.fields['faculty'].queryset = Faculty.objects.filter(campus__university=uni)
+            elif tab == 'course':
+                form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
+                form.fields['lecturer'].queryset = Lecturer.objects.filter(department__faculty__campus__university=uni)
+                form.fields['student_group'].queryset = StudentGroup.objects.filter(program__department__faculty__campus__university=uni)
+            elif tab == 'lecturer':
+                form.fields['department'].queryset = Department.objects.filter(faculty__campus__university=uni)
+            elif tab == 'studentgroup':
+                form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
+            elif tab == 'room':
+                form.fields['campus'].queryset = Campus.objects.filter(university=uni)
+            elif tab == 'timeslot':
+                form.fields['university'].queryset = University.objects.filter(id=uni.id)
 
         if form.is_valid():
             instance = form.save()
@@ -1932,24 +1933,25 @@ def resources_manager(request):
         form = form_class()
         
         # Apply field restrictions for safety
-        if tab == 'campus':
-            form.fields['university'].queryset = University.objects.filter(id=uni.id)
-        elif tab == 'faculty':
-            form.fields['campus'].queryset = Campus.objects.filter(university=uni)
-        elif tab == 'department':
-            form.fields['faculty'].queryset = Faculty.objects.filter(campus__university=uni)
-        elif tab == 'course':
-            form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
-            form.fields['lecturer'].queryset = Lecturer.objects.filter(department__faculty__campus__university=uni)
-            form.fields['student_group'].queryset = StudentGroup.objects.filter(program__department__faculty__campus__university=uni)
-        elif tab == 'lecturer':
-            form.fields['department'].queryset = Department.objects.filter(faculty__campus__university=uni)
-        elif tab == 'studentgroup':
-            form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
-        elif tab == 'room':
-            form.fields['campus'].queryset = Campus.objects.filter(university=uni)
-        elif tab == 'timeslot':
-            form.fields['university'].queryset = University.objects.filter(id=uni.id)
+        if uni:
+            if tab == 'campus':
+                form.fields['university'].queryset = University.objects.filter(id=uni.id)
+            elif tab == 'faculty':
+                form.fields['campus'].queryset = Campus.objects.filter(university=uni)
+            elif tab == 'department':
+                form.fields['faculty'].queryset = Faculty.objects.filter(campus__university=uni)
+            elif tab == 'course':
+                form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
+                form.fields['lecturer'].queryset = Lecturer.objects.filter(department__faculty__campus__university=uni)
+                form.fields['student_group'].queryset = StudentGroup.objects.filter(program__department__faculty__campus__university=uni)
+            elif tab == 'lecturer':
+                form.fields['department'].queryset = Department.objects.filter(faculty__campus__university=uni)
+            elif tab == 'studentgroup':
+                form.fields['program'].queryset = Program.objects.filter(department__faculty__campus__university=uni)
+            elif tab == 'room':
+                form.fields['campus'].queryset = Campus.objects.filter(university=uni)
+            elif tab == 'timeslot':
+                form.fields['university'].queryset = University.objects.filter(id=uni.id)
 
     # ── Search logic ──
     q = request.GET.get('q', '').strip()
