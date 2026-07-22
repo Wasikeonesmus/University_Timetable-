@@ -38,7 +38,7 @@ services:
       - REDIS_URL=redis://redis:6379/1
       - ALLOWED_HOSTS=*
       - CSRF_TRUSTED_ORIGINS=http://167.233.37.95,http://localhost,http://127.0.0.1
-      - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+      - EMAIL_BACKEND=scheduler.email_backend.IPv4EmailBackend
       - EMAIL_HOST=smtp.gmail.com
       - EMAIL_PORT=465
       - EMAIL_USE_TLS=False
@@ -61,7 +61,7 @@ services:
       - DEBUG=True
       - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
       - REDIS_URL=redis://redis:6379/1
-      - EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+      - EMAIL_BACKEND=scheduler.email_backend.IPv4EmailBackend
       - EMAIL_HOST=smtp.gmail.com
       - EMAIL_PORT=465
       - EMAIL_USE_TLS=False
