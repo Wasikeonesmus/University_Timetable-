@@ -31,7 +31,6 @@ services:
       - .:/app
     ports:
       - "8000:8000"
-    environment:
     env_file:
       - .env
     environment:
