@@ -47,7 +47,7 @@ services:
       - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@167.233.37.95}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@localhost}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -76,7 +76,7 @@ services:
       - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@167.233.37.95}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@localhost}
     depends_on:
       - db
       - redis
