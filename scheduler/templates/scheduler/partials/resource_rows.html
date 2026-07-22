@@ -1,0 +1,112 @@
+{% if items %}
+    {% for item in items %}
+        <tr data-id="{{ item.pk }}" class="resource-row" style="transition: all 0.3s ease;">
+            <td><input type="checkbox" name="selected_ids" value="{{ item.pk }}" class="row-cb" onchange="updateBulkToolbar()"></td>
+            {% if active_tab == 'university' %}
+                <td><strong>{{ item.name }}</strong></td>
+                <td><span style="font-family: monospace; background: rgba(255,255,255,0.05); padding: 0.2rem 0.4rem; border-radius: 4px; color: var(--primary);">{{ item.code }}</span></td>
+            {% elif active_tab == 'campus' %}
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.university.name }}</td>
+            {% elif active_tab == 'faculty' %}
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.campus.name }}</td>
+            {% elif active_tab == 'department' %}
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.faculty.name }}</td>
+            {% elif active_tab == 'course' %}
+                <td><span style="font-family: monospace; font-weight: 700; color: var(--primary);">{{ item.code }}</span></td>
+                <td><strong>{{ item.name }}</strong></td>
+                <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.program.name }}</span></td>
+                <td><span class="badge badge-info">{{ item.duration_slots }} slots</span></td>
+                <td><span class="badge badge-success">{{ item.get_required_room_type_display }}</span></td>
+                <td>{{ item.lecturer.name|default:"—" }}</td>
+                <td>{{ item.student_group.name|default:"—" }}</td>
+            {% elif active_tab == 'studentgroup' %}
+                <td><strong>{{ item.name }}</strong></td>
+                <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.program.name }}</span></td>
+                <td><span class="badge badge-info" style="font-size: 0.8rem; font-weight: bold;">{{ item.size }}</span></td>
+            {% elif active_tab == 'lecturer' %}
+                <td><strong><a href="{% url 'scheduler:admin_lecturer_profile' item.pk %}" style="text-decoration:none; color:inherit; border-bottom:1px dashed var(--primary);">{{ item.name }}</a></strong></td>
+                <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.department.name }}</span></td>
+                <td><a href="mailto:{{ item.email }}" style="color: var(--primary); text-decoration: none;">{{ item.email }}</a></td>
+                <td><span class="badge badge-warning">{{ item.max_hours_per_week }} hrs</span></td>
+            {% elif active_tab == 'room' %}
+                <td><strong>{{ item.name }}</strong></td>
+                <td>{{ item.campus.name }}</td>
+                <td><span class="badge badge-info" style="font-weight: bold;">{{ item.capacity }}</span></td>
+                <td><span class="badge badge-success">{{ item.get_room_type_display }}</span></td>
+            {% elif active_tab == 'timeslot' %}
+                <td><strong>{{ item.get_day_of_week_display }}</strong></td>
+                <td><span class="badge badge-info">Slot {{ item.slot_number }}</span></td>
+                <td>{{ item.start_time|time:"H:i" }}</td>
+                <td>{{ item.end_time|time:"H:i" }}</td>
+                <td>
+                    {% if item.is_evening %}
+                        <span class="badge badge-warning">Evening</span>
+                    {% else %}
+                        <span class="badge badge-success">Day</span>
+                    {% endif %}
+                </td>
+            {% endif %}
+            <td class="action-cell" style="white-space: nowrap; transition: all 0.2s ease;">
+                {% if active_tab == 'lecturer' %}
+                    <a href="{% url 'scheduler:admin_lecturer_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage profile, student groups, workload, and availability">
+                        ⚙ Manage
+                    </a>
+                {% elif active_tab == 'room' %}
+                    <a href="{% url 'scheduler:admin_room_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage room capacity, type, and feature requirements">
+                        ⚙ Manage
+                    </a>
+                {% elif active_tab == 'studentgroup' %}
+                    <a href="{% url 'scheduler:admin_studentgroup_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage cohort size, year, and course schedules">
+                        ⚙ Manage
+                    </a>
+                {% elif active_tab == 'course' %}
+                    <a href="{% url 'scheduler:admin_course_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage course sessions, duration, lecturer, and cohort mapping">
+                        ⚙ Manage
+                    </a>
+                {% elif active_tab == 'university' %}
+                    <a href="{% url 'scheduler:admin_university_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage university settings, campuses, and semesters">
+                        ⚙ Manage
+                    </a>
+                {% elif active_tab == 'department' %}
+                    <a href="{% url 'scheduler:admin_department_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage department name, faculty, and academic programs">
+                        ⚙ Manage
+                    </a>
+                {% elif active_tab == 'timeslot' %}
+                    <a href="{% url 'scheduler:admin_timeslot_profile' item.pk %}" 
+                       style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
+                       title="Manage day of week, hours, sequence, and evening status">
+                        ⚙ Manage
+                    </a>
+                {% endif %}
+                <button type="button" onclick="confirmDelete(event, '{{ active_tab }}', {{ item.pk }}, '{{ item|escapejs }}')" 
+                   style="color:#ef4444; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(239,68,68,0.4); border-radius:5px; background: transparent; cursor: pointer;"
+                   title="Delete this record" class="delete-btn">
+                    🗑 Delete
+                </button>
+            </td>
+        </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="10" style="text-align: center; padding: 3rem 1.5rem; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px dashed var(--border);">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h3 style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">No {{ tab_title }} found</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 320px; margin: 0 auto;">No records match your query.</p>
+        </td>
+    </tr>
+{% endif %}

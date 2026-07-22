@@ -1,110 +1,129 @@
 {% extends 'scheduler/base.html' %}
 
-{% block title %}Analytics Reports - Multi-University Timetable System{% endblock %}
+{% block title %}Analytics & Reports - Multi-University Timetable System{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
     <div>
         <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.25rem;">Analytics & Reports</h1>
         <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Resource utilization and workloads for: <strong>{{ active_university.name }}</strong>
+            Resource utilization and workloads summary for: <strong>{{ active_university.name }}</strong>
         </p>
     </div>
     {% if timetable %}
-            <button onclick="window.print()" class="btn btn-secondary">
-                Export PDF / Print
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <form method="POST" action="{% url 'scheduler:manual_auto_heal' %}" style="display: inline; margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; height: 38px; padding: 0 1rem; border-radius: 8px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(16, 185, 129, 0.15)'" onmouseout="this.style.backgroundColor='rgba(16, 185, 129, 0.1)'">
+                    <span>⚡</span> Auto-Fix Data Issues
+                </button>
+            </form>
+            <button onclick="window.print()" class="btn btn-secondary" style="height: 38px; padding: 0 1rem; border-radius: 8px; box-sizing: border-box; cursor: pointer;">
+                Export PDF / Print Summary
             </button>
+        </div>
     {% endif %}
 </div>
 
-{% if timetable %}
-    <div class="grid-2">
-        <!-- Lecturer Workload Report -->
-        <div class="card">
-            <div class="card-title">Lecturer Workload & Assignments</div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
-                Shows total hours assigned to each lecturer in this university.
-            </p>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Lecturer Name</th>
-                            <th>Email</th>
-                            <th>Classes</th>
-                            <th>Total Hours</th>
-                            <th>Max Hours Limit</th>
-                            <th>Workload Utilization</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in lecturer_workloads %}
-                        <tr>
-                            <td><strong>{{ item.lecturer.name }}</strong></td>
-                            <td>{{ item.lecturer.email }}</td>
-                            <td><span class="badge badge-info">{{ item.slots_count }} slots</span></td>
-                            <td>{{ item.hours }} hrs</td>
-                            <td>{{ item.max_hours }} hrs</td>
-                            <td>
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <div style="flex: 1; background-color: var(--border); height: 8px; border-radius: 4px; overflow: hidden; width: 60px;">
-                                        <div style="background-color: {% if item.utilization_percent > 100 %}var(--danger){% else %}var(--success){% endif %}; width: {{ item.utilization_percent }}%; height: 100%;"></div>
-                                    </div>
-                                    <span style="font-size:0.8rem; font-weight:600;">{{ item.utilization_percent }}%</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+{% if summary.has_timetable %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Timetable & Scheduling Summary Card -->
+        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; box-sizing: border-box;">
+            <div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                    📅 Schedule Summary
+                </div>
+                <h3 style="margin: 0.25rem 0 0.5rem 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">
+                    {{ summary.timetable_name }}
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Active semester: {{ summary.semester_name }}
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                        <span style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Scheduled Class-units:</span>
+                        <span class="badge badge-success" style="font-size: 0.85rem; font-weight: 700;">{{ summary.scheduled_slots_count }} placed</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Unscheduled Courses:</span>
+                        <span class="badge {% if summary.unscheduled_courses_count > 0 %}badge-warning{% else %}badge-success{% endif %}" style="font-size: 0.85rem; font-weight: 700;">
+                            {{ summary.unscheduled_courses_count }} remaining
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <div style="font-size: 0.78rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                    Active Timetable Status
+                </div>
             </div>
         </div>
 
-        <!-- Room Utilization Report -->
-        <div class="card">
-            <div class="card-title">Room Booking Utilization</div>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
-                Calculates percentage occupancy across all weekly timeslots for each room.
-            </p>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Room Name</th>
-                            <th>Type</th>
-                            <th>Capacity</th>
-                            <th>Booked Slots</th>
-                            <th>Total Slots</th>
-                            <th>Utilization Rate</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in room_utilization %}
-                        <tr>
-                            <td><strong>{{ item.room.name }}</strong></td>
-                            <td><span class="badge badge-info">{{ item.room.get_room_type_display }}</span></td>
-                            <td>{{ item.room.capacity }} seats</td>
-                            <td>{{ item.booked_slots }}</td>
-                            <td>{{ item.total_slots }}</td>
-                            <td>
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <div style="flex: 1; background-color: var(--border); height: 8px; border-radius: 4px; overflow: hidden; width: 60px;">
-                                        <div style="background-color: {% if item.percentage > 75 %}var(--warning){% elif item.percentage == 0 %}var(--border){% else %}var(--success){% endif %}; width: {{ item.percentage }}%; height: 100%;"></div>
-                                    </div>
-                                    <span style="font-size:0.8rem; font-weight:600;">{{ item.percentage }}%</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <!-- Lecturer Workload Summary Card -->
+        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; box-sizing: border-box;">
+            <div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                    💼 Lecturer Workloads
+                </div>
+                <h3 style="margin: 0.25rem 0 0.5rem 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">
+                    {{ summary.total_lecturers }} Active Lecturers
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Average assigned load: <strong>{{ summary.avg_lecturer_hours }} hrs/week</strong>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Over-allocated Staff:</span>
+                        <span class="badge {% if summary.overallocated_lecturers_count > 0 %}badge-danger{% else %}badge-success{% endif %}" style="font-size: 0.85rem; font-weight: 700;">
+                            {{ summary.overallocated_lecturers_count }} overloaded
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <a href="{% url 'scheduler:reports_workloads' %}" class="btn btn-primary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; width: 100%; box-sizing: border-box;">
+                    <span>💼</span> Manage Detailed Workloads
+                </a>
             </div>
         </div>
+
+        <!-- Room Booking Summary Card -->
+        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 250px; box-sizing: border-box;">
+            <div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                    🏫 Room Occupancy
+                </div>
+                <h3 style="margin: 0.25rem 0 0.5rem 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main);">
+                    {{ summary.total_rooms }} Active Rooms
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Average utilization: <strong>{{ summary.avg_room_utilization }}%</strong>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">Most Booked Room:</span>
+                        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">
+                            {{ summary.most_booked_room_name }} <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-muted);">({{ summary.most_booked_room_slots }} classes)</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1.5rem;">
+                <a href="{% url 'scheduler:reports_rooms' %}" class="btn btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: #ffffff; color: var(--text-main);">
+                    <span>🏫</span> View Room Utilization
+                </a>
+            </div>
+        </div>
+
     </div>
 {% else %}
     <div class="card" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-        <h3>No timetable data exists to analyze workloads or room usage.</h3>
-        <p>Go to **Timetables** page to create and generate a schedule.</p>
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No active timetable found to analyze.</p>
+        <p style="font-size: 0.9rem;">Go to the **Timetables** section to generate a schedule first.</p>
     </div>
 {% endif %}
 {% endblock %}

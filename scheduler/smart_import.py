@@ -5,13 +5,14 @@ from scheduler.models import (
     University, Campus, Faculty, Department, Program, Semester,
     Lecturer, StudentGroup, Room, Course, TimeSlot, Timetable
 )
+from difflib import SequenceMatcher
 
 COLUMN_ALIASES = {
     'lecturer': [
         'lecturer', 'instructor', 'teacher', 'tutor', 'facilitator',
         'professor', 'staff', 'academic', 'taught_by', 'faculty_name',
         'staff_name', 'lecturer_name', 'instructor_name', 'prof',
-        'teaching_staff', 'academic_staff', 'teacher_name', 'name',
+        'teaching_staff', 'academic_staff', 'teacher_name',
     ],
     'course_code': [
         'unit_code', 'course_code', 'module_code', 'subject_code',
@@ -21,12 +22,12 @@ COLUMN_ALIASES = {
     'course_name': [
         'unit_name', 'course_name', 'module_name', 'subject_name',
         'unit', 'course', 'module', 'subject', 'course_title',
-        'unit_title', 'module_title', 'class_name', 'class_title', 'name',
+        'unit_title', 'module_title', 'class_name', 'class_title',
     ],
     'room': [
         'room', 'venue', 'hall', 'location', 'classroom', 'class_room',
         'lecture_room', 'lab', 'room_name', 'venue_name', 'facility',
-        'teaching_room', 'room_no', 'room_number', 'space', 'name',
+        'teaching_room', 'room_no', 'room_number', 'space',
         'r', 'rm',
     ],
     'day': [
@@ -85,6 +86,132 @@ COLUMN_ALIASES = {
     ],
 }
 
+# ── Normalise token before alias lookups ─────────────────────────────────────
+def normalize_string(val):
+    if val is None:
+        return ""
+    return re.sub(r'[\s_\-]+', '_', str(val).strip().lower())
+
+
+# ── Ambiguous tokens resolved by sheet context ────────────────────────────────
+# Maps normalised alias → list of candidate sys_keys in priority order.
+# The first candidate whose _SHEET_HINT_KEYWORDS match the sheet title wins.
+AMBIGUOUS_ALIASES = {
+    'name': ['lecturer', 'room', 'course_name', 'student_group'],
+}
+
+_SHEET_HINT_KEYWORDS = {
+    'lecturer':      ['lecturer', 'instructor', 'teacher', 'staff', 'faculty'],
+    'room':          ['room', 'venue', 'location', 'hall', 'lab'],
+    'course_name':   ['course', 'unit', 'module', 'subject'],
+    'student_group': ['student', 'group', 'class', 'cohort', 'section'],
+}
+
+
+# ── Fuzzy dedup helpers ───────────────────────────────────────────────────────
+FUZZY_MATCH_THRESHOLD = 0.87  # SequenceMatcher ratio; catches title variants
+
+
+def _strip_title(name):
+    """Remove common honorifics so 'Dr. John Smith' compares to 'John Smith'."""
+    return re.sub(
+        r'^\s*(dr|prof|eng|mr|mrs|ms|sir|madam)\b\.?\s*',
+        '', str(name), flags=re.IGNORECASE
+    ).strip()
+
+
+def _find_close_name_match(name, existing_names, threshold=FUZZY_MATCH_THRESHOLD):
+    """
+    Returns (best_match_name, ratio) if a close-enough match exists in
+    *existing_names*, otherwise (None, 0.0).
+    """
+    norm_in = _strip_title(name).lower().strip()
+    best_match = None
+    best_ratio = 0.0
+    for existing in existing_names:
+        norm_ex = _strip_title(existing).lower().strip()
+        ratio = SequenceMatcher(None, norm_in, norm_ex).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_match = existing
+    if best_ratio >= threshold:
+        return best_match, best_ratio
+    return None, 0.0
+
+
+# ── Import validation ─────────────────────────────────────────────────────────
+class ImportValidationError(Exception):
+    """Raised when the extracted entity data fails structural validation."""
+    def __init__(self, errors):
+        self.errors = errors  # list of human-readable strings
+        super().__init__(f"{len(errors)} validation error(s)")
+
+
+def validate_entities_for_import(entities_dict):
+    """
+    Structural pre-DB validation of extracted entities.
+    Returns list of error strings (empty = all OK).
+    """
+    EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    errors = []
+
+    # 1. Validate Campuses
+    for campus in entities_dict.get('campuses', []):
+        if not campus.get('name', '').strip():
+            errors.append("Campus record with blank name detected")
+
+    # 2. Validate Programs
+    for program in entities_dict.get('programs', []):
+        if not program.get('name', '').strip():
+            errors.append("Program record with blank name detected")
+
+    # 3. Validate Lecturers
+    for lec in entities_dict.get('lecturers', []):
+        if not lec.get('name', '').strip():
+            errors.append("Lecturer row with blank name detected")
+        elif lec.get('email') and not EMAIL_RE.match(lec['email']):
+            errors.append(f"Lecturer '{lec['name']}' has malformed email format: {lec['email']}")
+
+    # 4. Validate Rooms
+    VALID_ROOM_TYPES = {'Lecture', 'Lab', 'Seminar'}
+    for room in entities_dict.get('rooms', []):
+        name = room.get('name', '').strip()
+        if not name:
+            errors.append("Room row with blank name detected")
+        if room.get('capacity', 1) <= 0:
+            errors.append(f"Room '{name}' must have a positive capacity (found {room.get('capacity')})")
+        if room.get('room_type') and room.get('room_type') not in VALID_ROOM_TYPES:
+            errors.append(f"Room '{name}' has invalid room type '{room.get('room_type')}' (must be Lecture, Lab, or Seminar)")
+
+    # 5. Validate Student Groups
+    for sg in entities_dict.get('student_groups', []):
+        if not sg.get('name', '').strip():
+            errors.append("Student group row with blank name detected")
+
+    # 6. Validate Courses
+    for c in entities_dict.get('courses', []):
+        code = c.get('code', '').strip()
+        if not code:
+            errors.append(f"Course '{c.get('name')}' is missing a course/unit code")
+        if c.get('duration_slots', 1) <= 0:
+            errors.append(f"Course '{code}' must have duration slots > 0 (found {c.get('duration_slots')})")
+        if c.get('required_room_type') and c.get('required_room_type') not in VALID_ROOM_TYPES:
+            errors.append(f"Course '{code}' has invalid required room type '{c.get('required_room_type')}'")
+
+    # 7. Validate Time Slots
+    for ts in entities_dict.get('time_slots', []):
+        start = ts.get('start_time')
+        end = ts.get('end_time')
+        day = ts.get('day_of_week')
+        if not (1 <= day <= 7):
+            errors.append(f"Time slot has invalid day of week: {day}")
+        if start and end and start >= end:
+            errors.append(f"Time slot has start time '{start}' greater than or equal to end time '{end}'")
+
+    return errors
+
+
+# ── Header mapping ────────────────────────────────────────────────────────────
 DAY_NAME_MAP = {
     'monday': 1, 'mon': 1, 'm': 1, '1': 1,
     'tuesday': 2, 'tue': 2, 't': 2, '2': 2,
@@ -95,33 +222,123 @@ DAY_NAME_MAP = {
     'sunday': 7, 'sun': 7, 'su': 7, '7': 7
 }
 
-def normalize_string(val):
-    if val is None:
-        return ""
-    return re.sub(r'[\s_\-]+', '_', str(val).strip().lower())
 
-def map_headers(headers):
+def map_headers(headers, sheet_hint=None):
     """
-    Given list of raw headers, maps to system keys based on aliases.
+    Two-pass header → sys_key mapper.
+
+    Pass 1: exact/alias matches from COLUMN_ALIASES (no ambiguous tokens).
+    Pass 2: resolve AMBIGUOUS_ALIASES using *sheet_hint* (normalised sheet title).
+            Only assigns if the hint matches a candidate and the sys_key is
+            not already claimed from pass 1.
+
+    Args:
+        headers:    list of raw column header strings.
+        sheet_hint: normalised sheet-title string (optional).
+    Returns:
+        dict mapping sys_key → column index.
     """
     mapped = {}
+
+    # Build O(1) alias → sys_key lookup (specific aliases only)
+    _alias_lookup = {}
+    for sys_key, aliases in COLUMN_ALIASES.items():
+        for a in aliases:
+            _alias_lookup[normalize_string(a)] = sys_key
+
+    # Pass 1 – specific aliases only
     for idx, hdr in enumerate(headers):
         if hdr is None:
             continue
         norm = normalize_string(hdr)
-        
-        # Exact match / alias match
-        for sys_key, aliases in COLUMN_ALIASES.items():
-            if norm in aliases or normalize_string(hdr) in [normalize_string(a) for a in aliases]:
-                # Map only if not already mapped
-                if sys_key not in mapped:
-                    mapped[sys_key] = idx
+        sys_key = _alias_lookup.get(norm)
+        if sys_key and sys_key not in mapped:
+            mapped[sys_key] = idx
+
+    # Pass 2 – ambiguous tokens, resolved by sheet_hint
+    for idx, hdr in enumerate(headers):
+        if hdr is None:
+            continue
+        norm = normalize_string(hdr)
+        candidates = AMBIGUOUS_ALIASES.get(norm)
+        if not candidates:
+            continue
+        resolved = None
+        if sheet_hint:
+            sh = sheet_hint.strip().lower()
+            for cand in candidates:
+                keywords = _SHEET_HINT_KEYWORDS.get(cand, [])
+                if any(kw in sh for kw in keywords):
+                    resolved = cand
                     break
+        if resolved is None:
+            resolved = candidates[0]  # fallback: highest priority candidate
+        if resolved not in mapped:
+            mapped[resolved] = idx
+
     return mapped
 
+
+def score_column_mapping(headers, sample_rows, column_map):
+    """
+    Content-based confidence scorer.
+
+    For each sys_key in *column_map*, samples up to 10 non-empty data rows
+    and applies type-appropriate heuristics.
+
+    Returns:
+        dict sys_key → float in [0.0, 1.0]
+    """
+    EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+    scores = {}
+    MAX_SAMPLE = 10
+
+    def _sample_vals(col_idx):
+        vals = []
+        for row in sample_rows:
+            if col_idx < len(row) and row[col_idx] is not None:
+                v = str(row[col_idx]).strip()
+                if v:
+                    vals.append(v)
+            if len(vals) >= MAX_SAMPLE:
+                break
+        return vals
+
+    for sys_key, col_idx in column_map.items():
+        vals = _sample_vals(col_idx)
+        if not vals:
+            scores[sys_key] = 0.5
+            continue
+
+        if sys_key == 'email':
+            hits = sum(1 for v in vals if EMAIL_RE.match(v))
+        elif sys_key == 'time':
+            hits = sum(1 for v in vals if parse_time_slot(v)[0] is not None)
+        elif sys_key == 'day':
+            hits = sum(1 for v in vals if normalize_string(v) in DAY_NAME_MAP)
+        elif sys_key in ('capacity', 'hours'):
+            hits = sum(1 for v in vals if re.match(r'^\d+(\.\d+)?$', v))
+        elif sys_key == 'course_code':
+            hits = sum(1 for v in vals if re.search(r'[A-Za-z]', v) and re.search(r'\d', v))
+        else:
+            # Text key: full score if header was an exact alias match
+            header_norm = normalize_string(headers[col_idx]) if col_idx < len(headers) else ''
+            exact_aliases = [normalize_string(a) for a in COLUMN_ALIASES.get(sys_key, [])]
+            if header_norm in exact_aliases:
+                hits = len(vals)
+            else:
+                hits = max(0, len(vals) - 1)  # ambiguous token → slight penalty
+
+        scores[sys_key] = int(round(hits / len(vals) * 100)) if vals else 50
+
+    return scores
+
 def slugify_name(name):
-    # Remove titles
-    name_clean = re.sub(r'^(dr|prof|mr|mrs|ms|sir|madam)\b\.?\s*', '', name, flags=re.IGNORECASE)
+    # Remove titles (DR, PROF, ENG, MR, MRS, MS, SIR, MADAM)
+    name_clean = re.sub(
+        r'^(dr|prof|eng|mr|mrs|ms|sir|madam)\b\.?\s*',
+        '', name, flags=re.IGNORECASE
+    )
     # Replace non-alphanumeric with a dot
     slug = re.sub(r'[^a-zA-Z0-9]+', '.', name_clean.strip().lower())
     return slug.strip('.')
@@ -135,12 +352,45 @@ def normalize_course_code(code):
         return f"{match.group(1)} {match.group(2)}"
     return code_clean
 
-def generate_lecturer_email(name, university_name):
+def generate_lecturer_email(name, university_name, used_emails=None):
+    """
+    Generate a unique email for a lecturer.
+
+    When `used_emails` is supplied (a dict mapping email → name), the function:
+      - Returns the existing email immediately if `name` (after title-stripping)
+        resolves to the same slug as the owner of that email — i.e. the two
+        names refer to the same person (title variant).
+      - Appends a numeric suffix (2, 3, …) when the slug collides with a
+        genuinely different person already in `used_emails`.
+    """
     slug = slugify_name(name)
     uni_slug = re.sub(r'[^a-zA-Z0-9]+', '', university_name.lower())
     if not uni_slug:
         uni_slug = "university"
-    return f"{slug}@{uni_slug}.edu"
+    base_email = f"{slug}@{uni_slug}.edu"
+
+    if used_emails is None:
+        return base_email
+
+    # Check if this base email is already claimed
+    if base_email not in used_emails:
+        return base_email  # free slot — use it directly
+
+    # Same slug → same person (title variant); reuse the existing email
+    existing_slug = slugify_name(used_emails[base_email])
+    if existing_slug == slug:
+        return base_email
+
+    # Genuinely different person — append numeric suffix to avoid collision
+    counter = 2
+    while True:
+        candidate = f"{slug}{counter}@{uni_slug}.edu"
+        if candidate not in used_emails:
+            return candidate
+        # If this suffixed slot is also claimed by same person, reuse it
+        if slugify_name(used_emails[candidate]) == slug:
+            return candidate
+        counter += 1
 
 def parse_day(val):
     if val is None:
@@ -229,7 +479,11 @@ def detect_format(workbook) -> dict:
         if not headers:
             continue
             
-        column_map = map_headers(headers)
+        column_map = map_headers(headers, sheet_hint=sheet.title)
+        
+        # Sample data rows for content-based confidence scoring
+        data_rows = rows[header_row_idx + 1:header_row_idx + 12]  # up to 11 rows
+        confidence_scores = score_column_mapping(headers, data_rows, column_map)
         
         # Analyze sheet name
         sheet_name_norm = sheet.title.strip().lower()
@@ -282,7 +536,15 @@ def detect_format(workbook) -> dict:
             'column_map': column_map,
             'headers': headers,
             'header_row_idx': header_row_idx,
-            'mappings': [{'header': headers[idx], 'sys_key': sys_key} for sys_key, idx in column_map.items()]
+            'confidence_scores': confidence_scores,
+            'mappings': [
+                {
+                    'header': headers[idx],
+                    'sys_key': sys_key,
+                    'confidence': confidence_scores.get(sys_key, 50),
+                }
+                for sys_key, idx in column_map.items()
+            ]
         })
         
     # Classify overall type
@@ -506,15 +768,29 @@ def extract_entities(workbook, format_info, university) -> dict:
                 if g_key not in student_groups:
                     student_groups[g_key] = {'name': g_name, 'size': g_size, 'program': prog_name}
                     
-                # 6. Lecturer Email Auto-Gen if missing
-                if l_name != "TBA Lecturer" and not l_email:
-                    l_email = generate_lecturer_email(l_name, uni_name)
-                    warnings.append(f"Lecturer '{l_name}' has no email — auto-generating as '{l_email}'")
-                elif l_name == "TBA Lecturer":
-                    l_email = f"tba@{normalize_string(uni_name)}.edu"
-                    
-                if l_email not in lecturers:
-                    lecturers[l_email] = {'name': l_name, 'email': l_email, 'department': 'Default Department'}
+                # 6. Lecturer — auto-generate email if not provided
+                if l_name == "TBA Lecturer":
+                    l_email = None
+                elif not l_email:
+                    # Build a dedup-aware email from the lecturer's name
+                    used = {v['email']: v['name'] for v in lecturers.values() if v.get('email')}
+                    l_email = generate_lecturer_email(l_name, uni_name, used)
+
+                # Deduplicate by normalised name
+                l_key = normalize_string(l_name)
+                if l_key not in lecturers:
+                    lecturers[l_key] = {
+                        'name': l_name,
+                        'email': l_email or None,
+                        'department': 'Default Department',
+                    }
+                else:
+                    # Merge: prefer the longer/more-titled name and fill in email if now known
+                    existing = lecturers[l_key]
+                    if len(l_name) > len(existing['name']):
+                        existing['name'] = l_name
+                    if l_email and not existing['email']:
+                        existing['email'] = l_email
                     
                 # 7. Rooms
                 r_name = get_val(r, 'room')
@@ -561,7 +837,7 @@ def extract_entities(workbook, format_info, university) -> dict:
                         'name': c_name,
                         'duration_slots': dur,
                         'required_room_type': clean_room_type(r_name, get_val(r, 'room_type')),
-                        'lecturer': l_email,
+                        'lecturer': l_name,  # store name; cache is name-keyed
                         'student_group': g_name,
                         'program': prog_name
                     }
@@ -609,18 +885,29 @@ def extract_entities(workbook, format_info, university) -> dict:
                 if normalize_string(nm) in ['lecturer', 'lecturer_name', 'name', 'instructor']:
                     continue
                     
-                em = get_val(r, 'email').lower()
+                em = (get_val(r, 'email') or '').strip().lower() or None
                 dept = get_val(r, 'department') or "Default Department"
-                
+
+                # Auto-generate email if not provided in the sheet
                 if not em:
-                    em = generate_lecturer_email(nm, uni_name)
-                    warnings.append(f"Lecturer '{nm}' has no email — auto-generating as '{em}'")
-                    
-                lecturers[em] = {
-                    'name': nm,
-                    'email': em,
-                    'department': dept
-                }
+                    used = {v['email']: v['name'] for v in lecturers.values() if v.get('email')}
+                    em = generate_lecturer_email(nm, uni_name, used)
+
+                nm_key = normalize_string(nm)
+                if nm_key not in lecturers:
+                    lecturers[nm_key] = {
+                        'name': nm,
+                        'email': em,
+                        'department': dept,
+                    }
+                else:
+                    # Merge: prefer the longer/more-titled name and fill in email if now known
+                    existing = lecturers[nm_key]
+                    if len(nm) > len(existing['name']):
+                        existing['name'] = nm
+                    if em and not existing['email']:
+                        existing['email'] = em
+                    existing['department'] = dept or existing['department']
                 
         elif dtype == 'student_group':
             for r in data_rows:
@@ -676,7 +963,7 @@ def extract_entities(workbook, format_info, university) -> dict:
                     dur = 1
                     
                 rt = get_val(r, 'room_type')
-                lec_email = get_val(r, 'email').lower() or None
+                lec_name = (get_val(r, 'lecturer') or get_val(r, 'lecturer_name') or '').strip() or None
                 grp_name = get_val(r, 'student_group') or None
                 prog_name = canonical_program_name(get_val(r, 'program') or "Default Program")
                 
@@ -690,7 +977,7 @@ def extract_entities(workbook, format_info, university) -> dict:
                     'name': name,
                     'duration_slots': dur,
                     'required_room_type': clean_room_type('', rt) if rt else 'Lecture',
-                    'lecturer': lec_email,
+                    'lecturer': lec_name,  # store name; cache is name-keyed
                     'student_group': grp_name,
                     'program': prog_name
                 }
@@ -698,13 +985,25 @@ def extract_entities(workbook, format_info, university) -> dict:
     # Deduplicate warning messages
     warnings = list(set(warnings))
     
+    # Deduplicate courses by program, code, and student group to avoid global collision
+    unique_courses = []
+    seen_course_keys = set()
+    for c in list(courses.values()):
+        prog_norm = c['program'].strip().lower()
+        code_norm = c['code'].strip().upper()
+        group_norm = c['student_group'].strip().lower() if c.get('student_group') else ''
+        key = (prog_norm, code_norm, group_norm)
+        if key not in seen_course_keys:
+            seen_course_keys.add(key)
+            unique_courses.append(c)
+            
     return {
         'campuses': list(campuses.values()),
         'programs': list(programs.values()),
         'lecturers': list(lecturers.values()),
         'rooms': list(rooms.values()),
         'student_groups': list(student_groups.values()),
-        'courses': list(courses.values()),
+        'courses': unique_courses,
         'time_slots': list(time_slots.values()),
         'warnings': warnings
     }
@@ -712,7 +1011,13 @@ def extract_entities(workbook, format_info, university) -> dict:
 def import_entities(university, entities_dict) -> dict:
     """
     Creates/updates all entities in DB in correct dependency order within a transaction.
+    Returns an enriched summary dict including flagged near-duplicates.
     """
+    # ── Pre-DB structural validation ─────────────────────────────────────────
+    validation_errors = validate_entities_for_import(entities_dict)
+    if validation_errors:
+        raise ImportValidationError(validation_errors)
+
     summary = {
         'campuses': 0,
         'programs': 0,
@@ -720,7 +1025,12 @@ def import_entities(university, entities_dict) -> dict:
         'rooms': 0,
         'student_groups': 0,
         'courses': 0,
-        'time_slots': 0
+        'time_slots': 0,
+        'lecturers_updated': 0,
+        'rooms_updated': 0,
+        'courses_updated': 0,
+        'flagged_duplicates': [],  # list of {'incoming': name, 'existing': name, 'similarity': float}
+        'warnings': [],
     }
     
     with transaction.atomic():
@@ -781,38 +1091,72 @@ def import_entities(university, entities_dict) -> dict:
             program_cache = {p.name.strip().lower(): p for p in Program.objects.filter(department__faculty__campus__university=university)}
             summary['programs'] = len(new_programs)
             
-        # 3. LECTURERS
-        lecturer_cache = {l.email.strip().lower(): l for l in Lecturer.objects.filter(department__faculty__campus__university=university)}
+        # 3. LECTURERS  (email is now optional — deduplicate by normalised name, flag near-dupes)
+        lecturer_cache = {
+            normalize_string(l.name): l
+            for l in Lecturer.objects.filter(department__faculty__campus__university=university)
+        }
+        # Build a plain-name list for fuzzy matching
+        existing_lec_names = [l.name for l in Lecturer.objects.filter(department__faculty__campus__university=university)]
         new_lecturers = []
         upd_lecturers = []
         for l in entities_dict.get('lecturers', []):
-            email = l['email'].strip().lower()
-            name = l['name']
+            raw_email = l.get('email') or None
+            email     = raw_email.strip().lower() if raw_email else None
+            name      = l['name']
+            if not name or not name.strip():
+                continue
             dept_name = l.get('department', 'Default Department')
-            
+
             dept_key = dept_name.strip().lower()
             if dept_key not in dept_cache:
                 dept_cache[dept_key] = Department.objects.create(faculty=default_faculty, name=dept_name)
-                
+
             dept_obj = dept_cache[dept_key]
-            
-            if email in lecturer_cache:
-                lec_obj = lecturer_cache[email]
-                if lec_obj.name != name or lec_obj.department != dept_obj:
+            name_key = normalize_string(name)
+
+            if name_key in lecturer_cache:
+                lec_obj = lecturer_cache[name_key]
+                changed = False
+                if lec_obj.name != name:
                     lec_obj.name = name
+                    changed = True
+                if lec_obj.department != dept_obj:
                     lec_obj.department = dept_obj
+                    changed = True
+                # Fill in email if we now have one and the record is still blank
+                if email and not lec_obj.email:
+                    lec_obj.email = email
+                    changed = True
+                if changed:
                     upd_lecturers.append(lec_obj)
             else:
-                lecturer_cache[email] = Lecturer(name=name, email=email, department=dept_obj)
-                new_lecturers.append(lecturer_cache[email])
-                
+                # Fuzzy near-duplicate check before creating a new record
+                close_match, ratio = _find_close_name_match(name, existing_lec_names)
+                if close_match:
+                    summary['flagged_duplicates'].append({
+                        'entity_type': 'lecturer',
+                        'incoming': name,
+                        'existing': close_match,
+                        'similarity': round(ratio * 100),
+                    })
+                    # Still create the record — the flag is for human review, not auto-rejection
+                lec_obj = Lecturer(name=name, email=email, department=dept_obj)
+                lecturer_cache[name_key] = lec_obj
+                existing_lec_names.append(name)
+                new_lecturers.append(lec_obj)
+
         if new_lecturers:
             Lecturer.objects.bulk_create(new_lecturers)
-            # Re-fetch
-            lecturer_cache = {l.email.strip().lower(): l for l in Lecturer.objects.filter(department__faculty__campus__university=university)}
+            # Re-fetch so PKs are populated for subsequent course lookups
+            lecturer_cache = {
+                normalize_string(l.name): l
+                for l in Lecturer.objects.filter(department__faculty__campus__university=university)
+            }
             summary['lecturers'] = len(new_lecturers)
         if upd_lecturers:
-            Lecturer.objects.bulk_update(upd_lecturers, ['name', 'department'])
+            Lecturer.objects.bulk_update(upd_lecturers, ['name', 'email', 'department'])
+            summary['lecturers_updated'] = len(upd_lecturers)
             
         # 4. ROOMS
         room_cache = {(r.campus_id, r.name.strip().lower()): r for r in Room.objects.filter(campus__university=university)}
@@ -926,8 +1270,8 @@ def import_entities(university, entities_dict) -> dict:
             if not prog_obj:
                 continue
                 
-            l_email = c.get('lecturer')
-            lec_obj = lecturer_cache.get(l_email.strip().lower()) if (l_email and isinstance(l_email, str)) else None
+            l_name_ref = c.get('lecturer')
+            lec_obj = lecturer_cache.get(normalize_string(l_name_ref)) if l_name_ref else None
             
             g_name = c.get('student_group')
             grp_obj = group_cache.get((prog_obj.id, g_name.strip().lower())) if (g_name and isinstance(g_name, str)) else None
@@ -961,12 +1305,35 @@ def import_entities(university, entities_dict) -> dict:
             summary['courses'] = len(new_courses)
         if upd_courses:
             Course.objects.bulk_update(upd_courses, ['name', 'duration_slots', 'required_room_type', 'lecturer', 'student_group'])
+            summary['courses_updated'] = len(upd_courses)
+
+        # Only run validation/auto-healing if there are courses in the database
+        has_courses = Course.objects.filter(
+            program__department__faculty__campus__university=university
+        ).exists()
+        if has_courses:
+            try:
+                from scheduler.views import auto_heal_university_data
+                auto_heal_university_data(university)
+            except Exception:
+                pass
+
+            from scheduler.validation import validate_university_data
+            is_valid, val_errors, val_warnings = validate_university_data(university)
+            if val_errors:
+                ex = Exception("Validation failed.")
+                ex.errors = val_errors
+                raise ex
+            summary['warnings'] = val_warnings
             
-    # Auto-heal and run auto-scheduling triggers if needed
-    try:
-        from scheduler.views import auto_heal_university_data
-        auto_heal_university_data(university)
-    except Exception:
-        pass
-        
+    # Trigger lecturer credentials provisioning
+    import sys
+    if 'test' in sys.argv or 'pytest' in sys.argv or any('pytest' in arg for arg in sys.argv):
+        from scheduler.tasks import provision_lecturer_credentials
+        provision_lecturer_credentials(university.id)
+    else:
+        from django_q.tasks import async_task
+        async_task('scheduler.tasks.provision_lecturer_credentials', university.id)
+
     return summary
+

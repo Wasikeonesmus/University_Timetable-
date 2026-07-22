@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submission Confirmed — Faculty Onboarding</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 16px;
+        }
+
+        .container {
+            max-width: 620px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            padding: 36px;
+        }
+
+        .status-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .icon-circle {
+            width: 64px;
+            height: 64px;
+            background: #dcfce7;
+            color: #16a34a;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .alert-banner {
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            color: #15803d;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .info-box {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .info-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+
+        .badge-verified {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        .constraints-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 28px;
+        }
+
+        .constraints-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .constraint-tag {
+            background: #fee2e2;
+            color: #991b1b;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #fecaca;
+        }
+
+        .actions-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.92rem;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+            transition: opacity 0.15s;
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            color: var(--text-main);
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            border: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .btn-primary:hover, .btn-secondary:hover {
+            opacity: 0.92;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="status-header">
+            <div class="icon-circle">✓</div>
+            <h1>Profile &amp; Preferences Submitted!</h1>
+            <p class="subtitle">{{ university.name|default:"University Timetable System" }} • Faculty Verification Confirmed</p>
+        </div>
+
+        <div class="alert-banner">
+            <span>📧</span>
+            <div>A confirmation email with your portal credentials and teaching timetable has been sent to <strong>{{ lecturer.email }}</strong>.</div>
+        </div>
+
+        <div class="section-title">Submitted Profile Information</div>
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ lecturer.name }}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Official Email</div>
+                <div class="info-value">{{ lecturer.email }}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Contract Type</div>
+                <div class="info-value">{{ lecturer.get_lecturer_type_display }}</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Target Weekly Hours</div>
+                <div class="info-value">{{ lecturer.max_hours_per_week }} hrs/week</div>
+            </div>
+            <div class="info-box" style="grid-column: span 2;">
+                <div class="info-label">Verification Status</div>
+                <div class="info-value"><span class="badge-verified">✓ Verified Faculty Record</span></div>
+            </div>
+        </div>
+
+        <div class="section-title">Saved Unavailability Constraints</div>
+        <div class="constraints-card">
+            {% if unavailable_slots %}
+                <div style="font-size: 0.82rem; color: var(--text-muted);">Marked as Unavailable for {{ unavailable_slots|length }} slot(s):</div>
+                <div class="constraints-list">
+                    {% for slot in unavailable_slots %}
+                        <span class="constraint-tag">🚫 {{ slot.time_slot.get_day_of_week_display }} Slot {{ slot.time_slot.slot_number }} ({{ slot.time_slot.start_time|time:"H:i" }}-{{ slot.time_slot.end_time|time:"H:i" }})</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="font-size: 0.85rem; color: #16a34a; font-weight: 600;">✓ Fully Available for All Scheduled Time Slots</div>
+            {% endif %}
+        </div>
+
+        <div class="actions-group">
+            <a href="{% url 'accounts:login' %}" class="btn-primary">Sign In to Faculty Portal →</a>
+            <a href="{% url 'scheduler:public_lecturer_onboarding_direct' %}?email={{ lecturer.email }}" class="btn-secondary">Edit Preferences</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

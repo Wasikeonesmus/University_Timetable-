@@ -1,0 +1,1652 @@
+[
+  {
+    "course_pk": 28506,
+    "course_code": "BAM 1102",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28507,
+    "course_code": "MAT 1102",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28508,
+    "course_code": "BAM 1101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28509,
+    "course_code": "CUU 1002",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28510,
+    "course_code": "ICT 1101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28511,
+    "course_code": "CUU 1003",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28512,
+    "course_code": "ACC 1101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28513,
+    "course_code": "MKT 1212",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28514,
+    "course_code": "ECO 1211",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28515,
+    "course_code": "CUU 1209",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28516,
+    "course_code": "BAM 1208",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28517,
+    "course_code": "ACC 1202",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28518,
+    "course_code": "MAT 1214",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28519,
+    "course_code": "CUU 1213",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28520,
+    "course_code": "ECO 1302",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28521,
+    "course_code": "HRM 1302",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28522,
+    "course_code": "STA 1305",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28523,
+    "course_code": "ACC 1303",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28524,
+    "course_code": "ACC 1304",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28525,
+    "course_code": "FIN 1301",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28526,
+    "course_code": "FIN 2102",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28527,
+    "course_code": "ICT 2104",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28528,
+    "course_code": "STA 2101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28529,
+    "course_code": "ACC 2101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28530,
+    "course_code": "FIN 2101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28531,
+    "course_code": "HRM 2101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28532,
+    "course_code": "BAM 2202",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28533,
+    "course_code": "ICT 2203",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28534,
+    "course_code": "BAM 2204",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28535,
+    "course_code": "BAM 2205",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28536,
+    "course_code": "BAM 2206",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28537,
+    "course_code": "BAM 2201",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28538,
+    "course_code": "ACC 2302",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28539,
+    "course_code": "ACC 2303",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28540,
+    "course_code": "BAM 2314",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28541,
+    "course_code": "FIN 2303",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28542,
+    "course_code": "BAM 2313",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28543,
+    "course_code": "ENT 2306",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28544,
+    "course_code": "FIN 2305",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28545,
+    "course_code": "FIN 2304",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28546,
+    "course_code": "ACC 2304",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28550,
+    "course_code": "MAT 2101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28547,
+    "course_code": "ACC 3102",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28548,
+    "course_code": "ACC 3103",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28549,
+    "course_code": "ACC 3104",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28551,
+    "course_code": "ACC 3101",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28552,
+    "course_code": "FIN 3103",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28553,
+    "course_code": "FIN 3104",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28554,
+    "course_code": "CFU 3103",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28555,
+    "course_code": "ACC 3105",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28556,
+    "course_code": "FIN 3102",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28557,
+    "course_code": "FIN 3207",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28558,
+    "course_code": "ACC 3207",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28559,
+    "course_code": "ACC 3209",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28560,
+    "course_code": "STA 3201",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28561,
+    "course_code": "ACC 3211",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28562,
+    "course_code": "FIN 3209",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28563,
+    "course_code": "FIN 3206",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28564,
+    "course_code": "ACC 3210",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28565,
+    "course_code": "ACC 3208",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28566,
+    "course_code": "FIN 3208",
+    "original_group_pk": 21231,
+    "original_group_name": "BCOM FT-MAIN"
+  },
+  {
+    "course_pk": 28593,
+    "course_code": "MAT 1102",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28594,
+    "course_code": "BAM 1102",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28595,
+    "course_code": "BAM 1204",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28596,
+    "course_code": "CUU 1002",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28597,
+    "course_code": "BPL 1101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28598,
+    "course_code": "CUU 1003",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28599,
+    "course_code": "ACC 1102",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28600,
+    "course_code": "BPL 1202",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28601,
+    "course_code": "BAM 1205",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28602,
+    "course_code": "BPL 1203",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28603,
+    "course_code": "ECO 1201",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28604,
+    "course_code": "ACC 1204",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28605,
+    "course_code": "MAT 1204",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28606,
+    "course_code": "CUU 1001",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28607,
+    "course_code": "ECO 1302",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28608,
+    "course_code": "MKT 1101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28609,
+    "course_code": "STA 1305",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28610,
+    "course_code": "ICT 1101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28611,
+    "course_code": "ACC 1305",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28612,
+    "course_code": "BPL 1304",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28614,
+    "course_code": "HRM 1302",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28622,
+    "course_code": "FIN 1301",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28613,
+    "course_code": "BPL 2102",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28615,
+    "course_code": "ICT 2104",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28616,
+    "course_code": "ACC 2102",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28617,
+    "course_code": "BPL2101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28618,
+    "course_code": "BAM 2201",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28619,
+    "course_code": "BAM 2204",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28620,
+    "course_code": "BPL 2203",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28621,
+    "course_code": "BAM 2205",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28623,
+    "course_code": "FIN 2101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28624,
+    "course_code": "HRM 2101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28625,
+    "course_code": "BPL 2307",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28626,
+    "course_code": "BPL 2306",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28627,
+    "course_code": "BPL 2304",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28629,
+    "course_code": "ENT 2306",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28630,
+    "course_code": "BPL 2305",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28633,
+    "course_code": "BAM 2314",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28639,
+    "course_code": "BAM 2313",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28628,
+    "course_code": "CFU 3103",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28631,
+    "course_code": "BPL 3101",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28632,
+    "course_code": "BPL 3105",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28634,
+    "course_code": "BPL 3102",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28635,
+    "course_code": "BPL 3104",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28636,
+    "course_code": "BPL 3103",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28637,
+    "course_code": "BPL 3106",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28638,
+    "course_code": "BPL 3206",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28640,
+    "course_code": "BPL 3208",
+    "original_group_pk": 21237,
+    "original_group_name": "BPL FT-MAIN"
+  },
+  {
+    "course_pk": 28642,
+    "course_code": "ACT 1202",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28643,
+    "course_code": "STA 1201",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28644,
+    "course_code": "MAT 1202",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28645,
+    "course_code": "ECO 1201",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28646,
+    "course_code": "MAT 1203",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28647,
+    "course_code": "FIN 1201",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28648,
+    "course_code": "STA 1303",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28649,
+    "course_code": "STA 1302",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28650,
+    "course_code": "ACT 1303",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28651,
+    "course_code": "ACT 1304",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28652,
+    "course_code": "ECO 1302",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28653,
+    "course_code": "MAT 1306",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28654,
+    "course_code": "BAM 1102",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28666,
+    "course_code": "ACC 1202",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28655,
+    "course_code": "STA 2105",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28656,
+    "course_code": "STA 2104",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28657,
+    "course_code": "MAT 2106",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28658,
+    "course_code": "MAT 2105",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28659,
+    "course_code": "ACT 2105",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28660,
+    "course_code": "STA 2310",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28661,
+    "course_code": "STA 2309",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28662,
+    "course_code": "STA 2311",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28663,
+    "course_code": "ACT 2307",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28664,
+    "course_code": "STA 2308",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28665,
+    "course_code": "ACT 2308",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28667,
+    "course_code": "ACT 3112",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28668,
+    "course_code": "ACT 3111",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28669,
+    "course_code": "ACT 3114",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28670,
+    "course_code": "CFU 3100",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28671,
+    "course_code": "ACT 3110",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28672,
+    "course_code": "STA 3112",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28673,
+    "course_code": "ACT 3215",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28674,
+    "course_code": "STA 3213",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28675,
+    "course_code": "ACT 3219",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28676,
+    "course_code": "ACT 3216",
+    "original_group_pk": 21241,
+    "original_group_name": "BSC AS-MAIN"
+  },
+  {
+    "course_pk": 28677,
+    "course_code": "BAM 1102",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28678,
+    "course_code": "ECO 1202",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28679,
+    "course_code": "BAM 1205",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28680,
+    "course_code": "STA 1201",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28681,
+    "course_code": "MAT 1203",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28682,
+    "course_code": "ACC 1303",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28683,
+    "course_code": "MAT 1204",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28689,
+    "course_code": "MAT 1305",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28684,
+    "course_code": "ECO 2101",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28685,
+    "course_code": "ECO 2102",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28686,
+    "course_code": "STA 2105",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28687,
+    "course_code": "BAM 2205",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28688,
+    "course_code": "MAT 2101",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28690,
+    "course_code": "STA 2202",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28691,
+    "course_code": "ECO 2202",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28692,
+    "course_code": "STA 2201",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28693,
+    "course_code": "ECO 2205",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28694,
+    "course_code": "STA 2203",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28695,
+    "course_code": "ECO 2204",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28696,
+    "course_code": "STA 2301",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28697,
+    "course_code": "CFU 2301",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28698,
+    "course_code": "STA 2310",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28699,
+    "course_code": "STA 2302",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28700,
+    "course_code": "ECO 2306",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28701,
+    "course_code": "ECO 2305",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28702,
+    "course_code": "STA 2304",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28703,
+    "course_code": "ECO 2303",
+    "original_group_pk": 21243,
+    "original_group_name": "BSC E&S-MAIN"
+  },
+  {
+    "course_pk": 28722,
+    "course_code": "BUD 001",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28723,
+    "course_code": "BUD 003",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28724,
+    "course_code": "DCU 002",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28725,
+    "course_code": "DCU 001",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28726,
+    "course_code": "DAM 100",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28728,
+    "course_code": "DMS 101",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28729,
+    "course_code": "DAA 100",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28730,
+    "course_code": "DCU 003",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28731,
+    "course_code": "DFU 100",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28732,
+    "course_code": "DFU 101",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28733,
+    "course_code": "DAM 101",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28734,
+    "course_code": "DCU 005",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28735,
+    "course_code": "DAA 101",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28736,
+    "course_code": "DFE 101",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28737,
+    "course_code": "DAM 103",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28738,
+    "course_code": "DAA 103",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28739,
+    "course_code": "DFI 001",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28740,
+    "course_code": "DMS 103",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28741,
+    "course_code": "DFM 100",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28742,
+    "course_code": "DFM 101",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28744,
+    "course_code": "DMS 104",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28745,
+    "course_code": "DMS 105",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28746,
+    "course_code": "DAM 102",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28743,
+    "course_code": "DMS 202",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28727,
+    "course_code": "DCU OO4",
+    "original_group_pk": 21250,
+    "original_group_name": "DBM FT-MAIN"
+  },
+  {
+    "course_pk": 28786,
+    "course_code": "ICT 1101",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28787,
+    "course_code": "BPM 1101",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28788,
+    "course_code": "MAT 1102",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28789,
+    "course_code": "CUU 1002",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28790,
+    "course_code": "BAM 1102",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28791,
+    "course_code": "CUU 1003",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28792,
+    "course_code": "ACC 1101",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28793,
+    "course_code": "BAM 1205",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28794,
+    "course_code": "HRM 1208",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28795,
+    "course_code": "BPM 1202",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28796,
+    "course_code": "BPM 1203",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28797,
+    "course_code": "MAT 1204",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28798,
+    "course_code": "ECO 1201",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28809,
+    "course_code": "RESEARCH",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28799,
+    "course_code": "FIN 2102",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28800,
+    "course_code": "HRM 2106",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28801,
+    "course_code": "BPM 2101",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28802,
+    "course_code": "BPM 2103",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28803,
+    "course_code": "BPM 2102",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28804,
+    "course_code": "HRM 2101",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28805,
+    "course_code": "BPM 2302",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28807,
+    "course_code": "BPM 2303",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28808,
+    "course_code": "BPM 2301",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28806,
+    "course_code": "FIN 3208",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28810,
+    "course_code": "FIN 3104",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28811,
+    "course_code": "BPM 3312",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28812,
+    "course_code": "BPM 3211",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28813,
+    "course_code": "BPM 3209",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28814,
+    "course_code": "BPM 3210",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28815,
+    "course_code": "BPM 3208",
+    "original_group_pk": 21267,
+    "original_group_name": "BPM FT-TOWN"
+  },
+  {
+    "course_pk": 28819,
+    "course_code": "ICT 1101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28820,
+    "course_code": "BAM 1101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28821,
+    "course_code": "MAT 1102",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28822,
+    "course_code": "CUU 1002",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28823,
+    "course_code": "BAM 1102",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28824,
+    "course_code": "CUU 1003",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28825,
+    "course_code": "ACC 1101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28826,
+    "course_code": "MKT 1101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28827,
+    "course_code": "BAM 1205",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28828,
+    "course_code": "BAM 1204",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28829,
+    "course_code": "ACC 1202",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28830,
+    "course_code": "MAT 1204",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28831,
+    "course_code": "ECO 1201",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28832,
+    "course_code": "CUU 1001",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28833,
+    "course_code": "ECO 1302",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28834,
+    "course_code": "ACC 1303",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28835,
+    "course_code": "HRM 1302",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28836,
+    "course_code": "STA 1305",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28837,
+    "course_code": "FIN 1301",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28838,
+    "course_code": "ACC 1304",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28839,
+    "course_code": "IBM 2107",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28840,
+    "course_code": "ECO 2105",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28841,
+    "course_code": "IBM 2103",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28842,
+    "course_code": "ACC 2104",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28843,
+    "course_code": "HRM 2101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28844,
+    "course_code": "BAM 2108",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28845,
+    "course_code": "BAM 2205",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28846,
+    "course_code": "BAM 2207",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28847,
+    "course_code": "BAM 2209",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28848,
+    "course_code": "BAM 2204",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28849,
+    "course_code": "HRM 2208",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28850,
+    "course_code": "BAM 2201",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28851,
+    "course_code": "FIN 2305",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28852,
+    "course_code": "BAM 2310",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28853,
+    "course_code": "BAM 2309",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28854,
+    "course_code": "BAM 2302",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28855,
+    "course_code": "BAM 2301",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28856,
+    "course_code": "ENT 2306",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28857,
+    "course_code": "IBM 3103",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28858,
+    "course_code": "IBM 3101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28859,
+    "course_code": "ACC 3106",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28860,
+    "course_code": "MKT 3101",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28861,
+    "course_code": "CFU 3103",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28862,
+    "course_code": "ECO 3104",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28863,
+    "course_code": "BAM 3209",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28864,
+    "course_code": "BAM 3208",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28865,
+    "course_code": "BAM 3206",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28866,
+    "course_code": "BAM 3207",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  },
+  {
+    "course_pk": 28867,
+    "course_code": "BAM 3210",
+    "original_group_pk": 21280,
+    "original_group_name": "IBM FT-TOWN"
+  }
+]

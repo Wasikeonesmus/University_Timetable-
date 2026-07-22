@@ -1,0 +1,75 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Room Booking Utilization - Multi-University Timetable System{% endblock %}
+
+{% block content %}
+<!-- Header and Navigation -->
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+        <a href="{% url 'scheduler:reports' %}" style="color: var(--brand); text-decoration: none; font-weight: 500;">Analytics & Reports</a>
+        <span>&rarr;</span>
+        <span style="color: var(--text-main);">Room Utilization</span>
+    </div>
+    
+    <div>
+        <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.25rem;">Room Booking Utilization</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Calculates percentage occupancy across all weekly timeslots for each room in: <strong>{{ active_university.name }}</strong>
+        </p>
+    </div>
+</div>
+
+{% if timetable %}
+    <!-- Detailed Room Utilization Table -->
+    <div class="card" style="padding: 1.5rem; width: 100%; box-sizing: border-box;">
+        <div class="table-responsive" style="margin-top: 0.5rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border);">
+                        <th style="text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Room Name</th>
+                        <th style="text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Type</th>
+                        <th style="text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Capacity</th>
+                        <th style="text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Booked Slots</th>
+                        <th style="text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Total Slots</th>
+                        <th style="text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Utilization Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in room_utilization %}
+                    <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.15s;" onmouseover="this.style.backgroundColor='rgba(0,0,0,0.01)'" onmouseout="this.style.backgroundColor='transparent'">
+                        <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                            <strong style="color: var(--text-main); font-size: 0.95rem;">{{ item.room.name }}</strong>
+                        </td>
+                        <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                            <span class="badge badge-info" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">{{ item.room.get_room_type_display }}</span>
+                        </td>
+                        <td style="padding: 1rem 0.75rem; vertical-align: middle; color: var(--text-main); font-size: 0.9rem;">
+                            {{ item.room.capacity }} seats
+                        </td>
+                        <td style="padding: 1rem 0.75rem; vertical-align: middle; color: var(--text-main); font-size: 0.9rem; font-weight: 600;">
+                            {{ item.booked_slots }}
+                        </td>
+                        <td style="padding: 1rem 0.75rem; vertical-align: middle; color: var(--text-muted); font-size: 0.9rem;">
+                            {{ item.total_slots }}
+                        </td>
+                        <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="flex: 1; background-color: var(--border); height: 8px; border-radius: 4px; overflow: hidden; max-width: 150px;">
+                                    <div style="background-color: {% if item.percentage > 75 %}var(--warning){% elif item.percentage == 0 %}var(--border){% else %}var(--success){% endif %}; width: {{ item.percentage }}%; height: 100%;"></div>
+                                </div>
+                                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">{{ item.percentage }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No active timetable found to analyze room booking.</p>
+        <p style="font-size: 0.9rem;">Generate a timetable draft first to view utilization stats.</p>
+    </div>
+{% endif %}
+{% endblock %}

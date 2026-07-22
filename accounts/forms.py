@@ -8,9 +8,10 @@ from scheduler.models import University, Lecturer, StudentGroup
 class LoginForm(AuthenticationForm):
     """Custom login form with styled widgets."""
     username = forms.CharField(
+        label="Email Address",
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Username',
+            'placeholder': 'Enter your email address (e.g. wasikeonesmus980@gmail.com)',
             'autofocus': True,
             'id': 'id_login_username',
         })
@@ -47,6 +48,12 @@ class RegisterForm(UserCreationForm):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_reg_university'})
     )
+    student_group = forms.ModelChoiceField(
+        queryset=StudentGroup.objects.all(),
+        required=False,
+        label="Student Group / Course",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_reg_student_group'})
+    )
 
     class Meta:
         model = User
@@ -63,21 +70,33 @@ class RegisterForm(UserCreationForm):
         role = cleaned_data.get('role')
         email = cleaned_data.get('email')
         university = cleaned_data.get('university')
+        student_group = cleaned_data.get('student_group')
+
+        if email and not cleaned_data.get('username'):
+            base_un = email.split('@')[0]
+            un = base_un
+            c = 1
+            while User.objects.filter(username=un).exists():
+                un = f"{base_un}{c}"
+                c += 1
+            cleaned_data['username'] = un
+            self.cleaned_data['username'] = un
 
         if role == 'lecturer' and email:
-            # Check if lecturer with this email exists in the database
+            # Check if lecturer profile with this email is already linked to another user account
             matching_lecturer = Lecturer.objects.filter(email__iexact=email.strip()).first()
-            if not matching_lecturer:
-                self.add_error('email', "This email is not registered in the lecturer database. Please ensure it matches your official staff record or contact the administrator.")
-            else:
-                # Check if this lecturer is already linked to another user account
+            if matching_lecturer:
                 existing_link = UserProfile.objects.filter(lecturer=matching_lecturer).first()
-                if existing_link:
+                if existing_link and existing_link.user.email.strip().lower() != email.strip().lower():
                     self.add_error('email', f"This lecturer profile is already linked to user account: '{existing_link.user.username}'.")
-        
+
         elif role == 'student':
             if not university:
                 self.add_error('university', "University is required for student registration.")
+            if 'student_group' in self.data and not student_group:
+                self.add_error('student_group', "Student Group / Course is required for student registration.")
+            elif university and student_group and student_group.program.department.faculty.campus.university != university:
+                self.add_error('student_group', "Selected student group does not belong to the chosen university.")
 
         return cleaned_data
 
@@ -90,24 +109,56 @@ class RegisterForm(UserCreationForm):
             user.save()
             role = self.cleaned_data['role']
             university = self.cleaned_data.get('university')
+            student_group = self.cleaned_data.get('student_group')
             lecturer = None
             
             if role == 'lecturer':
                 lecturer = Lecturer.objects.filter(email__iexact=user.email.strip()).first()
                 if lecturer:
-                    # Adopt the lecturer's university automatically
-                    university = lecturer.department.faculty.campus.university
-                    
-                    # Optional: link the user directly to the lecturer object if that relation is used
+                    # Adopt the lecturer's university automatically if present
+                    if lecturer.department and lecturer.department.faculty and lecturer.department.faculty.campus:
+                        university = lecturer.department.faculty.campus.university
                     lecturer.user = user
-                    lecturer.save(update_fields=['user'])
+                    lecturer.is_verified = True
+                    lecturer.save(update_fields=['user', 'is_verified'])
+                else:
+                    # Auto-create Lecturer profile if not pre-existing
+                    from scheduler.models import Department
+                    dept = None
+                    if university:
+                        dept = Department.objects.filter(faculty__campus__university=university).first()
+                    if not dept:
+                        dept = Department.objects.first()
+
+                    full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+                    lecturer = Lecturer.objects.create(
+                        name=full_name,
+                        email=user.email.strip().lower(),
+                        department=dept,
+                        user=user,
+                        is_verified=True
+                    )
+                    if dept and dept.faculty and dept.faculty.campus:
+                        university = dept.faculty.campus.university
             
-            UserProfile.objects.create(
+            profile, created = UserProfile.objects.get_or_create(
                 user=user,
-                role=role,
-                university=university,
-                lecturer=lecturer,
+                defaults={
+                    'role': role,
+                    'university': university,
+                    'lecturer': lecturer,
+                    'student_group': student_group if role == 'student' else None,
+                }
             )
+            if not created:
+                profile.role = role
+                if university:
+                    profile.university = university
+                if lecturer:
+                    profile.lecturer = lecturer
+                if role == 'student' and student_group:
+                    profile.student_group = student_group
+                profile.save()
         return user
 
 

@@ -2,7 +2,7 @@
 {% block title %}My Timetable – {{ student_group.name }}{% endblock %}
 
 {% block content %}
-<div style="max-width:900px;margin:0 auto;">
+<div style="max-width:1400px;margin:0 auto;padding:0 1rem;">
     <div style="margin-bottom:1.5rem;">
         <h2 style="font-size:1.4rem;font-weight:700;margin-bottom:0.25rem;">🗓️ My Timetable</h2>
         <p style="color:var(--text-muted);font-size:0.875rem;">Welcome, {{ request.user.get_full_name|default:request.user.username }}. Group: {{ student_group.name }} ({{ student_group.size }} students)</p>

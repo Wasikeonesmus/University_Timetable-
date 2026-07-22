@@ -26,6 +26,9 @@ def login_view(request):
             login(request, user)
 
             # Set session role from profile
+            # FIX BUG 2: Define profile=None before the try block so it is always bound,
+            # even if UserProfile.DoesNotExist is raised in the except branch.
+            profile = None
             try:
                 profile = user.profile
                 request.session['active_role'] = profile.role
@@ -38,7 +41,7 @@ def login_view(request):
             # Lecturers go straight to their personal portal
             next_url = request.GET.get('next')
             if not next_url:
-                if profile.role == 'lecturer':
+                if profile and profile.role == 'lecturer':
                     next_url = 'scheduler:lecturer_my_schedule'
                 else:
                     next_url = 'scheduler:dashboard'
@@ -52,30 +55,19 @@ def login_view(request):
 
 
 def logout_view(request):
-    """Logs out the user and redirects to login."""
-    logout(request)
+    """Logs out the user and redirects to login safely."""
+    try:
+        logout(request)
+    except Exception as ex:
+        import logging
+        logging.getLogger(__name__).warning(f"Logout session flush encountered error: {ex}")
     messages.info(request, "You have been logged out.")
     return redirect('accounts:login')
 
 
 def register_view(request):
-    """Handles new user registration."""
-    if request.user.is_authenticated:
-        return redirect('scheduler:dashboard')
-
-    if request.method == 'POST':
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                user = form.save()
-            messages.success(request, "Account created successfully! Please log in.")
-            return redirect('accounts:login')
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = RegisterForm()
-
-    return render(request, 'accounts/register.html', {'form': form})
+    """Redirects registration attempts to login page."""
+    return redirect('accounts:login')
 
 
 @login_required

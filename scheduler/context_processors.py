@@ -42,26 +42,34 @@ def active_scheduler_context(request):
         request.session['active_university_id'] = active_university.id
 
     # 2. Resolve Active Semester for this University
-    # Cache this too so repeated template rendering doesn't re-query
+    # FIX BUG 15: Cache the active semester in Django's cache (60 sec TTL) to avoid
+    # running up to 2 DB queries on every single HTTP request for every user.
     if active_university:
-        cache_key = f'_cached_semester_{active_university.id}'
-        active_semester = getattr(request, cache_key, None)
+        from django.core.cache import cache
+        cache_key = f'active_semester_{active_university.id}'
+        active_semester = cache.get(cache_key)
         if active_semester is None:
             active_semester = (
                 Semester.objects.filter(university=active_university, is_active=True).first()
                 or Semester.objects.filter(university=active_university).first()
             )
-            setattr(request, cache_key, active_semester)
+            # Cache for 60 seconds; semester changes are rare
+            cache.set(cache_key, active_semester, timeout=60)
 
     # 3. Resolve Role — use get_effective_role helper for absolute consistency
     from .permissions import get_effective_role
-    active_role = 'admin'
+    active_role = None  # FIX BUG 8: Default is None, not 'admin'. Anonymous users should have no role.
     if request.user.is_authenticated:
         role = get_effective_role(request)
         if role:
             active_role = role
+        else:
+            active_role = 'student'  # Authenticated but no role → default to least-privileged
     else:
-        active_role = request.session.get('active_role', 'admin')
+        # FIX BUG 8: Unauthenticated users get None — templates should check `active_role` before
+        # rendering role-sensitive content. Previously defaulted to 'admin' which was a
+        # privilege escalation risk if the session was not properly cleared.
+        active_role = None
 
     available_roles = [
         ('admin',     'Super Admin'),

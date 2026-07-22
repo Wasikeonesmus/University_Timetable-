@@ -29,7 +29,7 @@ class Command(BaseCommand):
             
             semester_asu = Semester.objects.create(
                 university=uni_asu,
-                name="Fall 2026",
+                name="Semester 1 2026",
                 start_date=datetime.date(2026, 9, 1),
                 end_date=datetime.date(2026, 12, 20),
                 is_active=True

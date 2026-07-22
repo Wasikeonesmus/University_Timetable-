@@ -46,194 +46,137 @@
                 <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;" id="record-count-info">Showing {{ items|length }} records</span>
             </div>
             
-            <!-- Quick Search Input -->
-            <div style="position: relative; width: 100%; max-width: 280px; display: inline-block;">
-                <input type="text" id="resource-search-bar" placeholder="Quick search..." 
-                       style="width: 100%; padding: 0.45rem 0.75rem; padding-left: 2rem; font-size: 0.82rem; border: 1px solid var(--border); border-radius: 8px; outline: none; transition: border-color 0.15s; background: var(--card-bg); color: var(--text);">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                     style="position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.75;">
-                    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
+            <!-- Quick Search Input & Presets -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                {% if active_tab == 'timeslot' %}
+                <form method="POST" action="{% url 'scheduler:apply_default_3hr_timeslots' %}" style="display:inline;" onsubmit="return confirm('Reset all time slots to standard 3-hour slots (08:00-11:00, 11:00-14:00, 14:00-17:00, 17:30-20:30 Mon-Sun)?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: 8px; font-weight: 600;">
+                        ⚡ Apply 3-Hour Default Slots (Mon–Sun)
+                    </button>
+                </form>
+                {% endif %}
+
+                <div style="position: relative; width: 100%; max-width: 280px; display: inline-block;">
+                    <input type="text" id="resource-search-bar" placeholder="Quick search..." 
+                           style="width: 100%; padding: 0.45rem 0.75rem; padding-left: 2rem; font-size: 0.82rem; border: 1px solid var(--border); border-radius: 8px; outline: none; transition: border-color 0.15s; background: var(--card-bg); color: var(--text);">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                         style="position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.75;">
+                        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        {% if items %}
-            <!-- Bulk delete toolbar (appears when rows selected) -->
-            <div id="bulk-toolbar" style="display:none; align-items:center; gap:0.75rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:0.6rem 1rem; margin-bottom:1rem;">
-                <span id="bulk-count" style="font-weight:600; color:#ef4444;">0 selected</span>
-                <button type="submit" form="bulk-delete-form" class="btn" style="background:#ef4444;color:white;border:none;font-weight:600;font-size:0.82rem;padding:0.35rem 0.9rem;">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                    </svg> Delete Selected
-                </button>
-                <button type="button" onclick="clearSelection()" class="btn btn-secondary" style="font-size:0.82rem;padding:0.35rem 0.9rem;">Cancel</button>
-            </div>
+        <!-- Bulk delete toolbar (appears when rows selected) -->
+        <div id="bulk-toolbar" style="display:none; align-items:center; gap:0.75rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:0.6rem 1rem; margin-bottom:1rem;">
+            <span id="bulk-count" style="font-weight:600; color:#ef4444;">0 selected</span>
+            <button type="submit" form="bulk-delete-form" class="btn" style="background:#ef4444;color:white;border:none;font-weight:600;font-size:0.82rem;padding:0.35rem 0.9rem;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                </svg> Delete Selected
+            </button>
+            <button type="button" onclick="clearSelection()" class="btn btn-secondary" style="font-size:0.82rem;padding:0.35rem 0.9rem;">Cancel</button>
+        </div>
 
-            <form id="bulk-delete-form" method="POST" action="{% url 'scheduler:bulk_delete_resources' %}" onsubmit="return confirmBulkDelete()">
-                {% csrf_token %}
-                <input type="hidden" name="model_type" value="{{ active_tab }}">
-                <input type="hidden" name="tab" value="{{ active_tab }}">
+        <form id="bulk-delete-form" method="POST" action="{% url 'scheduler:bulk_delete_resources' %}">
+            {% csrf_token %}
+            <input type="hidden" name="model_type" value="{{ active_tab }}">
+            <input type="hidden" name="tab" value="{{ active_tab }}">
 
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        {% if active_tab == 'university' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Name</th>
-                                <th>Code</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'campus' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Campus Name</th>
-                                <th>University</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'faculty' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Faculty Name</th>
-                                <th>Campus</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'department' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Department Name</th>
-                                <th>Faculty</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'course' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Program</th>
-                                <th>Duration</th>
-                                <th>Room Type</th>
-                                <th>Lecturer</th>
-                                <th>Student Group</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'studentgroup' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Group Name</th>
-                                <th>Program</th>
-                                <th>Size</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'lecturer' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Lecturer Name</th>
-                                <th>Department</th>
-                                <th>Email</th>
-                                <th>Max Hours/Week</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'room' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Room Name</th>
-                                <th>Campus</th>
-                                <th>Capacity</th>
-                                <th>Room Type</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% elif active_tab == 'timeslot' %}
-                            <tr>
-                                <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
-                                <th>Day of Week</th>
-                                <th>Slot Number</th>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Evening?</th>
-                                <th style="width:80px;">Action</th>
-                            </tr>
-                        {% endif %}
-                    </thead>
-                    <tbody>
-                        {% for item in items %}
-                            <tr>
-                                <td><input type="checkbox" name="selected_ids" value="{{ item.pk }}" class="row-cb" onchange="updateBulkToolbar()"></td>
-                                {% if active_tab == 'university' %}
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td><span style="font-family: monospace; background: rgba(255,255,255,0.05); padding: 0.2rem 0.4rem; border-radius: 4px; color: var(--primary);">{{ item.code }}</span></td>
-                                {% elif active_tab == 'campus' %}
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td>{{ item.university.name }}</td>
-                                {% elif active_tab == 'faculty' %}
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td>{{ item.campus.name }}</td>
-                                {% elif active_tab == 'department' %}
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td>{{ item.faculty.name }}</td>
-                                {% elif active_tab == 'course' %}
-                                    <td><span style="font-family: monospace; font-weight: 700; color: var(--primary);">{{ item.code }}</span></td>
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.program.name }}</span></td>
-                                    <td><span class="badge badge-info">{{ item.duration_slots }} slots</span></td>
-                                    <td><span class="badge badge-success">{{ item.get_required_room_type_display }}</span></td>
-                                    <td>{{ item.lecturer.name|default:"—" }}</td>
-                                    <td>{{ item.student_group.name|default:"—" }}</td>
-                                {% elif active_tab == 'studentgroup' %}
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.program.name }}</span></td>
-                                    <td><span class="badge badge-info" style="font-size: 0.8rem; font-weight: bold;">{{ item.size }}</span></td>
-                                {% elif active_tab == 'lecturer' %}
-                                    <td><strong><a href="{% url 'scheduler:admin_lecturer_profile' item.pk %}" style="text-decoration:none; color:inherit; border-bottom:1px dashed var(--primary);">{{ item.name }}</a></strong></td>
-                                    <td><span style="font-size: 0.8rem; color: var(--text-muted);">{{ item.department.name }}</span></td>
-                                    <td><a href="mailto:{{ item.email }}" style="color: var(--primary); text-decoration: none;">{{ item.email }}</a></td>
-                                    <td><span class="badge badge-warning">{{ item.max_hours_per_week }} hrs</span></td>
-                                {% elif active_tab == 'room' %}
-                                    <td><strong>{{ item.name }}</strong></td>
-                                    <td>{{ item.campus.name }}</td>
-                                    <td><span class="badge badge-info" style="font-weight: bold;">{{ item.capacity }}</span></td>
-                                    <td><span class="badge badge-success">{{ item.get_room_type_display }}</span></td>
-                                {% elif active_tab == 'timeslot' %}
-                                    <td><strong>{{ item.get_day_of_week_display }}</strong></td>
-                                    <td><span class="badge badge-info">Slot {{ item.slot_number }}</span></td>
-                                    <td>{{ item.start_time|time:"H:i" }}</td>
-                                    <td>{{ item.end_time|time:"H:i" }}</td>
-                                    <td>
-                                        {% if item.is_evening %}
-                                            <span class="badge badge-warning">Evening</span>
-                                        {% else %}
-                                            <span class="badge badge-success">Day</span>
-                                        {% endif %}
-                                    </td>
-                                {% endif %}
-                                <td style="white-space: nowrap;">
-                                    {% if active_tab == 'lecturer' %}
-                                        <a href="{% url 'scheduler:admin_lecturer_profile' item.pk %}" 
-                                           style="color:#0f766e; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(15,118,110,0.4); border-radius:5px; margin-right:5px;"
-                                           title="Manage profile, student groups, workload, and availability">
-                                            ⚙ Manage
-                                        </a>
-                                    {% endif %}
-                                    <a href="{% url 'scheduler:delete_resource' active_tab item.pk %}" 
-                                       style="color:#ef4444; font-size:0.78rem; text-decoration:none; font-weight:600; padding:0.2rem 0.5rem; border:1px solid rgba(239,68,68,0.4); border-radius:5px;"
-                                       title="Delete this record">
-                                        🗑 Delete
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            </form><!-- end bulk-delete-form -->
-        {% else %}
-            <div style="text-align: center; padding: 3rem 1.5rem; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px dashed var(--border);">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                <h3 style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-main);">No {{ tab_title }} found</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 320px; margin: 0 auto;">No records exist for the active university. Add a new record using the form panel on the right.</p>
-            </div>
-        {% endif %}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    {% if active_tab == 'university' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Name</th>
+                            <th>Code</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'campus' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Campus Name</th>
+                            <th>University</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'faculty' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Faculty Name</th>
+                            <th>Campus</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'department' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Department Name</th>
+                            <th>Faculty</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'course' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Program</th>
+                            <th>Duration</th>
+                            <th>Room Type</th>
+                            <th>Lecturer</th>
+                            <th>Student Group</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'studentgroup' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Group Name</th>
+                            <th>Program</th>
+                            <th>Size</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'lecturer' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Lecturer Name</th>
+                            <th>Department</th>
+                            <th>Email</th>
+                            <th>Max Hours/Week</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'room' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Room Name</th>
+                            <th>Campus</th>
+                            <th>Capacity</th>
+                            <th>Room Type</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% elif active_tab == 'timeslot' %}
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="select-all" onchange="toggleAll(this)" title="Select All"></th>
+                            <th>Day of Week</th>
+                            <th>Slot Number</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Evening?</th>
+                            <th style="width:80px;">Action</th>
+                        </tr>
+                    {% endif %}
+                </thead>
+                <tbody id="resource-table-body">
+                    {% include 'scheduler/partials/resource_rows.html' %}
+                </tbody>
+            </table>
+        </div>
+        </form><!-- end bulk-delete-form -->
+        
+        <!-- Pagination controls container -->
+        <div id="resource-pagination">
+            {% include 'scheduler/partials/resource_pagination.html' %}
+        </div>
     </div>
 
     <!-- Right Column: Add Form -->
@@ -251,7 +194,7 @@
             {% endif %}
         </div>
 
-        <form method="POST" action="{% url 'scheduler:resources_manager' %}?tab={{ active_tab }}">
+        <form id="add-resource-form" method="POST" action="{% url 'scheduler:resources_manager' %}?tab={{ active_tab }}">
             {% csrf_token %}
             
             {% for field in form %}
@@ -293,10 +236,62 @@
 
 {% block extra_js %}
 <script>
+// Append custom style rules dynamically to ensure rich aesthetics and animations
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .resource-row {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .resource-row.row-added-highlight {
+            animation: rowHighlight 1.8s ease;
+        }
+        @keyframes rowHighlight {
+            0% { background-color: rgba(13, 148, 136, 0.25); }
+            100% { background-color: transparent; }
+        }
+        .pagination-btn {
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .pagination-btn:hover {
+            background: rgba(13, 148, 136, 0.15) !important;
+            border-color: var(--primary) !important;
+        }
+        .inline-confirm button {
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .inline-confirm button:hover {
+            transform: scale(1.05);
+        }
+        /* Custom skeleton loader */
+        .loading-shimmer {
+            background: linear-gradient(90deg, var(--card-bg) 25%, rgba(13,148,136,0.08) 50%, var(--card-bg) 75%);
+            background-size: 200% 100%;
+            animation: loadingSkeleton 1.5s infinite;
+        }
+        @keyframes loadingSkeleton {
+            from { background-position: 200% 0; }
+            to { background-position: -200% 0; }
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+let currentPage = 1;
+let currentQuery = '';
+const activeTab = "{{ active_tab }}";
+let originalCellContents = {};
+
 function toggleAll(source) {
     document.querySelectorAll('.row-cb').forEach(cb => cb.checked = source.checked);
     updateBulkToolbar();
 }
+
 function updateBulkToolbar() {
     const checked = document.querySelectorAll('.row-cb:checked');
     const toolbar = document.getElementById('bulk-toolbar');
@@ -309,61 +304,372 @@ function updateBulkToolbar() {
         toolbar.style.display = 'none';
     }
 }
+
 function clearSelection() {
     document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
     const sa = document.getElementById('select-all');
     if (sa) sa.checked = false;
     updateBulkToolbar();
 }
-function confirmBulkDelete() {
-    const count = document.querySelectorAll('.row-cb:checked').length;
-    return confirm('Delete ' + count + ' selected record(s)? This cannot be undone.');
+
+// ── Custom Toast Notifications ──
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+            max-width: 350px;
+            width: 100%;
+        `;
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        pointer-events: auto;
+        padding: 0.85rem 1.25rem;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+        color: var(--text-main, #ffffff);
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        transform: translateX(120%);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        opacity: 0;
+        border-left: 4px solid;
+    `;
+
+    if (type === 'success') {
+        toast.style.background = 'rgba(13, 148, 136, 0.95)'; 
+        toast.style.borderColor = '#2dd4bf';
+        toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>${message}</span>`;
+    } else if (type === 'error' || type === 'danger') {
+        toast.style.background = 'rgba(220, 38, 38, 0.95)'; 
+        toast.style.borderColor = '#f87171';
+        toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> <span>${message}</span>`;
+    } else if (type === 'warning') {
+        toast.style.background = 'rgba(217, 119, 6, 0.95)'; 
+        toast.style.borderColor = '#fbbf24';
+        toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></svg> <span>${message}</span>`;
+    } else {
+        toast.style.background = 'rgba(30, 41, 59, 0.95)'; 
+        toast.style.borderColor = '#38bdf8';
+        toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></svg> <span>${message}</span>`;
+    }
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+        toast.style.opacity = '1';
+    }, 20);
+
+    setTimeout(() => {
+        toast.style.transform = 'translateX(120%)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 4500);
 }
 
-// ── Instant Client-Side Search Filter ──
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('resource-search-bar');
-    const table = document.querySelector('.table-responsive table');
-    const recordCountInfo = document.getElementById('record-count-info');
+// ── AJAX Table Loader ──
+function loadTableData(page = 1, query = '') {
+    currentPage = page;
+    currentQuery = query;
     
-    if (searchInput && table) {
-        const rows = Array.from(table.querySelectorAll('tbody tr'));
-        const totalRecords = rows.length;
-        
-        searchInput.addEventListener('input', function() {
-            const query = searchInput.value.toLowerCase().trim();
-            let visibleCount = 0;
+    const tableBody = document.getElementById('resource-table-body');
+    const paginationContainer = document.getElementById('resource-pagination');
+    
+    if (!tableBody) return;
+    
+    // Add visual loading feedback using skeleton loader
+    const columnsCount = tableBody.querySelector('tr')?.querySelectorAll('td')?.length || 4;
+    tableBody.style.opacity = '0.5';
+    
+    const url = `/resources/?tab=${activeTab}&page=${page}&q=${encodeURIComponent(query)}`;
+    
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        tableBody.style.opacity = '1';
+        if (data.success) {
+            tableBody.innerHTML = data.rows_html;
+            paginationContainer.innerHTML = data.pagination_html;
             
-            rows.forEach(row => {
-                // Ignore empty rows or headers
-                if (!row.querySelector('td')) return;
-                
-                // Get text from searchable fields (ignoring action column)
-                const cells = Array.from(row.querySelectorAll('td')).slice(1, -1);
-                const text = cells.map(c => c.textContent).join(' ').toLowerCase();
-                
-                if (text.includes(query)) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Update strategic display count
+            const recordCountInfo = document.getElementById('record-count-info');
             if (recordCountInfo) {
-                if (query === '') {
-                    recordCountInfo.textContent = `Showing ${totalRecords} records`;
-                } else {
-                    recordCountInfo.textContent = `Found ${visibleCount} of ${totalRecords} records`;
-                }
+                recordCountInfo.textContent = data.showing_info;
+            }
+            
+            bindPaginationEvents();
+            clearSelection();
+        } else {
+            showToast('Failed to retrieve resource data.', 'error');
+        }
+    })
+    .catch(err => {
+        tableBody.style.opacity = '1';
+        showToast('Network error while fetching resources.', 'error');
+    });
+}
+
+function bindPaginationEvents() {
+    document.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const page = this.dataset.page;
+            loadTableData(page, currentQuery);
+            
+            // Smoothly scroll back to the top of table for context preservation
+            const card = document.querySelector('.card');
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
-        
-        // Trigger auto-focus and initial search if search query is already in input
-        if (searchInput.value) {
-            searchInput.dispatchEvent(new Event('input'));
+    });
+}
+
+// ── In-Row Deletion Confirmations ──
+function confirmDelete(event, tab, pk, objectName) {
+    if (event) event.stopPropagation();
+    
+    const row = document.querySelector(`tr[data-id="${pk}"]`);
+    if (!row) return;
+    
+    const actionCell = row.querySelector('.action-cell');
+    if (!actionCell) return;
+    
+    if (!originalCellContents[pk]) {
+        originalCellContents[pk] = actionCell.innerHTML;
+    }
+    
+    actionCell.style.width = actionCell.offsetWidth + 'px'; 
+    
+    actionCell.innerHTML = `
+        <div class="inline-confirm" style="display:inline-flex; align-items:center; gap:0.4rem; animation: fadeIn 0.15s ease;">
+            <span style="font-size:0.75rem; color:#ef4444; font-weight:700;">Delete?</span>
+            <button type="button" class="btn btn-confirm-yes" onclick="executeDelete(event, '${tab}', ${pk})" 
+                style="background:#ef4444; color:white; border:none; padding:0.25rem 0.5rem; font-size:0.72rem; font-weight:700; border-radius:4px; cursor:pointer; line-height:1;">
+                Yes
+            </button>
+            <button type="button" class="btn btn-confirm-no" onclick="cancelDelete(event, ${pk})" 
+                style="background:rgba(255,255,255,0.08); color:var(--text-main); border:1px solid var(--border); padding:0.25rem 0.5rem; font-size:0.72rem; font-weight:700; border-radius:4px; cursor:pointer; line-height:1;">
+                No
+            </button>
+        </div>
+    `;
+}
+
+function cancelDelete(event, pk) {
+    if (event) event.stopPropagation();
+    const row = document.querySelector(`tr[data-id="${pk}"]`);
+    if (!row) return;
+    const actionCell = row.querySelector('.action-cell');
+    if (actionCell && originalCellContents[pk]) {
+        actionCell.innerHTML = originalCellContents[pk];
+        delete originalCellContents[pk];
+    }
+}
+
+function executeDelete(event, tab, pk) {
+    if (event) event.stopPropagation();
+    
+    const row = document.querySelector(`tr[data-id="${pk}"]`);
+    if (!row) return;
+    
+    const actionCell = row.querySelector('.action-cell');
+    const yesBtn = actionCell.querySelector('.btn-confirm-yes');
+    const noBtn = actionCell.querySelector('.btn-confirm-no');
+    
+    if (yesBtn) yesBtn.disabled = true;
+    if (noBtn) noBtn.disabled = true;
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const url = `/resources/delete/${tab}/${pk}/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
         }
+    })
+    .then(res => res.json().then(data => ({ status: res.status, data })))
+    .then(result => {
+        if (result.status === 200 && result.data.success) {
+            showToast(result.data.message, 'success');
+            row.style.transform = 'translateX(60px)';
+            row.style.opacity = '0';
+            
+            setTimeout(() => {
+                row.remove();
+                loadTableData(currentPage, currentQuery);
+            }, 300);
+        } else {
+            cancelDelete(null, pk);
+            showToast(result.data.error || 'Unable to delete resource.', 'error');
+        }
+    })
+    .catch(err => {
+        cancelDelete(null, pk);
+        showToast('Network error occurred.', 'error');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ── Instant Debounced Search Loader ──
+    const searchInput = document.getElementById('resource-search-bar');
+    if (searchInput) {
+        currentQuery = searchInput.value.trim();
+        let debounceTimer;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const query = searchInput.value.trim();
+                loadTableData(1, query);
+            }, 250); 
+        });
+    }
+
+    bindPaginationEvents();
+
+    // ── AJAX Form Submission Interceptor ──
+    const form = document.getElementById('add-resource-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Clear previous error messages
+            document.querySelectorAll('.field-error-msg').forEach(el => el.remove());
+            document.querySelectorAll('.form-group input, .form-group select').forEach(el => {
+                el.style.borderColor = '';
+            });
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalBtnHTML = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Saving...';
+            
+            const formData = new FormData(form);
+            const csrfToken = formData.get('csrfmiddlewaretoken');
+            
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(res => res.json().then(data => ({ status: res.status, data })))
+            .then(result => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                
+                if (result.status === 200 && result.data.success) {
+                    showToast(result.data.message, 'success');
+                    form.reset();
+                    
+                    // Reload table and highlight the newly added item
+                    loadTableData(1, '');
+                    
+                    setTimeout(() => {
+                        const firstRow = document.querySelector('#resource-table-body tr');
+                        if (firstRow) {
+                            firstRow.classList.add('row-added-highlight');
+                        }
+                    }, 500);
+                } else {
+                    const errors = result.data.errors;
+                    if (errors) {
+                        for (const [fieldName, fieldErrors] of Object.entries(errors)) {
+                            const inputEl = document.getElementById('id_' + fieldName);
+                            if (inputEl) {
+                                inputEl.style.borderColor = '#ef4444';
+                                const parent = inputEl.closest('.form-group');
+                                if (parent) {
+                                    const errorSpan = document.createElement('span');
+                                    errorSpan.className = 'field-error-msg';
+                                    errorSpan.style.cssText = 'color:#ef4444; font-size:0.8rem; display:block; margin-top:0.25rem; font-weight:500;';
+                                    errorSpan.textContent = fieldErrors[0].message;
+                                    parent.appendChild(errorSpan);
+                                }
+                            }
+                        }
+                        showToast('Please fix validation errors.', 'error');
+                    } else {
+                        showToast(result.data.error || 'An error occurred while saving.', 'error');
+                    }
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                showToast('Network error while saving resource.', 'error');
+            });
+        });
+    }
+
+    // ── AJAX Bulk Delete Interceptor ──
+    const bulkForm = document.getElementById('bulk-delete-form');
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const selectedCheckboxes = document.querySelectorAll('.row-cb:checked');
+            const count = selectedCheckboxes.length;
+            if (count === 0) return;
+            
+            if (!confirm(`Are you sure you want to delete ${count} selected record(s)? This cannot be undone.`)) {
+                return;
+            }
+            
+            const formData = new FormData(bulkForm);
+            const submitBtn = bulkForm.querySelector('button[type="submit"]');
+            const originalBtnHTML = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Deleting...';
+            
+            fetch(bulkForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(res => res.json().then(data => ({ status: res.status, data })))
+            .then(result => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                if (result.status === 200 && result.data.success) {
+                    showToast(result.data.message, 'success');
+                    clearSelection();
+                    loadTableData(currentPage, currentQuery);
+                } else {
+                    showToast(result.data.error || 'Failed to delete records.', 'error');
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                showToast('Network error during bulk delete.', 'error');
+            });
+        });
     }
 });
 </script>

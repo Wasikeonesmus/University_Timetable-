@@ -134,10 +134,8 @@
                 <div class="divider"></div>
                 <p class="section-label">Account Credentials</p>
 
-                <div class="form-group">
-                    <label class="form-label" for="id_reg_username">Username</label>
+                <div class="form-group" style="display:none;">
                     {{ form.username }}
-                    {% if form.username.errors %}<ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -153,16 +151,41 @@
                 </div>
 
                 <div class="divider"></div>
-                <p class="section-label">Role & University</p>
+                <p class="section-label">Account Role</p>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="id_reg_role">Role</label>
-                        {{ form.role }}
+                <div class="form-group">
+                    <label class="form-label" for="id_reg_role">Role</label>
+                    {{ form.role }}
+                </div>
+
+                <div id="lecturer-onboarding-banner" style="display:none; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:12px; padding:14px 16px; margin-top:1rem; margin-bottom:1rem;">
+                    <div style="display:flex; align-items:flex-start; gap:10px;">
+                        <span style="font-size:1.2rem;">📋</span>
+                        <div>
+                            <div style="font-size:0.88rem; font-weight:700; color:#10b981; margin-bottom:4px;">Faculty Verification &amp; Onboarding</div>
+                            <p style="font-size:0.8rem; color:var(--muted); line-height:1.45;">
+                                Existing faculty members or new lecturers can also submit availability preferences, workload targets, and verify academic records directly via the official onboarding portal.
+                            </p>
+                            <a href="{% url 'scheduler:public_lecturer_onboarding_direct' %}" style="display:inline-block; margin-top:8px; font-size:0.8rem; font-weight:700; color:#10b981; text-decoration:underline;">
+                                Go to Faculty Onboarding Portal →
+                            </a>
+                        </div>
                     </div>
+                </div>
+
+                <div class="divider" id="student-divider"></div>
+                <p class="section-label" id="student-section-label">Student Details</p>
+
+                <div id="student-fields-row" class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="id_reg_university">University</label>
                         {{ form.university }}
+                        {% if form.university.errors %}<ul class="errorlist">{% for e in form.university.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_reg_student_group">Student Group / Course</label>
+                        {{ form.student_group }}
+                        {% if form.student_group.errors %}<ul class="errorlist">{% for e in form.student_group.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                     </div>
                 </div>
 
@@ -174,5 +197,33 @@
             Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const roleSelect = document.getElementById('id_reg_role');
+            const studentDivider = document.getElementById('student-divider');
+            const studentLabel = document.getElementById('student-section-label');
+            const studentFields = document.getElementById('student-fields-row');
+            const lecturerBanner = document.getElementById('lecturer-onboarding-banner');
+
+            function toggleRoleFields() {
+                const role = roleSelect.value;
+                if (role === 'student') {
+                    studentDivider.style.display = 'block';
+                    studentLabel.style.display = 'block';
+                    studentFields.style.display = 'grid';
+                    if (lecturerBanner) lecturerBanner.style.display = 'none';
+                } else {
+                    studentDivider.style.display = 'none';
+                    studentLabel.style.display = 'none';
+                    studentFields.style.display = 'none';
+                    if (lecturerBanner) lecturerBanner.style.display = 'block';
+                }
+            }
+
+            roleSelect.addEventListener('change', toggleRoleFields);
+            toggleRoleFields(); // Run on initial load
+        });
+    </script>
 </body>
 </html>

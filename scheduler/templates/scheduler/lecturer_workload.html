@@ -127,9 +127,16 @@
         <p style="font-size:13px; color:var(--text-muted); margin-bottom: 8px;">
             Weekly Workload Limit: <strong>{{ lecturer.max_hours_per_week }} hours</strong>
         </p>
-        <span class="badge {% if workload_pct <= 80 %}badge-green{% elif workload_pct <= 100 %}badge-orange{% else %}badge-red{% endif %}">
-            {{ workload_pct }}% Utilization
-        </span>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+            <span class="badge {% if workload_pct <= 80 %}badge-green{% elif workload_pct <= 100 %}badge-orange{% else %}badge-red{% endif %}">
+                {{ workload_pct }}% Utilization
+            </span>
+            {% if total_hours > 20 %}
+                <span class="badge badge-red" style="font-weight:800;">🚨 OVER-ALLOCATED (&gt;20h/wk)</span>
+            {% elif total_hours >= 12 and total_hours <= 15 %}
+                <span class="badge badge-green" style="font-weight:800;">🟢 OPTIMAL WORKLOAD (12-15h/wk)</span>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Bar Chart Daily Allocation -->
@@ -141,19 +148,25 @@
         <div class="bar-chart">
             {% for day_num, day_name in day_names.items %}
                 {% with hours=day_hours|dict_key:day_num slots_count=day_slots|dict_key:day_num %}
-                <div class="bar-row" style="grid-template-columns: 80px 1fr 100px;">
-                    <div class="bar-day">{{ day_name }}</div>
+                {% if slots_count > 0 or day_num <= 5 %}
+                <div class="bar-row {% if day_num >= 6 %}weekend-row{% endif %}" style="grid-template-columns: 90px 1fr 120px;">
+                    <div class="bar-day">
+                        {{ day_name }}
+                        {% if day_num >= 6 %}<span style="font-size:9px; font-weight:800; color:var(--purple); display:block;">WEEKEND</span>{% endif %}
+                    </div>
                     <div class="bar-track">
                         <div class="bar-fill" style="width: {% if lecturer.max_slots_per_day > 0 %}{% widthratio slots_count lecturer.max_slots_per_day 100 %}{% else %}0{% endif %}%;
-                                    background: {% if slots_count > lecturer.max_slots_per_day %}var(--danger){% else %}linear-gradient(90deg, var(--primary), var(--purple)){% endif %};"></div>
+                                    background: {% if slots_count > lecturer.max_slots_per_day %}var(--danger){% elif day_num >= 6 %}linear-gradient(90deg, var(--purple), #a855f7){% else %}linear-gradient(90deg, var(--primary), var(--purple)){% endif %};"></div>
                     </div>
                     <div class="bar-val" style="font-size:11px; font-weight:700;">
                         {{ slots_count }} / {{ lecturer.max_slots_per_day }} classes
+                        {% if hours > 0 %}<span style="display:block; font-size:10px; color:var(--text-muted); font-weight:600;">{{ hours|floatformat:1 }}h</span>{% endif %}
                         {% if slots_count > lecturer.max_slots_per_day %}
                             <span style="color:var(--danger); display:block; font-size:9px; font-weight:800;">Overloaded</span>
                         {% endif %}
                     </div>
                 </div>
+                {% endif %}
                 {% endwith %}
             {% endfor %}
         </div>

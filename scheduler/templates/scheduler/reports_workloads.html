@@ -1,0 +1,144 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Lecturer Workload & Assignments - Multi-University Timetable System{% endblock %}
+
+{% block content %}
+<!-- Header and Navigation -->
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+        <a href="{% url 'scheduler:reports' %}" style="color: var(--brand); text-decoration: none; font-weight: 500;">Analytics & Reports</a>
+        <span>&rarr;</span>
+        <span style="color: var(--text-main);">Lecturer Workloads</span>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-weight: 700; font-size: 2rem; margin-bottom: 0.25rem;">Lecturer Workload & Assignments</h1>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Manage and balance teaching workloads for: <strong>{{ active_university.name }}</strong>
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <form method="POST" action="{% url 'scheduler:auto_balance_workloads' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; background: linear-gradient(135deg, #2563eb, #1d4ed8); border: none;">
+                    <span>🤖</span> Smart Auto-Balance Workloads
+                </button>
+            </form>
+            {% if timetable %}
+                <a href="{% url 'scheduler:export_workload_word' timetable.pk %}" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                    <span>💼</span> Export Word Workload
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if timetable %}
+    <!-- Detailed Workload Table -->
+    <div class="card" style="padding: 1.5rem; width: 100%; box-sizing: border-box;">
+        <div class="table-responsive" style="margin-top: 0.5rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border);">
+                        <th style="width: 25%; text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Lecturer Details</th>
+                        <th style="width: 20%; text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Contract Type &amp; Hours</th>
+                        <th style="width: 25%; text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Workload Utilization</th>
+                        <th style="width: 30%; text-align: left; padding: 1rem 0.75rem; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">Assigned Courses & Reassignment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in lecturer_workloads %}
+                    <tr style="border-bottom: 1px solid var(--border); transition: background-color 0.15s;" onmouseover="this.style.backgroundColor='rgba(0,0,0,0.01)'" onmouseout="this.style.backgroundColor='transparent'">
+                        <td style="padding: 1.25rem 0.75rem; vertical-align: top;">
+                            <strong style="color: var(--text-main); font-size: 0.95rem;">{{ item.lecturer.name }}</strong>
+                            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                {{ item.lecturer.email|default:"No email" }} • {{ item.lecturer.department.name }}
+                            </div>
+                        </td>
+                        <td style="padding: 1.25rem 0.75rem; vertical-align: top;">
+                            <!-- Contract Type Badge -->
+                            <div style="margin-bottom: 0.5rem;">
+                                {% if item.lecturer_type == 'FT' %}
+                                    <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; background: rgba(34,197,94,0.12); color: #16a34a; letter-spacing: 0.05em;">● FULL-TIME</span>
+                                {% else %}
+                                    <span style="display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; background: rgba(234,179,8,0.12); color: #b45309; letter-spacing: 0.05em;">◐ PART-TIME</span>
+                                {% endif %}
+                            </div>
+                            <form method="POST" action="{% url 'scheduler:update_lecturer_hours' %}" style="display: flex; flex-direction: column; gap: 0.4rem; margin: 0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="lecturer_id" value="{{ item.lecturer.id }}">
+                                <!-- Contract type dropdown -->
+                                <select name="lecturer_type" style="padding: 0.3rem 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-size: 0.82rem; font-weight: 600; outline: none; cursor: pointer;">
+                                    <option value="FT" {% if item.lecturer_type == 'FT' %}selected{% endif %}>Full-Time (FT)</option>
+                                    <option value="PT" {% if item.lecturer_type == 'PT' %}selected{% endif %}>Part-Time (PT)</option>
+                                </select>
+                                <!-- Max hours input -->
+                                <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <input type="number" name="max_hours" value="{{ item.max_hours }}" style="width: 65px; padding: 0.3rem 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); font-size: 0.88rem; font-weight: 600; outline: none; text-align: center;" min="1" title="Max hours per week">
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">hrs/wk</span>
+                                    <button type="submit" class="btn btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.78rem; height: auto; font-weight: 600;">Save</button>
+                                </div>
+                            </form>
+                        </td>
+                        <td style="padding: 1.25rem 0.75rem; vertical-align: top;">
+                            <div style="margin-bottom: 0.4rem; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">
+                                <strong>{{ item.hours }} hrs</strong> <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">/ {{ item.slots_count }} slots</span>
+                            </div>
+                            <div style="margin-bottom: 0.5rem;">
+                                {% if item.hours > 20 or item.hours > item.max_hours %}
+                                    <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; background: rgba(239,68,68,0.15); color: #dc2626; border: 1px solid rgba(239,68,68,0.3);">🚨 OVER-ALLOCATED (&gt;20h)</span>
+                                {% elif item.hours >= 12 and item.hours <= 15 %}
+                                    <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800; background: rgba(16,185,129,0.15); color: #059669; border: 1px solid rgba(16,185,129,0.3);">🟢 OPTIMAL (12-15h)</span>
+                                {% else %}
+                                    <span style="display: inline-block; padding: 0.2rem 0.55rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; background: rgba(59,130,246,0.12); color: #2563eb;">NORMAL ({{ item.hours }}h)</span>
+                                {% endif %}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="flex: 1; background-color: var(--border); height: 8px; border-radius: 4px; overflow: hidden; max-width: 150px;">
+                                    <div style="background-color: {% if item.hours > 20 or item.utilization_percent > 100 %}var(--danger){% else %}var(--success){% endif %}; width: {% if item.utilization_percent > 100 %}100{% else %}{{ item.utilization_percent }}{% endif %}%; height: 100%;"></div>
+                                </div>
+                                <span style="font-size: 0.8rem; font-weight: 700; color: {% if item.hours > 20 or item.utilization_percent > 100 %}var(--danger){% else %}var(--text-main){% endif %};">{{ item.utilization_percent }}%</span>
+                            </div>
+                        </td>
+                        <td style="padding: 1.25rem 0.75rem; vertical-align: top;">
+                            {% if item.courses %}
+                                <div style="max-height: 250px; overflow-y: auto; padding-right: 0.5rem;">
+                                {% for course in item.courses %}
+                                    <div style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.4rem;">
+                                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;" title="{{ course.code }}: {{ course.name }}">
+                                            <strong>{{ course.code }}</strong>: {{ course.name }}
+                                        </span>
+                                        <form method="POST" action="{% url 'scheduler:reassign_course' %}" style="display: inline-flex; align-items: center; margin: 0;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="course_id" value="{{ course.id }}">
+                                            <select name="lecturer_id" onchange="this.form.submit()" style="padding: 0.25rem; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); outline: none; cursor: pointer; max-width: 140px;">
+                                                <option value="">-- Reassign --</option>
+                                                {% for l in lecturers %}
+                                                    {% if l.id != item.lecturer.id %}
+                                                        <option value="{{ l.id }}">{{ l.name|truncatechars:18 }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <option value="none">-- Unassign (TBD) --</option>
+                                            </select>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                <span style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No assigned courses</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No active timetable found to analyze workloads.</p>
+        <p style="font-size: 0.9rem;">Generate a timetable draft first to view utilization stats.</p>
+    </div>
+{% endif %}
+{% endblock %}

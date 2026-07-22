@@ -6,10 +6,15 @@ from django.contrib.auth.models import User
 
 logger = logging.getLogger(__name__)
 
-def create_notification(user, title, message, link=None, level='info', channels=['in_app', 'email']):
+def create_notification(user, title, message, link=None, level='info', channels=None):
     """
     Creates an in-app notification and optionally sends an email.
+    FIX BUG 13: Changed channels default from mutable list [] to None to avoid the classic
+    Python mutable-default-argument bug where all callers share the same list object.
     """
+    # Initialise default channels inside the function so each call gets a fresh list
+    if channels is None:
+        channels = ['in_app', 'email']
     notifications = []
     
     # 1. In-App Notification
@@ -77,3 +82,22 @@ def notify_university_managers(university, title, message, link=None, level='inf
                 notifications.extend(n)
                 
     return notifications
+
+
+def notify_university_managers_async(university, title, message, link=None, level='info'):
+    """
+    Non-blocking wrapper around notify_university_managers().
+
+    Runs the full email + in-app notification fan-out on a daemon thread so
+    SMTP latency (or an unreachable mail server) can never stall the caller.
+    """
+    import threading
+
+    def _do():
+        try:
+            notify_university_managers(university, title, message, link=link, level=level)
+        except Exception as e:
+            logger.error(f"[notify_async] Unhandled error in background notification thread: {e}")
+
+    t = threading.Thread(target=_do, daemon=True)
+    t.start()

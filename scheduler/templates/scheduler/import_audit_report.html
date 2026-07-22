@@ -1,0 +1,113 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Import Report — {{ log.file_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+
+  <!-- Header -->
+  <div style="margin-bottom: 2rem;">
+    <h1 style="font-weight: 800; font-size: 2rem; margin-bottom: 0.4rem; color: var(--text);">
+      ✅ Import Complete
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      <strong style="color: var(--text);">{{ log.file_name }}</strong>
+      imported by <strong style="color: var(--text);">{{ log.imported_by.username|default:"System" }}</strong>
+      on {{ log.imported_at|date:"N j, Y \a\t g:i A" }}
+    </p>
+  </div>
+
+  <!-- Created counts -->
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.04em;">📦 Records Created</h3>
+    {% if log.created_count %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem;">
+        {% for entity, count in log.created_count.items %}
+        <div style="text-align: center; padding: 1rem; background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px;">
+          <div style="font-size: 1.8rem; font-weight: 800; color: var(--success);">{{ count }}</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; margin-top: 0.25rem;">{{ entity|title }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color: var(--text-muted); font-size: 0.88rem; font-style: italic;">No new records were created (all data already exists).</p>
+    {% endif %}
+  </div>
+
+  <!-- Updated counts -->
+  {% if log.updated_count %}
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.04em;">♻️ Records Updated</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem;">
+      {% for entity, count in log.updated_count.items %}
+      <div style="text-align: center; padding: 1rem; background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 8px;">
+        <div style="font-size: 1.8rem; font-weight: 800; color: var(--info);">{{ count }}</div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: capitalize; margin-top: 0.25rem;">{{ entity|title }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Flagged near-duplicates -->
+  {% if log.flagged_dupes %}
+  <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 1rem; font-weight: 700; color: #d97706; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.04em;">⚠️ Near-Duplicate Names Flagged</h3>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+      These records were still imported, but please verify they are not duplicates of existing entries.
+    </p>
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border);">
+          <th style="text-align: left; padding: 0.5rem 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Type</th>
+          <th style="text-align: left; padding: 0.5rem 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Incoming</th>
+          <th style="text-align: left; padding: 0.5rem 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Similar Existing</th>
+          <th style="text-align: right; padding: 0.5rem 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Similarity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for dupe in log.flagged_dupes %}
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.6rem 0.75rem; color: var(--text); font-weight: 500;">{{ dupe.entity_type|title }}</td>
+          <td style="padding: 0.6rem 0.75rem; color: var(--text);">{{ dupe.incoming }}</td>
+          <td style="padding: 0.6rem 0.75rem; color: var(--text);">{{ dupe.existing }}</td>
+          <td style="padding: 0.6rem 0.75rem; text-align: right;">
+            <span style="background: rgba(245, 158, 11, 0.1); color: #d97706; font-weight: 700; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem;">{{ dupe.similarity }}%</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Warnings from validation -->
+  {% if log.warnings %}
+  <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="font-size: 1rem; font-weight: 700; color: #dc2626; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.04em;">🚩 Validation Warnings</h3>
+    <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.7;">
+      {% for w in log.warnings %}
+        <li>{{ w }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Actions -->
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+    <a href="{% url 'scheduler:resources_manager' %}?tab=rooms"
+       style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary); color: white; font-weight: 600; padding: 0.7rem 1.4rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem;">
+      📋 View Resources
+    </a>
+    <a href="{% url 'scheduler:import_audit_log_list' %}"
+       style="display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); color: var(--text); font-weight: 600; padding: 0.7rem 1.4rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem; background: var(--card-bg);">
+      📜 Import History
+    </a>
+    <a href="{% url 'scheduler:import_resources' %}"
+       style="display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border); color: var(--text); font-weight: 600; padding: 0.7rem 1.4rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem; background: var(--card-bg);">
+      ⬆️ Import Another File
+    </a>
+  </div>
+
+</div>
+{% endblock %}

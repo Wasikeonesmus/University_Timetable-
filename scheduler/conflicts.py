@@ -386,7 +386,14 @@ def detect_conflicts(slots, university):
                     s1 = day_slots[i]
                     s2 = day_slots[i+1]
                     if s2.time_slot.slot_number - s1.time_slot.slot_number == 1:
-                        if s1.room.campus_id != s2.room.campus_id:
+                        # Virtual/online rooms have no physical location.
+                        # Use the explicit is_virtual flag (set on the Room model)
+                        # instead of guessing from the room name.
+                        r1_virtual = s1.room.is_virtual
+                        r2_virtual = s2.room.is_virtual
+                        if r1_virtual or r2_virtual:
+                            pass  # no travel penalty for virtual rooms
+                        elif s1.room.campus_id != s2.room.campus_id:
                             conflicts.append({
                                 'severity': 'error',
                                 'constraint_type': 'LECTURER_CAMPUS_TRAVEL_VIOLATION',
@@ -419,6 +426,7 @@ def detect_conflicts(slots, university):
                                             'slot_ids': [s1.id, s2.id]
                                         }
                                     })
+
 
             # 3. Consecutive Slots limit check
             if lecturer_id in lecturer_max_consecutive_constraints and len(slot_nums) > 0:
@@ -493,6 +501,8 @@ def detect_conflicts(slots, university):
                     s1 = day_slots[i]
                     s2 = day_slots[i+1]
                     if s2.time_slot.slot_number - s1.time_slot.slot_number == 1:
+                        if s1.room.is_virtual or s2.room.is_virtual:
+                            continue
                         if s1.room_id in room_building_map and s2.room_id in room_building_map:
                             b1 = room_building_map[s1.room_id]
                             b2 = room_building_map[s2.room_id]
@@ -642,7 +652,11 @@ def detect_conflicts(slots, university):
     for lecturer_id, lecturer_slots in lecturer_weekly_slots.items():
         lecturer = lecturer_map.get(lecturer_id)
         if lecturer:
-            total_hours = len(lecturer_slots) * 1.5
+            total_hours = 0.0
+            for slot in lecturer_slots:
+                ts = slot.time_slot
+                duration_mins = (ts.end_time.hour * 60 + ts.end_time.minute) - (ts.start_time.hour * 60 + ts.start_time.minute)
+                total_hours += duration_mins / 60.0
             if total_hours > lecturer.max_hours_per_week:
                 conflicts.append({
                     'severity': 'warning',
@@ -672,6 +686,38 @@ def detect_conflicts(slots, university):
                             'day': day,
                             'slots_count': len(day_slots),
                             'max_slots': max_slots
+                        }
+                    })
+
+    # Evaluate LECTURER_MAX_DAYS_PER_WEEK constraints
+    for db_const in configs:
+        if db_const.constraint_type == 'LECTURER_MAX_DAYS_PER_WEEK':
+            l_id     = db_const.parameters.get('lecturer_id')
+            max_days = db_const.parameters.get('max_days')
+            if l_id and max_days is not None:
+                try:
+                    l_id = int(l_id)
+                    max_days = int(max_days)
+                except (ValueError, TypeError):
+                    continue
+                
+                # Count actual active days for this lecturer in the timetable
+                active_days = set()
+                for slot in slots:
+                    if slot.lecturer_id == l_id:
+                        active_days.add(slot.time_slot.day_of_week)
+                
+                if len(active_days) > max_days:
+                    lec_obj = lecturer_map.get(l_id)
+                    lec_name = lec_obj.name if lec_obj else f"Lecturer #{l_id}"
+                    conflicts.append({
+                        'severity': 'error' if db_const.is_hard else 'warning',
+                        'constraint_type': 'LECTURER_MAX_DAYS_PER_WEEK_VIOLATION',
+                        'message': f"Lecturer '{lec_name}' taught on {len(active_days)} days, exceeding the maximum limit of {max_days} days per week.",
+                        'entities': {
+                            'lecturer_id': l_id,
+                            'active_days_count': len(active_days),
+                            'max_days': max_days
                         }
                     })
 

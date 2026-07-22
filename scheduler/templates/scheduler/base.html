@@ -47,11 +47,12 @@
             background: var(--sidebar-bg);
             position: fixed;
             top: 0; left: 0; bottom: 0;
-            z-index: 200;
+            z-index: 250;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
             overflow-x: hidden;
+            transition: transform var(--transition);
         }
 
         .sidebar-brand {
@@ -129,6 +130,64 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            transition: margin-left var(--transition);
+        }
+
+        /* Desktop Sidebar Collapse */
+        body.sidebar-collapsed-main .sidebar {
+            transform: translateX(-100%);
+        }
+        body.sidebar-collapsed-main .main-wrapper {
+            margin-left: 0;
+        }
+
+        /* Sidebar Toggle Button styling */
+        .sidebar-toggle-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            transition: var(--transition);
+            outline: none;
+        }
+        .sidebar-toggle-btn:hover {
+            background: var(--bg);
+            color: var(--text);
+            border-color: var(--text-muted);
+        }
+
+        /* Sidebar overlay for mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            z-index: 220;
+            transition: opacity var(--transition);
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-wrapper {
+                margin-left: 0;
+            }
+            body.sidebar-open-mobile .sidebar {
+                transform: translateX(0);
+            }
+            body.sidebar-open-mobile .sidebar-overlay {
+                display: block;
+            }
         }
 
         /* ── Topbar / Header ─────────────────────────────────────────────── */
@@ -514,6 +573,9 @@
 </head>
 <body>
 
+<!-- Sidebar overlay for mobile drawer toggling -->
+<div class="sidebar-overlay" onclick="toggleMainSidebar()"></div>
+
 <!-- ─── Sidebar ─────────────────────────────────────────────────────────── -->
 <aside class="sidebar">
     <a href="{% url 'scheduler:dashboard' %}" class="sidebar-brand">
@@ -617,12 +679,6 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             Notifications
         </a>
-        {% if active_role == 'admin' or active_role == 'institution_admin' %}
-        <a href="{% url 'scheduler:subscription_billing' %}" class="nav-link {% if request.resolver_match.url_name == 'subscription_billing' %}active{% endif %}">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            Billing & Limits
-        </a>
-        {% endif %}
     </nav>
 
     <div class="sidebar-footer">
@@ -636,6 +692,9 @@
     <!-- Topbar -->
     <header>
         <div class="header-left">
+            <button type="button" class="sidebar-toggle-btn" onclick="toggleMainSidebar()" aria-label="Toggle Navigation Sidebar" title="Toggle Navigation Sidebar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
             <!-- University selector: hidden for lecturers (fixed to their own university) -->
             {% if active_role != 'lecturer' %}
             <form action="{% url 'scheduler:switch_university' %}" method="POST" style="margin:0;">
@@ -710,5 +769,27 @@
 </div>
 
 {% block extra_js %}{% endblock %}
+
+<script>
+    function toggleMainSidebar() {
+        if (window.innerWidth <= 992) {
+            document.body.classList.toggle('sidebar-open-mobile');
+            document.body.classList.remove('sidebar-collapsed-main');
+        } else {
+            document.body.classList.toggle('sidebar-collapsed-main');
+            document.body.classList.remove('sidebar-open-mobile');
+            const isCollapsed = document.body.classList.contains('sidebar-collapsed-main');
+            localStorage.setItem('main_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        }
+    }
+
+    // Apply sidebar state immediately on load to prevent content shift flashing
+    (function() {
+        const isCollapsed = localStorage.getItem('main_sidebar_collapsed') === 'true';
+        if (isCollapsed && window.innerWidth > 992) {
+            document.body.classList.add('sidebar-collapsed-main');
+        }
+    })();
+</script>
 </body>
 </html>

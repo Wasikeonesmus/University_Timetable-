@@ -1,0 +1,547 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Edit Constraint Rule — {{ constraint.name }} — Timetable Scheduler{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        <a href="{% url 'scheduler:constraint_list' %}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Rules & Constraints</a> &rsaquo; 
+        <span>Edit Constraint</span>
+    </div>
+    
+    <h1 style="font-weight: 700; font-size: 1.8rem; margin: 0; line-height: 1.2;">
+        Edit Constraint Rule
+    </h1>
+    <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.2rem;">Rule: {{ constraint.name }} ({{ constraint.get_constraint_type_display }})</p>
+</div>
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="card" style="padding: 2rem;">
+        <div class="card-title" style="margin-bottom: 1.5rem;">Constraint Configuration</div>
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label class="form-label" for="id_name" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Constraint Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.name.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label class="form-label" for="id_constraint_type" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Constraint Type</label>
+                {{ form.constraint_type }}
+                {% if form.constraint_type.errors %}
+                    <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.constraint_type.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="grid-2" style="gap: 1rem; margin-bottom: 1.2rem; grid-template-columns: 1fr 1fr;">
+                <div class="form-group">
+                    <label class="form-label" for="id_weight" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Soft Constraint Weight</label>
+                    {{ form.weight }}
+                    {% if form.weight.errors %}
+                        <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.weight.errors }}</div>
+                    {% endif %}
+                </div>
+                <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 0.55rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        {{ form.is_hard }}
+                        <label for="id_is_hard" style="font-size: 0.88rem; font-weight: 600; cursor: pointer; user-select: none;">Hard Constraint (Absolute Rule)</label>
+                    </div>
+                    {% if form.is_hard.errors %}
+                        <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.is_hard.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group" style="display: none; margin-bottom: 1.5rem;">
+                <label class="form-label" for="id_parameters_json" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Parameters (JSON Payload)</label>
+                {{ form.parameters_json }}
+                {% if form.parameters_json.errors %}
+                    <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">{{ form.parameters_json.errors }}</div>
+                {% endif %}
+            </div>
+
+            <!-- User-Friendly Dynamic Parameter Configurator -->
+            <div id="dynamic-params-container" style="margin-top: 1rem; padding: 1.2rem; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; display: none; margin-bottom: 1.5rem;">
+                <h4 style="margin-top: 0; margin-bottom: 1rem; font-size: 0.95rem; font-weight: 600; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.86z"/></svg>
+                    Rule Parameters
+                </h4>
+                <div id="dynamic-params-fields" style="display: flex; flex-direction: column; gap: 0.85rem;"></div>
+            </div>
+
+            <!-- hidden field for university (always set to active university) -->
+            <div style="display: none;">
+                {{ form.university }}
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'scheduler:constraint_list' %}" class="btn btn-secondary" style="flex: 1; padding: 0.65rem; border-radius: 8px; font-weight: 600; text-align: center; text-decoration: none;">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="flex: 1.5; padding: 0.65rem; border-radius: 8px; font-weight: 600; justify-content: center;">Save Changes</button>
+            </div>
+        </form>
+
+        <!-- JSON Data for Selectors -->
+        <script id="lecturers-data" type="application/json">
+        [
+            {% for l in lecturers %}
+                {"id": {{ l.id }}, "name": "{{ l.name|escapejs }}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+        </script>
+        <script id="courses-data" type="application/json">
+        [
+            {% for c in courses %}
+                {"id": {{ c.id }}, "code": "{{ c.code|escapejs }}", "name": "{{ c.name|escapejs }}"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+        </script>
+        <script id="rooms-data" type="application/json">
+        [
+            {% for r in rooms %}
+                {"id": {{ r.id }}, "name": "{{ r.name|escapejs }} ({{ r.room_type }})", "capacity": {{ r.capacity }}}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+        </script>
+        <script id="groups-data" type="application/json">
+        [
+            {% for g in student_groups %}
+                {"id": {{ g.id }}, "name": "{{ g.name|escapejs }} (size: {{ g.size }})"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+        </script>
+        <script id="timeslots-data" type="application/json">
+        [
+            {% for ts in timeslots %}
+                {"id": {{ ts.id }}, "day": "{{ ts.get_day_of_week_display|escapejs }}", "time": "{{ ts.start_time|time:'H:i' }}-{{ ts.end_time|time:'H:i' }} (Slot {{ ts.slot_number }})"}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+        </script>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const lecturers = JSON.parse(document.getElementById('lecturers-data').textContent || '[]');
+            const courses = JSON.parse(document.getElementById('courses-data').textContent || '[]');
+            const rooms = JSON.parse(document.getElementById('rooms-data').textContent || '[]');
+            const groups = JSON.parse(document.getElementById('groups-data').textContent || '[]');
+            const timeslots = JSON.parse(document.getElementById('timeslots-data').textContent || '[]');
+
+            const typeSelect = document.getElementById('id_constraint_type');
+            const paramsTextarea = document.getElementById('id_parameters_json');
+            const container = document.getElementById('dynamic-params-container');
+            const fieldsWrapper = document.getElementById('dynamic-params-fields');
+            const form = container.closest('form');
+
+            // Set select elements disabled if we are editing and they shouldn't be changed
+            // Actually, we can let user change them
+            
+            function renderFields(type) {
+                fieldsWrapper.innerHTML = '';
+                if (!type) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                let html = '';
+                switch(type) {
+                    case 'LECTURER_AVAILABILITY':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Lecturer</label>
+                                <select id="param_lecturer_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Lecturer --</option>
+                                    ${lecturers.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Unavailable Timeslots (Check all that apply)</label>
+                                <div style="max-height: 250px; overflow-y: auto; padding: 0.75rem; background: rgba(0,0,0,0.25); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                                    ${groupTimeslotsByDay(timeslots)}
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'MAX_CLASSES_PER_DAY':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Lecturer</label>
+                                <select id="param_lecturer_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Lecturer --</option>
+                                    ${lecturers.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Max Classes per Day</label>
+                                <input type="number" id="param_max_classes" min="1" max="10" value="4" class="form-control bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                            </div>
+                        `;
+                        break;
+
+                    case 'LECTURER_MAX_CONSECUTIVE_SLOTS':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Lecturer</label>
+                                <select id="param_lecturer_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Lecturer --</option>
+                                    ${lecturers.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Max Consecutive Slots</label>
+                                <input type="number" id="param_max_consecutive" min="1" max="10" value="3" class="form-control bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                            </div>
+                        `;
+                        break;
+
+                    case 'LECTURER_MAX_DAYS_PER_WEEK':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Lecturer</label>
+                                <select id="param_lecturer_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Lecturer --</option>
+                                    ${lecturers.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Max Teaching Days per Week</label>
+                                <input type="number" id="param_max_days" min="1" max="7" value="5" class="form-control bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                            </div>
+                        `;
+                        break;
+
+                    case 'ROOM_PREFERENCE':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Course</label>
+                                <select id="param_course_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Course --</option>
+                                    ${courses.map(c => `<option value="${c.id}">${c.code}: ${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Preferred Rooms (Check one or more)</label>
+                                <div style="max-height: 200px; overflow-y: auto; padding: 0.75rem; background: rgba(0,0,0,0.25); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                                    ${rooms.map(r => `
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                                            <input type="checkbox" name="param_preferred_rooms" value="${r.id}" id="pref_rm_${r.id}">
+                                            <label for="pref_rm_${r.id}" style="font-size: 0.85rem; cursor: pointer; user-select: none;">${r.name}</label>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'LAB_ONLY_COURSE':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Course</label>
+                                <select id="param_course_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Course --</option>
+                                    ${courses.map(c => `<option value="${c.id}">${c.code}: ${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                        `;
+                        break;
+
+                    case 'STUDENT_MAX_CLASSES_PER_DAY':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Student Group</label>
+                                <select id="param_student_group_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="">-- Select Student Group --</option>
+                                    ${groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Max Classes per Day</label>
+                                <input type="number" id="param_max_classes" min="1" max="10" value="4" class="form-control bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                            </div>
+                        `;
+                        break;
+
+                    case 'CUSTOM_RULE':
+                        html += `
+                            <div class="form-group">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Target Entity Type</label>
+                                <select id="param_target_type" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="LECTURER">Lecturer</option>
+                                    <option value="COURSE">Course</option>
+                                    <option value="STUDENT_GROUP">Student Group</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Target Entity</label>
+                                <select id="param_target_id" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <!-- Dynamically loaded -->
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Rule Type</label>
+                                <select id="param_rule_type" class="form-select bg-dark text-white border-secondary" style="width: 100%; padding: 0.4rem;">
+                                    <option value="FORBID_ROOM">Forbid Room(s)</option>
+                                    <option value="FORBID_TIME">Forbid Timeslot(s)</option>
+                                    <option value="REQUIRE_ROOM">Require Room(s)</option>
+                                    <option value="REQUIRE_TIME">Require Timeslot(s)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem;">Rule Values</label>
+                                <div id="custom_rule_value_container" style="max-height: 200px; overflow-y: auto; padding: 0.75rem; background: rgba(0,0,0,0.25); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                                    <!-- Dynamically loaded -->
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    default:
+                        container.style.display = 'none';
+                        return;
+                }
+
+                container.style.display = 'block';
+                fieldsWrapper.innerHTML = html;
+
+                // Bind change listeners to trigger immediate serialization
+                fieldsWrapper.querySelectorAll('select, input').forEach(input => {
+                    input.addEventListener('change', serialize);
+                    input.addEventListener('input', serialize);
+                });
+
+                // Extra dynamic setup for CUSTOM_RULE
+                if (type === 'CUSTOM_RULE') {
+                    const targetTypeSelect = document.getElementById('param_target_type');
+                    const ruleTypeSelect = document.getElementById('param_rule_type');
+
+                    targetTypeSelect.addEventListener('change', populateCustomTargetSelect);
+                    ruleTypeSelect.addEventListener('change', populateCustomValuesChecklist);
+
+                    populateCustomTargetSelect();
+                    populateCustomValuesChecklist();
+                }
+            }
+
+            function groupTimeslotsByDay(tsList) {
+                const days = {};
+                tsList.forEach(ts => {
+                    if (!days[ts.day]) days[ts.day] = [];
+                    days[ts.day].push(ts);
+                });
+                
+                return Object.keys(days).map(dayName => `
+                    <div style="margin-bottom: 0.75rem;">
+                        <strong style="font-size: 0.82rem; color: var(--primary); display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.2rem; margin-bottom: 0.4rem;">${dayName}</strong>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;">
+                            ${days[dayName].map(ts => `
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <input type="checkbox" name="param_unavailable_slots" value="${ts.id}" id="ts_chk_${ts.id}">
+                                    <label for="ts_chk_${ts.id}" style="font-size: 0.78rem; cursor: pointer; user-select: none;">${ts.time}</label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            function populateCustomTargetSelect() {
+                const tType = document.getElementById('param_target_type').value;
+                const targetSelect = document.getElementById('param_target_id');
+                let options = '<option value="">-- Select Target --</option>';
+
+                if (tType === 'LECTURER') {
+                    options += lecturers.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+                } else if (tType === 'COURSE') {
+                    options += courses.map(c => `<option value="${c.id}">${c.code}: ${c.name}</option>`).join('');
+                } else if (tType === 'STUDENT_GROUP') {
+                    options += groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+                }
+                targetSelect.innerHTML = options;
+                targetSelect.addEventListener('change', serialize);
+            }
+
+            function populateCustomValuesChecklist() {
+                const rType = document.getElementById('param_rule_type').value;
+                const valContainer = document.getElementById('custom_rule_value_container');
+                let html = '';
+
+                if (rType.includes('ROOM')) {
+                    html = rooms.map(r => `
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                            <input type="checkbox" name="param_rule_value" value="${r.id}" id="cust_val_${r.id}">
+                            <label for="cust_val_${r.id}" style="font-size: 0.85rem; cursor: pointer; user-select: none;">${r.name}</label>
+                        </div>
+                    `).join('');
+                } else {
+                    // TIME
+                    const days = {};
+                    timeslots.forEach(ts => {
+                        if (!days[ts.day]) days[ts.day] = [];
+                        days[ts.day].push(ts);
+                    });
+                    html = Object.keys(days).map(dayName => `
+                        <div style="margin-bottom: 0.65rem;">
+                            <strong style="font-size: 0.8rem; color: var(--primary); display: block; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.15rem; margin-bottom: 0.3rem;">${dayName}</strong>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem;">
+                                ${days[dayName].map(ts => `
+                                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                        <input type="checkbox" name="param_rule_value" value="${ts.id}" id="cust_val_${ts.id}">
+                                        <label for="cust_val_${ts.id}" style="font-size: 0.76rem; cursor: pointer; user-select: none;">${ts.time}</label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                valContainer.innerHTML = html;
+                valContainer.querySelectorAll('input').forEach(chk => chk.addEventListener('change', serialize));
+            }
+
+            function serialize() {
+                const type = typeSelect.value;
+                if (!type) {
+                    paramsTextarea.value = '{}';
+                    return;
+                }
+
+                const params = {};
+                switch (type) {
+                    case 'LECTURER_AVAILABILITY':
+                        params.lecturer_id = parseInt(document.getElementById('param_lecturer_id').value) || null;
+                        params.unavailable_slots = Array.from(fieldsWrapper.querySelectorAll('input[name="param_unavailable_slots"]:checked')).map(el => parseInt(el.value));
+                        break;
+
+                    case 'MAX_CLASSES_PER_DAY':
+                        params.lecturer_id = parseInt(document.getElementById('param_lecturer_id').value) || null;
+                        params.max_classes = parseInt(document.getElementById('param_max_classes').value) || 4;
+                        break;
+
+                    case 'LECTURER_MAX_CONSECUTIVE_SLOTS':
+                        params.lecturer_id = parseInt(document.getElementById('param_lecturer_id').value) || null;
+                        params.max_consecutive = parseInt(document.getElementById('param_max_consecutive').value) || 3;
+                        break;
+
+                    case 'LECTURER_MAX_DAYS_PER_WEEK':
+                        params.lecturer_id = parseInt(document.getElementById('param_lecturer_id').value) || null;
+                        params.max_days = parseInt(document.getElementById('param_max_days').value) || 5;
+                        break;
+
+                    case 'ROOM_PREFERENCE':
+                        params.course_id = parseInt(document.getElementById('param_course_id').value) || null;
+                        params.preferred_rooms = Array.from(fieldsWrapper.querySelectorAll('input[name="param_preferred_rooms"]:checked')).map(el => parseInt(el.value));
+                        break;
+
+                    case 'LAB_ONLY_COURSE':
+                        params.course_id = parseInt(document.getElementById('param_course_id').value) || null;
+                        break;
+
+                    case 'STUDENT_MAX_CLASSES_PER_DAY':
+                        params.student_group_id = parseInt(document.getElementById('param_student_group_id').value) || null;
+                        params.max_classes = parseInt(document.getElementById('param_max_classes').value) || 4;
+                        break;
+
+                    case 'CUSTOM_RULE':
+                        params.target_type = document.getElementById('param_target_type').value;
+                        params.target_id = parseInt(document.getElementById('param_target_id').value) || null;
+                        params.rule_type = document.getElementById('param_rule_type').value;
+                        const vals = Array.from(fieldsWrapper.querySelectorAll('input[name="param_rule_value"]:checked')).map(el => parseInt(el.value));
+                        params.rule_value = vals.length === 1 ? vals[0] : vals;
+                        break;
+                }
+                paramsTextarea.value = JSON.stringify(params, null, 2);
+            }
+
+            function deserialize() {
+                const type = typeSelect.value;
+                if (!type) return;
+
+                let params = {};
+                try {
+                    params = JSON.parse(paramsTextarea.value || '{}');
+                } catch (e) {
+                    return; // Invalid JSON, do nothing
+                }
+
+                renderFields(type);
+
+                // Pre-fill fields
+                if (params.lecturer_id || params.lecturer_id === 0) {
+                    const el = document.getElementById('param_lecturer_id');
+                    if (el) el.value = params.lecturer_id;
+                }
+                if (params.course_id || params.course_id === 0) {
+                    const el = document.getElementById('param_course_id');
+                    if (el) el.value = params.course_id;
+                }
+                if (params.student_group_id || params.student_group_id === 0) {
+                    const el = document.getElementById('param_student_group_id');
+                    if (el) el.value = params.student_group_id;
+                }
+                if (params.max_classes || params.max_classes === 0) {
+                    const el = document.getElementById('param_max_classes');
+                    if (el) el.value = params.max_classes;
+                }
+                if (params.max_consecutive || params.max_consecutive === 0) {
+                    const el = document.getElementById('param_max_consecutive');
+                    if (el) el.value = params.max_consecutive;
+                }
+                if (params.max_days || params.max_days === 0) {
+                    const el = document.getElementById('param_max_days');
+                    if (el) el.value = params.max_days;
+                }
+                if (params.unavailable_slots && Array.isArray(params.unavailable_slots)) {
+                    params.unavailable_slots.forEach(sid => {
+                        const el = document.getElementById(`ts_chk_${sid}`);
+                        if (el) el.checked = true;
+                    });
+                }
+                if (params.preferred_rooms && Array.isArray(params.preferred_rooms)) {
+                    params.preferred_rooms.forEach(rid => {
+                        const el = document.getElementById(`pref_rm_${rid}`);
+                        if (el) el.checked = true;
+                    });
+                }
+
+                if (type === 'CUSTOM_RULE') {
+                    if (params.target_type) {
+                        document.getElementById('param_target_type').value = params.target_type;
+                        populateCustomTargetSelect();
+                    }
+                    if (params.target_id || params.target_id === 0) {
+                        document.getElementById('param_target_id').value = params.target_id;
+                    }
+                    if (params.rule_type) {
+                        document.getElementById('param_rule_type').value = params.rule_type;
+                        populateCustomValuesChecklist();
+                    }
+                    if (params.rule_value) {
+                        const vals = Array.isArray(params.rule_value) ? params.rule_value : [params.rule_value];
+                        vals.forEach(vid => {
+                            const el = document.getElementById(`cust_val_${vid}`);
+                            if (el) el.checked = true;
+                        });
+                    }
+                }
+            }
+
+            typeSelect.addEventListener('change', function() {
+                renderFields(this.value);
+                serialize();
+            });
+
+            form.addEventListener('submit', serialize);
+
+            // Initial loading/deserialization
+            if (paramsTextarea.value && paramsTextarea.value !== '{}') {
+                deserialize();
+            } else {
+                renderFields(typeSelect.value);
+            }
+        });
+        </script>
+    </div>
+</div>
+{% endblock %}

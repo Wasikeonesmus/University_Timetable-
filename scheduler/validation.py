@@ -1,8 +1,8 @@
 from .models import Course, Room, TimeSlot, Lecturer, StudentGroup, Timetable
 
-def validate_timetable_inputs(timetable):
+def validate_university_data(university):
     """
-    Validates all input data for the timetable before running the solver.
+    Validates all input data for the university.
     Returns: (is_valid, errors, warnings)
       - is_valid: Boolean (False if there are blocking errors)
       - errors: List of strings (blocking issues)
@@ -10,8 +10,6 @@ def validate_timetable_inputs(timetable):
     """
     errors   = []
     warnings = []
-
-    university = timetable.semester.university
 
     # 1. Fetch scoped resources
     courses   = list(Course.objects.filter(
@@ -107,20 +105,57 @@ def validate_timetable_inputs(timetable):
         )
 
     # 5. Lecturer Hours limit checks
+    #
+    # This check used to only add a *warning*, letting generation proceed.
+    # That's misleading: total weekly hours is a property of course
+    # assignments, not of the timetable arrangement — no matter how the
+    # solver shuffles rooms/times, it cannot reduce a lecturer's total
+    # course load. An over-allocated lecturer will show up as an
+    # unavoidable hard conflict after "successful" generation. We now
+    # block generation for this case (with a small tolerance buffer) so the
+    # fix happens at the data layer, before wasting a solver run.
+    OVER_ALLOCATION_TOLERANCE = 1.10  # allow 10% buffer before hard-blocking
+
+    # Calculate average timeslot duration dynamically
+    if timeslots:
+        avg_duration = sum(
+            ((ts.end_time.hour * 60 + ts.end_time.minute) - (ts.start_time.hour * 60 + ts.start_time.minute)) / 60.0
+            for ts in timeslots
+        ) / len(timeslots)
+    else:
+        avg_duration = 1.5
+
     lecturer_hours = {}
     lecturer_map   = {}
     for course in courses:
         if course.lecturer:
             lecturer_map[course.lecturer.id] = course.lecturer
-            hours = course.duration_slots * course.sessions_per_week * 1.5
+            if avg_duration >= 2.5 and course.duration_slots >= 2:
+                # When timeslots are 3 hours long, duration_slots=3 represents total contact hours (3h = 1 slot)
+                session_hours = float(course.duration_slots)
+            else:
+                session_hours = course.duration_slots * avg_duration
+            hours = session_hours * course.sessions_per_week
             lecturer_hours[course.lecturer.id] = lecturer_hours.get(course.lecturer.id, 0.0) + hours
 
     for lec_id, hours in lecturer_hours.items():
         lecturer = lecturer_map.get(lec_id)
-        if lecturer and hours > lecturer.max_hours_per_week:
+        if not lecturer:
+            continue
+        if hours > lecturer.max_hours_per_week * OVER_ALLOCATION_TOLERANCE:
+            errors.append(
+                f"Lecturer '{lecturer.name}' is over-allocated: assigned {hours} hours of classes, "
+                f"exceeding their maximum limit of {lecturer.max_hours_per_week} hours/week. "
+                f"No timetable arrangement can fix this — either raise this lecturer's "
+                f"max_hours_per_week, reassign some of their courses to another lecturer, "
+                f"or reduce sessions_per_week/duration_slots for their courses, then regenerate."
+            )
+        elif hours > lecturer.max_hours_per_week:
             warnings.append(
                 f"Lecturer '{lecturer.name}' is over-allocated: assigned {hours} hours of classes, "
-                f"exceeding their maximum limit of {lecturer.max_hours_per_week} hours/week."
+                f"exceeding their maximum limit of {lecturer.max_hours_per_week} hours/week "
+                f"(within {int((OVER_ALLOCATION_TOLERANCE - 1) * 100)}% tolerance — generation will proceed, "
+                f"but consider rebalancing this lecturer's course load)."
             )
 
     # 6. FIX G3: Unused lecturers — use a DB-level exclude instead of loading all objects
@@ -141,5 +176,94 @@ def validate_timetable_inputs(timetable):
             "Assign courses to lecturers via Resources → Courses."
         )
 
+    # 7. Pre-flight: per-student-group timeslot feasibility (HARD ERROR)
+    #
+    # A student group can only be in one place at a time, so its total course
+    # load (own courses + courses where it's a combined/shared attendee via
+    # additional_student_groups) can never need more *distinct* timeslot-units
+    # than actually exist in the week. Unlike room-type mismatches, this is
+    # not something the solver can route around by trying another room or
+    # campus — if the demand is impossible, it's impossible in every
+    # arrangement. We check it here, before a solver run is wasted on it.
+    total_timeslot_units = len(timeslots)
+    group_demand = {}   # group_id -> total slot-units required
+    group_map    = {}   # group_id -> StudentGroup instance
+
+    for course in courses:
+        if not course.student_group:
+            continue
+        demand = course.duration_slots * course.sessions_per_week
+        g = course.student_group
+        group_map[g.id] = g
+        group_demand[g.id] = group_demand.get(g.id, 0) + demand
+
+        # Combined/shared courses: every additional group attending also has
+        # that slot occupied (they sit in the same session), so it counts
+        # against their own weekly capacity too.
+        for extra_group in course.additional_student_groups.all():
+            group_map[extra_group.id] = extra_group
+            group_demand[extra_group.id] = group_demand.get(extra_group.id, 0) + demand
+
+    for g_id, demand in group_demand.items():
+        group = group_map.get(g_id)
+        if group and demand > total_timeslot_units:
+            errors.append(
+                f"Student group '{group.name}' requires {demand} class slot-units per week, "
+                f"but only {total_timeslot_units} timeslots exist in total. No timetable "
+                f"arrangement can fit this — a group can't attend two classes at once. "
+                f"Fix: reduce this group's course load (fewer sessions_per_week or "
+                f"duration_slots), split the group, or add more timeslots, then regenerate."
+            )
+
+    # 8. Pre-flight: per-campus room-capacity feasibility (HARD ERROR)
+    #
+    # The existing global capacity check (#4) only catches university-wide
+    # shortfalls. A university can look fine in aggregate while one campus
+    # is individually oversubscribed — courses can't "borrow" room-time from
+    # a different campus's rooms in most setups, so we check each campus on
+    # its own too.
+    rooms_by_campus_id = {}
+    for r in rooms:
+        rooms_by_campus_id.setdefault(r.campus_id, []).append(r)
+
+    campus_demand = {}  # campus_id -> total slot-units required
+    campus_obj_by_id = {}
+    for course in courses:
+        campus = course.program.department.faculty.campus
+        campus_obj_by_id[campus.id] = campus
+        campus_demand[campus.id] = campus_demand.get(campus.id, 0) + (
+            course.duration_slots * course.sessions_per_week
+        )
+
+    for campus_id, demand in campus_demand.items():
+        campus_rooms_here = rooms_by_campus_id.get(campus_id, [])
+        if not campus_rooms_here:
+            # Already flagged as NO_CAMPUS_ROOMS above (warning) — the solver
+            # falls back to university-wide rooms in that case, so it's not
+            # a guaranteed infeasibility here.
+            continue
+        supply = len(campus_rooms_here) * total_timeslot_units
+        if demand > supply:
+            campus_obj = campus_obj_by_id.get(campus_id)
+            campus_name = campus_obj.name if campus_obj else str(campus_id)
+            errors.append(
+                f"Campus '{campus_name}' requires {demand} room slot-units per week, but its "
+                f"{len(campus_rooms_here)} room(s) × {total_timeslot_units} timeslots only supply "
+                f"{supply}. No arrangement fits this on this campus alone. "
+                f"Fix: add more rooms/timeslots to '{campus_name}', or move some courses to "
+                f"another campus, then regenerate."
+            )
+
     is_valid = len(errors) == 0
     return is_valid, errors, warnings
+
+def validate_timetable_inputs(timetable):
+    """
+    Validates all input data for the timetable before running the solver.
+    Returns: (is_valid, errors, warnings)
+      - is_valid: Boolean (False if there are blocking errors)
+      - errors: List of strings (blocking issues)
+      - warnings: List of strings (non-blocking suggestions)
+    """
+    return validate_university_data(timetable.semester.university)
+

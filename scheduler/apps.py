@@ -16,6 +16,16 @@ class SchedulerConfig(AppConfig):
         # Register signals
         import scheduler.signals  # noqa: F401
 
+        # Configure SQLite WAL mode and busy timeout for concurrent access
+        from django.db.backends.signals import connection_created
+        def _configure_sqlite(sender, connection, **kwargs):
+            if connection.vendor == 'sqlite':
+                cursor = connection.cursor()
+                cursor.execute('PRAGMA journal_mode=WAL;')
+                cursor.execute('PRAGMA synchronous=NORMAL;')
+                cursor.execute('PRAGMA busy_timeout=60000;')
+        connection_created.connect(_configure_sqlite)
+
         # Auto-start the django-q cluster worker as a subprocess so that
         # `python manage.py runserver` is the only command needed.
         self._maybe_start_qcluster()

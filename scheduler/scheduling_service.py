@@ -58,7 +58,7 @@ class SchedulingResult:
     validation_warnings: list = field(default_factory=list)
 
 
-def run_scheduling_pipeline(timetable_id: int, time_limit_seconds: int = 30) -> SchedulingResult:
+def run_scheduling_pipeline(timetable_id: int, time_limit_seconds: int = 60) -> SchedulingResult:
     """
     Executes the full scheduling pipeline for a timetable:
 
@@ -70,7 +70,7 @@ def run_scheduling_pipeline(timetable_id: int, time_limit_seconds: int = 30) -> 
 
     Args:
         timetable_id:        Primary key of the Timetable to generate.
-        time_limit_seconds:  Maximum solver wall-clock time (default 30s).
+        time_limit_seconds:  Maximum solver wall-clock time (default 60s).
 
     Returns:
         SchedulingResult with full outcome details.
@@ -119,12 +119,12 @@ def run_scheduling_pipeline(timetable_id: int, time_limit_seconds: int = 30) -> 
             'validation_errors': val_errors,
             'validation_warnings': val_warnings,
         })
-        # Notify managers of validation failure
+        # Notify managers of validation failure (non-blocking — runs on a daemon thread)
         try:
-            from .notifications import notify_university_managers
+            from .notifications import notify_university_managers_async
             from django.urls import reverse
             link = reverse('scheduler:timetable_detail', kwargs={'pk': timetable.pk})
-            notify_university_managers(
+            notify_university_managers_async(
                 university=timetable.semester.university,
                 title="Timetable validation failed",
                 message=f"Timetable '{timetable.name}' could not be generated due to {len(val_errors)} validation errors.",
@@ -243,9 +243,9 @@ def run_scheduling_pipeline(timetable_id: int, time_limit_seconds: int = 30) -> 
         'soft_conflicts': len(fb_warnings),
     })
 
-    # ── Step 6: Notify University Managers ────────────────────────────────────
+    # ── Step 6: Notify University Managers (non-blocking — runs on a daemon thread) ──
     try:
-        from .notifications import notify_university_managers
+        from .notifications import notify_university_managers_async
         title = f"Timetable generation completed: {solver_status}"
         msg = (
             f"Timetable '{timetable.name}' generation run is completed.\n"
@@ -257,12 +257,18 @@ def run_scheduling_pipeline(timetable_id: int, time_limit_seconds: int = 30) -> 
         )
         from django.urls import reverse
         link = reverse('scheduler:timetable_detail', kwargs={'pk': timetable.pk})
-        notify_university_managers(
+        notify_university_managers_async(
             university=timetable.semester.university,
             title=title,
             message=msg,
             link=link,
-            level='success' if solver_status in ('OPTIMAL', 'FEASIBLE') and len(hard_conflicts) == 0 else 'warning'
+            # FIX BUG 11: Use proper severity levels instead of collapsing all failures to 'warning'.
+            # 'danger' for ERROR/INFEASIBLE, 'warning' for success-with-conflicts, 'success' otherwise.
+            level=(
+                'success' if solver_status in ('OPTIMAL', 'FEASIBLE') and len(hard_conflicts) == 0
+                else 'warning' if solver_status in ('OPTIMAL', 'FEASIBLE')
+                else 'danger'
+            )
         )
     except Exception as e:
         logger.error(f"Failed to send manager notifications: {e}")

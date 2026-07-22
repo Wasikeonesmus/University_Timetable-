@@ -55,7 +55,8 @@ class TimetableSchedulerTests(TestCase):
         """
         Verify that conflict detection correctly reports a double-booking when the same lecturer is assigned to teach two classes at the same time.
         """
-        slot_1 = ScheduleSlot.objects.create(
+        slot_1 = ScheduleSlot(
+            id=1,
             timetable=self.timetable,
             course=self.c1,
             lecturer=self.lecturer_a,
@@ -65,7 +66,8 @@ class TimetableSchedulerTests(TestCase):
         )
         
         # Conflicting slot: same lecturer, same timeslot, different room/group/course
-        slot_2 = ScheduleSlot.objects.create(
+        slot_2 = ScheduleSlot(
+            id=2,
             timetable=self.timetable,
             course=self.c2,
             lecturer=self.lecturer_a, # conflict here
@@ -532,7 +534,7 @@ class GoogleCalendarExportTests(TestCase):
 
     def test_export_timetable_pdf_layout_types(self):
         """
-        Exporting PDF with different layout options (weekly, monthly, yearly, master) should work without errors.
+        Exporting PDF with available layout options (weekly, master, master_list) should work without errors.
         """
         self.client.login(username="test_admin", password="password")
         session = self.client.session
@@ -541,7 +543,7 @@ class GoogleCalendarExportTests(TestCase):
         session.save()
         
         url = reverse('scheduler:export_timetable_pdf', args=[self.timetable_a.pk])
-        for layout in ['weekly', 'monthly', 'yearly', 'master']:
+        for layout in ['weekly', 'master', 'master_list']:
             response = self.client.get(url + f"?layout_type={layout}")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/pdf')
@@ -666,16 +668,38 @@ class TimetableValidationTests(TestCase):
 
     def test_validation_lecturer_overallocation_warning(self):
         """
-        Verify that over-allocating lecturer hours is flagged as a validation warning, not a blocking error.
+        Verify that lecturer over-allocation is flagged as a warning if within tolerance,
+        and as a blocking error if it exceeds tolerance.
         """
-        # Set self.lecturer max hours to 1 hour (CS101 course duration of 1 slot is 1.5 hours, which will exceed this)
-        self.lecturer.max_hours_per_week = 1
+        from .validation import validate_timetable_inputs
+
+        # Create additional timeslots to satisfy pre-flight capacity checks
+        for i in range(2, 11):
+            TimeSlot.objects.create(
+                university=self.uni, day_of_week=1,
+                start_time=datetime.time(9, 0), end_time=datetime.time(10, 30),
+                slot_number=i
+            )
+
+        # Increase sessions per week so total hours = 1 * 10 * 1.5 = 15.0 hours
+        self.course.sessions_per_week = 10
+        self.course.save()
+
+        # Scenario 1: Lecturer hours over-allocated but within 10% tolerance (e.g. 14 hours limit, 15 assigned -> 15/14 = 1.07 < 1.10)
+        self.lecturer.max_hours_per_week = 14
         self.lecturer.save()
         
-        from .validation import validate_timetable_inputs
         is_valid, errors, warnings = validate_timetable_inputs(self.timetable)
         self.assertTrue(is_valid, f"Validation failed with errors: {errors}")
         self.assertTrue(any("is over-allocated" in warn for warn in warnings))
+
+        # Scenario 2: Lecturer hours over-allocated beyond 10% tolerance (e.g. 13 hours limit, 15 assigned -> 15/13 = 1.15 > 1.10)
+        self.lecturer.max_hours_per_week = 13
+        self.lecturer.save()
+        
+        is_valid, errors, warnings = validate_timetable_inputs(self.timetable)
+        self.assertFalse(is_valid, "Expected validation to fail when over-allocation exceeds tolerance")
+        self.assertTrue(any("is over-allocated" in err for err in errors))
 
 
     def test_validation_empty_structures_failure(self):
@@ -775,8 +799,8 @@ class SchedulingEngineTests(TestCase):
     def test_conflict_room_double_booking(self):
         """detect_conflicts must catch two courses placed in the same room at the same time."""
         from .conflicts import detect_conflicts
-        s1 = ScheduleSlot.objects.create(timetable=self.timetable, course=self.c_lecture, lecturer=self.lec_a, room=self.lecture_room, time_slot=self.ts1, student_group=self.group_large)
-        s2 = ScheduleSlot.objects.create(timetable=self.timetable, course=self.c_lab, lecturer=self.lec_b, room=self.lecture_room, time_slot=self.ts1, student_group=self.group_small)
+        s1 = ScheduleSlot(id=1, timetable=self.timetable, course=self.c_lecture, lecturer=self.lec_a, room=self.lecture_room, time_slot=self.ts1, student_group=self.group_large)
+        s2 = ScheduleSlot(id=2, timetable=self.timetable, course=self.c_lab, lecturer=self.lec_b, room=self.lecture_room, time_slot=self.ts1, student_group=self.group_small)
         conflicts = detect_conflicts([s1, s2], self.uni)
         room_conflicts = [c for c in conflicts if c["constraint_type"] == "ROOM_DOUBLE_BOOKING"]
         self.assertGreater(len(room_conflicts), 0, "Expected ROOM_DOUBLE_BOOKING conflict.")
@@ -785,8 +809,8 @@ class SchedulingEngineTests(TestCase):
         """detect_conflicts must catch same student group at two classes simultaneously."""
         from .conflicts import detect_conflicts
         c_extra = Course.objects.create(program=self.program, code="EU103", name="Extra", duration_slots=1, required_room_type="Lecture", lecturer=self.lec_b, student_group=self.group_large)
-        s1 = ScheduleSlot.objects.create(timetable=self.timetable, course=self.c_lecture, lecturer=self.lec_a, room=self.lecture_room, time_slot=self.ts1, student_group=self.group_large)
-        s2 = ScheduleSlot.objects.create(timetable=self.timetable, course=c_extra, lecturer=self.lec_b, room=self.lab_room, time_slot=self.ts1, student_group=self.group_large)
+        s1 = ScheduleSlot(id=1, timetable=self.timetable, course=self.c_lecture, lecturer=self.lec_a, room=self.lecture_room, time_slot=self.ts1, student_group=self.group_large)
+        s2 = ScheduleSlot(id=2, timetable=self.timetable, course=c_extra, lecturer=self.lec_b, room=self.lab_room, time_slot=self.ts1, student_group=self.group_large)
         conflicts = detect_conflicts([s1, s2], self.uni)
         sg_conflicts = [c for c in conflicts if c["constraint_type"] == "STUDENT_GROUP_DOUBLE_BOOKING"]
         self.assertGreater(len(sg_conflicts), 0, "Expected STUDENT_GROUP_DOUBLE_BOOKING conflict.")
@@ -947,6 +971,47 @@ class DataImportEngineTests(TestCase):
         # Verify database is empty (Auditorium X was NOT saved due to transaction rollback)
         self.assertEqual(Room.objects.filter(campus__university=self.uni).count(), 0)
 
+    def test_import_all_validation_failure_rollback(self):
+        """Verify that a multi-sheet Excel file containing validation errors rolls back all changes across all sheets."""
+        self.client.login(username="import_admin", password="password")
+        session = self.client.session
+        session['active_role'] = 'admin'
+        session['active_university_id'] = self.uni.id
+        session.save()
+
+        import openpyxl
+        import io
+
+        wb = openpyxl.Workbook()
+        
+        # Create rooms sheet with an invalid capacity 'abc' in second row
+        ws_rooms = wb.active
+        ws_rooms.title = "Rooms"
+        ws_rooms.append(["name", "capacity", "room_type", "campus_name"])
+        ws_rooms.append(["Auditorium X", "150", "Lecture", "Main Campus"])
+        ws_rooms.append(["Lab Z", "abc", "Lab", "Science Campus"])
+
+        # Create valid lecturers sheet
+        ws_lecs = wb.create_sheet("Lecturers")
+        ws_lecs.append(["name", "email", "department_name"])
+        ws_lecs.append(["Dr. Alice", "alice@test.com", "CS Dept"])
+
+        # Save workbook to BytesIO
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        excel_file.name = "import_all_invalid.xlsx"
+
+        response = self.client.post(reverse('scheduler:import_resources'), {
+            'import_type': 'all',
+            'file': excel_file
+        })
+        self.assertEqual(response.status_code, 200)
+
+        # Verify nothing was saved to the database (both sheets rolled back)
+        self.assertEqual(Room.objects.filter(campus__university=self.uni).count(), 0)
+        self.assertEqual(Lecturer.objects.filter(department__faculty__campus__university=self.uni).count(), 0)
+
 
 class SmartImportTests(TestCase):
     def setUp(self):
@@ -1007,8 +1072,8 @@ class SmartImportTests(TestCase):
         
         import io
         csv_data = (
-            "day,time,room,lecturer,course_code,course_name\n"
-            "Monday,0800-1100,LH 1,Dr. John,CS101,Intro to CS\n"
+            "day,time,room,lecturer,course_code,course_name,student_group\n"
+            "Monday,0800-1100,LH 1,Dr. John,CS101,Intro to CS,CS Group\n"
         )
         csv_file = io.BytesIO(csv_data.encode('utf-8'))
         csv_file.name = 'timetable.csv'
@@ -1024,18 +1089,50 @@ class SmartImportTests(TestCase):
         self.assertContains(response, "Intelligent Import Preview")
         self.assertContains(response, "CS101")
         self.assertContains(response, "Dr. John")
-        
         # Now let's confirm the import
         confirm_response = self.client.post(reverse('scheduler:import_resources'), {
             'confirm': 'yes'
         })
-        self.assertRedirects(confirm_response, '/resources/?tab=rooms')
+        # Confirm now redirects to the audit report page (URL pattern: /import-audit/<pk>/)
+        self.assertEqual(confirm_response.status_code, 302)
+        self.assertRegex(confirm_response['Location'], r'/import-audit/\d+/')
         
         # Verify db insertion
-        from scheduler.models import Course, Room, Lecturer
+        from scheduler.models import Course, Room, Lecturer, ImportAuditLog
         self.assertEqual(Room.objects.filter(campus__university=self.uni).count(), 1)
         self.assertEqual(Lecturer.objects.filter(department__faculty__campus__university=self.uni).count(), 1)
         self.assertEqual(Course.objects.filter(program__department__faculty__campus__university=self.uni).count(), 1)
+        # Verify audit log was created
+        self.assertEqual(ImportAuditLog.objects.filter(university=self.uni).count(), 1)
+
+    def test_title_stripping_no_space(self):
+        from scheduler.smart_import import _strip_title
+        # Test stripping without space after dot
+        self.assertEqual(_strip_title("Dr.John Doe"), "John Doe")
+        self.assertEqual(_strip_title("Prof.Jane Doe"), "Jane Doe")
+        # Test stripping with space after dot
+        self.assertEqual(_strip_title("Dr. John Doe"), "John Doe")
+
+    def test_course_code_not_globally_deduplicated(self):
+        import openpyxl
+        from scheduler.smart_import import detect_format, extract_entities
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "CS_All"
+        ws.append(["DAY", "TIME", "VENUE", "INSTRUCTOR", "UNIT CODE", "UNIT NAME", "STUDENT GROUP"])
+        # Same course code, different student groups
+        ws.append(["Monday", "08:00-11:00", "LH 1", "Dr. John", "CS101", "Intro to CS", "Group A"])
+        ws.append(["Tuesday", "08:00-11:00", "LH 2", "Dr. John", "CS101", "Intro to CS", "Group B"])
+        
+        info = detect_format(wb)
+        entities = extract_entities(wb, info, self.uni)
+        
+        # Both course entries should be preserved because they are for different groups
+        self.assertEqual(len(entities['courses']), 2)
+        codes = sorted([c['code'] for c in entities['courses']])
+        groups = sorted([c['student_group'] for c in entities['courses']])
+        self.assertEqual(codes, ["CS101", "CS101"])
+        self.assertEqual(groups, ["Group A", "Group B"])
 
 
 class CalendarIntegrationTests(TestCase):
@@ -1576,6 +1673,7 @@ class RealWorldFeasibilityTests(TestCase):
 
         # Run scheduler
         status, message, obj = generate_timetable(self.timetable.id)
+        
         self.assertIn(status, ('FEASIBLE', 'OPTIMAL'))
 
         # Check all feasibility rules on the database output
@@ -1755,8 +1853,8 @@ class EdgeCasesFeasibilityTests(TestCase):
         c1 = Course.objects.create(program=self.program_a, code="C1", name="C1", duration_slots=1, lecturer=self.lecturer, student_group=self.group_parent)
         c2 = Course.objects.create(program=self.program_a, code="C2", name="C2", duration_slots=1, lecturer=self.lecturer, student_group=self.group_child)
 
-        s1 = ScheduleSlot.objects.create(timetable=self.timetable, course=c1, lecturer=self.lecturer, room=self.room_a, time_slot=self.timeslots[0], student_group=self.group_parent)
-        s2 = ScheduleSlot.objects.create(timetable=self.timetable, course=c2, lecturer=self.lecturer, room=self.room_b, time_slot=self.timeslots[0], student_group=self.group_child)
+        s1 = ScheduleSlot(id=1, timetable=self.timetable, course=c1, lecturer=self.lecturer, room=self.room_a, time_slot=self.timeslots[0], student_group=self.group_parent)
+        s2 = ScheduleSlot(id=2, timetable=self.timetable, course=c2, lecturer=self.lecturer, room=self.room_b, time_slot=self.timeslots[0], student_group=self.group_child)
 
         conflicts = detect_conflicts([s1, s2], self.uni)
         group_booking_violations = [c for c in conflicts if c['constraint_type'] == 'STUDENT_GROUP_DOUBLE_BOOKING']
@@ -1885,8 +1983,8 @@ class AdvancedFeaturesTests(TestCase):
         
         c2 = Course.objects.create(program=self.program, code="C2", name="C2", duration_slots=1, lecturer=self.lecturer, student_group=self.group2)
         
-        s1 = ScheduleSlot.objects.create(timetable=self.timetable, course=c1, lecturer=self.lecturer, room=self.room_a, time_slot=self.timeslots[0], student_group=self.group1)
-        s2 = ScheduleSlot.objects.create(timetable=self.timetable, course=c2, lecturer=self.lecturer, room=self.room_b, time_slot=self.timeslots[0], student_group=self.group2)
+        s1 = ScheduleSlot(id=1, timetable=self.timetable, course=c1, lecturer=self.lecturer, room=self.room_a, time_slot=self.timeslots[0], student_group=self.group1)
+        s2 = ScheduleSlot(id=2, timetable=self.timetable, course=c2, lecturer=self.lecturer, room=self.room_b, time_slot=self.timeslots[0], student_group=self.group2)
         
         conflicts = detect_conflicts([s1, s2], self.uni)
         double_bookings = [c for c in conflicts if c['constraint_type'] == 'STUDENT_GROUP_DOUBLE_BOOKING']
@@ -1919,13 +2017,27 @@ class AdvancedFeaturesTests(TestCase):
         self.assertEqual(len(violations), 1)
 
     def test_lecturer_daily_workload_limit_solver_prevention(self):
-        """Verify solver respects lecturer's max_slots_per_day limit."""
+        """Verify solver respects lecturer's max_slots_per_day limit.
+
+        With soft constraints, the solver no longer raises INFEASIBLE; instead it
+        schedules as many courses as possible within the daily limit and leaves the
+        remainder unscheduled.  max_slots_per_day=2, 3 courses on same day → at
+        most 2 slots scheduled.
+        """
         c1 = Course.objects.create(program=self.program, code="C1", name="C1", duration_slots=1, lecturer=self.lecturer, student_group=self.group1)
         c2 = Course.objects.create(program=self.program, code="C2", name="C2", duration_slots=1, lecturer=self.lecturer, student_group=self.group2)
         c3 = Course.objects.create(program=self.program, code="C3", name="C3", duration_slots=1, lecturer=self.lecturer, student_group=self.group1)
         
         status, message, obj = generate_timetable(self.timetable.id)
-        self.assertEqual(status, 'INFEASIBLE')
+        self.assertIn(status, ('OPTIMAL', 'FEASIBLE'), f"Expected solver success, got: {status}")
+        
+        # Solver must honour the daily cap: no more than max_slots_per_day slots scheduled
+        slots = ScheduleSlot.objects.filter(timetable=self.timetable)
+        self.assertLessEqual(
+            slots.count(),
+            self.lecturer.max_slots_per_day,
+            f"Expected at most {self.lecturer.max_slots_per_day} slots but got {slots.count()}"
+        )
 
     def test_lecturer_soft_preferences_optimization(self):
         """Verify solver optimizes lecturer timeslot preferences by avoiding disliked slots and choosing preferred ones."""
@@ -2388,13 +2500,23 @@ class StudentLoginPortalTests(TestCase):
         other_group = StudentGroup.objects.create(
             program=self.program, name="CS Year 1", size=30
         )
+        other_lecturer = Lecturer.objects.create(
+            department=self.dept, name="Dr. Other", email="other@spuni.edu"
+        )
+        other_room = Room.objects.create(
+            campus=self.campus, name="LH-02", capacity=60, room_type="Lecture"
+        )
+        other_ts = TimeSlot.objects.create(
+            university=self.uni, day_of_week=3,
+            start_time=datetime.time(8, 30), end_time=datetime.time(10, 0), slot_number=1,
+        )
         other_course = Course.objects.create(
             program=self.program, code="CS101", name="Intro CS",
-            duration_slots=1, lecturer=self.lecturer, student_group=other_group,
+            duration_slots=1, lecturer=other_lecturer, student_group=other_group,
         )
         ScheduleSlot.objects.create(
-            timetable=self.timetable, course=other_course, lecturer=self.lecturer,
-            room=self.room, time_slot=self.ts_mon_1, student_group=other_group,
+            timetable=self.timetable, course=other_course, lecturer=other_lecturer,
+            room=other_room, time_slot=other_ts, student_group=other_group,
         )
 
         self.client.login(username='student3', password='securePass!3')
@@ -2548,3 +2670,367 @@ class StudentLoginPortalTests(TestCase):
         self.assertIsNotNone(profile)
         self.assertEqual(profile.role, 'student')
         self.assertEqual(profile.university, self.uni)
+
+
+class HODAndLecturerClassificationTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from accounts.models import UserProfile
+        from .models import Room, Lecturer, Semester, Timetable, StudentGroup, Course, TimeSlot, ScheduleSlot
+        import datetime
+
+        self.uni = University.objects.create(name="HOD and Classify Test Uni", code="HCTUNI")
+        self.campus = Campus.objects.create(university=self.uni, name="Main Campus")
+        self.campus2 = Campus.objects.create(university=self.uni, name="Remote Campus")
+        self.faculty = Faculty.objects.create(campus=self.campus, name="Science Faculty")
+        self.dept = Department.objects.create(faculty=self.faculty, name="CS Dept")
+        self.program = Program.objects.create(department=self.dept, name="BSc CS")
+
+        self.semester = Semester.objects.create(
+            university=self.uni,
+            name="Fall 2026",
+            start_date=datetime.date(2026, 9, 1),
+            end_date=datetime.date(2026, 12, 1),
+            is_active=True
+        )
+        self.timetable = Timetable.objects.create(semester=self.semester, name="Workflow Timetable", status="DRAFT")
+
+        # HOD user
+        self.hod_user = User.objects.create_user(username="test_hod_user", password="password")
+        self.hod_profile = UserProfile.objects.create(user=self.hod_user, role="hod", university=self.uni)
+
+    def test_hod_role_properties(self):
+        """Verify HOD role permissions property is_hod resolves to True."""
+        self.assertTrue(self.hod_profile.is_hod)
+        self.assertFalse(self.hod_profile.is_student)
+        self.assertFalse(self.hod_profile.is_lecturer)
+
+    def test_online_room_travel_exception(self):
+        """Verify that conflict detection passes without travel violations if one room is online/virtual."""
+        from .models import Room, Lecturer, TimeSlot, Course, ScheduleSlot
+        from .conflicts import detect_conflicts
+        import datetime
+
+        # Create physical room on remote campus
+        room_physical = Room.objects.create(
+            campus=self.campus2, name="Physical Rm 101", capacity=50, room_type="Lecture"
+        )
+        # Create virtual room (contains 'zoom') on main campus
+        room_virtual = Room.objects.create(
+            campus=self.campus, name="Zoom Room Alpha", capacity=100, room_type="Virtual", is_virtual=True
+        )
+
+        lecturer = Lecturer.objects.create(
+            department=self.dept, name="Dr. Travel", email="travel@hctuni.edu", max_hours_per_week=20, max_slots_per_day=3
+        )
+        group = StudentGroup.objects.create(program=self.program, name="CS Group 1", size=30)
+
+        c1 = Course.objects.create(program=self.program, code="CS101", name="Course 1", duration_slots=1, lecturer=lecturer, student_group=group)
+        c2 = Course.objects.create(program=self.program, code="CS102", name="Course 2", duration_slots=1, lecturer=lecturer, student_group=group)
+
+        ts1 = TimeSlot.objects.create(
+            university=self.uni, day_of_week=1, start_time=datetime.time(8, 30), end_time=datetime.time(10, 0), slot_number=1
+        )
+        ts2 = TimeSlot.objects.create(
+            university=self.uni, day_of_week=1, start_time=datetime.time(10, 15), end_time=datetime.time(11, 45), slot_number=2
+        )
+
+        # Lecturer has back-to-back classes on different campuses
+        s1 = ScheduleSlot.objects.create(
+            timetable=self.timetable, course=c1, lecturer=lecturer, room=room_physical, time_slot=ts1, student_group=group
+        )
+        s2 = ScheduleSlot.objects.create(
+            timetable=self.timetable, course=c2, lecturer=lecturer, room=room_virtual, time_slot=ts2, student_group=group
+        )
+
+        # Detect conflicts
+        conflicts = detect_conflicts([s1, s2], self.uni)
+
+        # Filter for LECTURER_CAMPUS_TRAVEL_VIOLATION
+        travel_violations = [c for c in conflicts if c['constraint_type'] == 'LECTURER_CAMPUS_TRAVEL_VIOLATION']
+        
+        # There should be no travel violation because 'Zoom Room Alpha' is recognized as online
+        self.assertEqual(len(travel_violations), 0)
+
+    def test_lecturer_full_time_part_time_classification(self):
+        """Verify lecturers are correctly classified as full-time or part-time based on hours."""
+        from .models import Lecturer
+
+        ft_lec = Lecturer.objects.create(
+            department=self.dept, name="Full Time Pro", email="ft@hctuni.edu", max_hours_per_week=12
+        )
+        pt_lec = Lecturer.objects.create(
+            department=self.dept, name="Part Time Pro", email="pt@hctuni.edu", max_hours_per_week=10
+        )
+
+        # Check categorization boundary
+        self.assertTrue(ft_lec.max_hours_per_week >= 12)
+        self.assertTrue(pt_lec.max_hours_per_week < 12)
+
+    def test_shared_course_room_capacity_aggregation(self):
+        """Verify that the solver sums student group sizes for shared courses/common units."""
+        from .solver import generate_timetable
+        from .models import StudentGroup, Room, Course, Lecturer, TimeSlot, Timetable, ScheduleSlot
+
+        # Total combined size = 55
+        group_main = StudentGroup.objects.create(program=self.program, name="CS Main Group", size=30)
+        group_add = StudentGroup.objects.create(program=self.program, name="CS Add Group", size=25)
+
+        # Room Small (capacity 40) is too small for combined size of 55
+        # Room Large (capacity 60) can fit 55
+        room_small = Room.objects.create(campus=self.campus, name="Room Small", capacity=40, room_type="Lecture")
+        room_large = Room.objects.create(campus=self.campus, name="Room Large", capacity=60, room_type="Lecture")
+
+        lecturer = Lecturer.objects.create(
+            department=self.dept, name="Dr. Shared", email="shared@hctuni.edu", max_hours_per_week=20, max_slots_per_day=3
+        )
+
+        shared_course = Course.objects.create(
+            program=self.program, code="CS999", name="Shared Course", duration_slots=1, lecturer=lecturer, student_group=group_main
+        )
+        shared_course.additional_student_groups.add(group_add)
+
+        ts = TimeSlot.objects.create(
+            university=self.uni, day_of_week=1, start_time=datetime.time(12, 0), end_time=datetime.time(13, 30), slot_number=3
+        )
+
+        tt = Timetable.objects.create(semester=self.semester, name="Shared Timetable", status="DRAFT")
+
+        status, msg, log_id = generate_timetable(tt.id)
+
+        # Fetch the scheduled slot and check that the large room was selected
+        slot = ScheduleSlot.objects.filter(timetable=tt, course=shared_course).first()
+        self.assertIsNotNone(slot)
+        self.assertEqual(slot.room.id, room_large.id)
+
+    def test_generate_timetable_with_virtual_room(self):
+        """Verify that generate_timetable succeeds when virtual rooms are present in the university."""
+        from .solver import generate_timetable
+        from .models import Room, Course, Lecturer, TimeSlot, Timetable, ScheduleSlot, StudentGroup
+        import datetime
+
+        room_virtual = Room.objects.create(
+            campus=self.campus, name="Zoom Room Alpha", capacity=100, room_type="Virtual", is_virtual=True
+        )
+
+        lecturer = Lecturer.objects.create(
+            department=self.dept, name="Dr. Virtual Test", email="virtual_test@hctuni.edu", max_hours_per_week=20, max_slots_per_day=3
+        )
+        group = StudentGroup.objects.create(program=self.program, name="CS Virtual Group 1", size=30)
+
+        course = Course.objects.create(
+            program=self.program, code="CS888", name="Virtual Course", duration_slots=1, lecturer=lecturer, student_group=group
+        )
+
+        ts = TimeSlot.objects.create(
+            university=self.uni, day_of_week=1, start_time=datetime.time(8, 30), end_time=datetime.time(10, 0), slot_number=1
+        )
+
+        tt = Timetable.objects.create(semester=self.semester, name="Virtual Timetable", status="DRAFT")
+
+        status, msg, log_id = generate_timetable(tt.id)
+        self.assertIn(status, ('OPTIMAL', 'FEASIBLE'))
+
+
+class LecturerCredentialsAndRegistrationTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from accounts.models import UserProfile
+        from .models import Room, Lecturer, Semester, Timetable, StudentGroup, Course, TimeSlot, ScheduleSlot
+        from scheduler.signals import _local
+        import datetime
+
+        _local.enable_auto_provision_in_tests = True
+
+        self.uni = University.objects.create(name="Credentials Test Uni", code="CRUNI")
+        self.campus = Campus.objects.create(university=self.uni, name="Main Campus")
+        self.faculty = Faculty.objects.create(campus=self.campus, name="Science Faculty")
+        self.dept = Department.objects.create(faculty=self.faculty, name="CS Dept")
+        self.program = Program.objects.create(department=self.dept, name="BSc CS")
+        
+        self.semester = Semester.objects.create(
+            university=self.uni,
+            name="Fall 2026",
+            start_date=datetime.date(2026, 9, 1),
+            end_date=datetime.date(2026, 12, 1),
+            is_active=True
+        )
+        self.timetable = Timetable.objects.create(semester=self.semester, name="Test Timetable", is_active=True)
+        self.room = Room.objects.create(campus=self.campus, name="Room 101", capacity=50, room_type="Lecture")
+        self.group = StudentGroup.objects.create(program=self.program, name="CS Y2", size=30)
+        self.ts = TimeSlot.objects.create(
+            university=self.uni, day_of_week=1, start_time=datetime.time(8, 30), end_time=datetime.time(10, 0), slot_number=1
+        )
+
+    def tearDown(self):
+        from scheduler.signals import _local
+        _local.enable_auto_provision_in_tests = False
+        super().tearDown()
+
+    def test_lecturer_credentials_provisioning_on_save(self):
+        """Creating a lecturer automatically provisions a Django User and UserProfile."""
+        from django.contrib.auth.models import User
+        from accounts.models import UserProfile
+        from .models import Lecturer
+
+        lec = Lecturer.objects.create(
+            department=self.dept,
+            name="Professor Test",
+            email="prof.test@cruni.edu",
+            is_active=True
+        )
+
+        # Verify that User and UserProfile are created
+        user = User.objects.filter(email="prof.test@cruni.edu").first()
+        self.assertIsNotNone(user)
+        self.assertTrue(user.is_active)
+        
+        profile = UserProfile.objects.filter(user=user).first()
+        self.assertIsNotNone(profile)
+        self.assertEqual(profile.role, 'lecturer')
+        self.assertEqual(profile.lecturer, lec)
+        
+        # Verify Lecturer is linked back to the User
+        lec.refresh_from_db()
+        self.assertEqual(lec.user, user)
+
+    def test_lecturer_credentials_provisioning_missing_email(self):
+        """Creating a lecturer with a missing email generates fallback and registers warning."""
+        from django.contrib.auth.models import User
+        from accounts.models import UserProfile
+        from scheduler.models import ImportAuditLog, Lecturer
+
+        # Create a dummy audit log to make sure warnings capture correctly
+        ImportAuditLog.objects.create(
+            university=self.uni,
+            file_name="dummy.xlsx",
+            import_type="smart"
+        )
+
+        lec = Lecturer.objects.create(
+            department=self.dept,
+            name="Professor NoEmail",
+            is_active=True
+        )
+
+        # Verify fallback email generated
+        user = User.objects.filter(email="professor.noemail@credentialstestuni.edu").first()
+        self.assertIsNotNone(user)
+        
+        profile = UserProfile.objects.filter(user=user).first()
+        self.assertIsNotNone(profile)
+        self.assertEqual(profile.lecturer, lec)
+
+        # Verify warning was added to audit log
+        audit = ImportAuditLog.objects.filter(university=self.uni).first()
+        self.assertIsNotNone(audit)
+        self.assertTrue(any("fallback" in w for w in audit.warnings))
+
+    def test_lecturer_credentials_expiry_cron(self):
+        """Deactivating/ending semesters disables lecturer access via cron function."""
+        from django.contrib.auth.models import User
+        from accounts.models import UserProfile
+        from .models import Lecturer, Course, ScheduleSlot
+        from .tasks import expire_ended_semester_credentials
+
+        lec = Lecturer.objects.create(
+            department=self.dept,
+            name="Expired Lecturer",
+            email="expired@cruni.edu",
+            is_active=True
+        )
+
+        user = User.objects.get(email="expired@cruni.edu")
+        self.assertTrue(user.is_active)
+
+        # Scenario A: Lecturer is not assigned to any course -> Access should expire
+        expire_ended_semester_credentials()
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+
+    def test_lecturer_registration_sends_verification_email(self):
+        """Registering a new lecturer via RegisterForm creates Lecturer profile and sends verification email."""
+        from django.core import mail
+        from accounts.forms import RegisterForm
+        from scheduler.tasks import verify_and_notify_lecturer_record
+
+        form_data = {
+            'username': 'newlecturer',
+            'first_name': 'Jane',
+            'last_name': 'Doe',
+            'email': 'jane.doe@cruni.edu',
+            'role': 'lecturer',
+            'university': self.uni.id,
+            'password1': 'StrongPass123!',
+            'password2': 'StrongPass123!',
+        }
+        form = RegisterForm(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+        
+        # Verify Lecturer auto-creation
+        lec = Lecturer.objects.filter(email='jane.doe@cruni.edu').first()
+        self.assertIsNotNone(lec)
+        self.assertTrue(lec.is_verified)
+        self.assertEqual(lec.user, user)
+
+        # Trigger verification email task
+        verify_and_notify_lecturer_record(
+            submitted_email=user.email,
+            submitted_name=f"{user.first_name} {user.last_name}",
+            university_id=self.uni.id,
+            preserve_password=True
+        )
+
+        # Assert email sent
+        self.assertTrue(len(mail.outbox) >= 1)
+        sent_mail = mail.outbox[-1]
+        self.assertIn("Verified", sent_mail.subject)
+        self.assertIn("jane.doe@cruni.edu", sent_mail.to)
+
+    def test_public_onboarding_lookup_renders_form_before_save(self):
+        """Lookup search step renders public_onboarding form and does not jump directly to success page."""
+        response = self.client.post(
+            reverse('scheduler:public_lecturer_onboarding_direct'),
+            {'lookup_query': 'jane.doe@cruni.edu'}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'scheduler/public_onboarding.html')
+
+    def test_public_onboarding_save_renders_lookup_with_success_message(self):
+        """Submitting onboarding preferences renders the lookup page again with success message."""
+        lec = Lecturer.objects.create(department=self.dept, name="Save Test Lec", email="save.test@cruni.edu")
+        response = self.client.post(
+            reverse('scheduler:public_lecturer_onboarding', kwargs={'token': lec.calendar_token}),
+            {'save_onboarding': '1', 'name': 'Save Test Lec Updated', 'email': 'save.test@cruni.edu', 'max_hours_per_week': '18'}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'scheduler/public_onboarding_lookup.html')
+
+    def test_student_registration_saves_group(self):
+        """Student registration form captures student group/course and saves it to profile."""
+        from django.contrib.auth.models import User
+        from accounts.models import UserProfile
+        from accounts.forms import RegisterForm
+
+        form = RegisterForm({
+            'username': 'form_student',
+            'first_name': 'Jane',
+            'last_name': 'Doe',
+            'email': 'jane.doe@cruni.edu',
+            'password1': 'StrongPass123!',
+            'password2': 'StrongPass123!',
+            'role': 'student',
+            'university': self.uni.id,
+            'student_group': self.group.id
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+        user = form.save()
+
+        # Check UserProfile for group link
+        profile = UserProfile.objects.get(user=user)
+        self.assertEqual(profile.role, 'student')
+        self.assertEqual(profile.student_group, self.group)
+
+

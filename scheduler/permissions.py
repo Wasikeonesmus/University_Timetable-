@@ -78,6 +78,11 @@ def check_tenant_access(user, obj):
     Verifies that the given user has access to the given object.
     For global super admins (role == 'admin'), allow access to everything.
     For other roles, check if the object belongs to their university.
+
+    FIX BUG 14: Specific model_name checks are now evaluated BEFORE generic hasattr()
+    checks. Previously, models like ScheduleSlot were matched by hasattr(obj,'course')
+    before the explicit model_name == 'ScheduleSlot' branch was reached, making that
+    branch dead code and using the wrong traversal path.
     """
     if not user.is_authenticated:
         return False
@@ -91,26 +96,11 @@ def check_tenant_access(user, obj):
         if not user_uni:
             return False
 
-        # Inspect model class to find university association
         model_name = obj.__class__.__name__
+
+        # ── Specific model checks first (prevents shadowing by generic hasattr checks) ──
         if model_name == 'University':
             return obj == user_uni
-        elif hasattr(obj, 'university'):
-            return obj.university == user_uni
-        elif hasattr(obj, 'campus'):
-            return obj.campus.university == user_uni
-        elif hasattr(obj, 'faculty'):
-            return obj.faculty.campus.university == user_uni
-        elif hasattr(obj, 'department'):
-            return obj.department.faculty.campus.university == user_uni
-        elif hasattr(obj, 'program'):
-            return obj.program.department.faculty.campus.university == user_uni
-        elif hasattr(obj, 'course'):
-            return obj.course.program.department.faculty.campus.university == user_uni
-        elif hasattr(obj, 'semester'):
-            return obj.semester.university == user_uni
-        elif hasattr(obj, 'timetable'):
-            return obj.timetable.semester.university == user_uni
         elif model_name == 'ScheduleSlot':
             return obj.timetable.semester.university == user_uni
         elif model_name == 'GenerationLog':
@@ -127,6 +117,24 @@ def check_tenant_access(user, obj):
             return obj.lecturer.department.faculty.campus.university == user_uni
         elif model_name == 'LecturerTimeSlotPreference':
             return obj.lecturer.department.faculty.campus.university == user_uni
+
+        # ── Generic attribute-based checks (fallback for other models) ──
+        elif hasattr(obj, 'university'):
+            return obj.university == user_uni
+        elif hasattr(obj, 'campus'):
+            return obj.campus.university == user_uni
+        elif hasattr(obj, 'faculty'):
+            return obj.faculty.campus.university == user_uni
+        elif hasattr(obj, 'department'):
+            return obj.department.faculty.campus.university == user_uni
+        elif hasattr(obj, 'program'):
+            return obj.program.department.faculty.campus.university == user_uni
+        elif hasattr(obj, 'semester'):
+            return obj.semester.university == user_uni
+        elif hasattr(obj, 'timetable'):
+            return obj.timetable.semester.university == user_uni
+        elif hasattr(obj, 'course'):
+            return obj.course.program.department.faculty.campus.university == user_uni
     except Exception:
         return False
     return False

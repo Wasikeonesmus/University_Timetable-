@@ -5,8 +5,8 @@
 .tt-container { overflow-x: auto; }
 .tt-grid {
     display: grid;
-    grid-template-columns: 90px repeat(5, 1fr);
-    min-width: 700px;
+    grid-template-columns: 90px repeat({{ days|length|default:7 }}, 1fr);
+    min-width: 850px;
     border: 1px solid var(--border);
     border-radius: 14px;
     overflow: hidden;
@@ -138,37 +138,33 @@
             </div>
             {% endfor %}
 
-            <!-- Collect all unique time labels used across the week -->
-            {% regroup all_slots by time_slot.slot_number as by_slot %}
-            {% for slot_group in by_slot %}
-                {% with ref=slot_group.list.0.time_slot %}
+            <!-- Render all time slots across the full weekly grid -->
+            {% for row in grid_rows %}
                 <!-- Time column -->
                 <div class="tt-time-cell">
-                    <div>{{ ref.start_time|time:"g:i A" }}</div>
-                    <div style="color:var(--text-light);font-size:9px;">— {{ ref.end_time|time:"g:i A" }}</div>
+                    <div>{{ row.start_time|time:"g:i A" }}</div>
+                    <div style="color:var(--text-light);font-size:9px;">— {{ row.end_time|time:"g:i A" }}</div>
                 </div>
                 <!-- Day columns -->
                 {% for day in days %}
-                    <div class="tt-cell {% if day.dow == today_dow %}today-col{% endif %}">
-                        {% for slot in slots_by_day|dict_key:day.dow %}
-                            {% if slot.time_slot.slot_number == ref.slot_number %}
-                            <div class="tt-slot {% if slot.course.required_room_type == 'Lab' %}lab{% elif slot.course.required_room_type == 'Seminar' %}seminar{% endif %} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}">
-                                <div class="tt-slot-code">{{ slot.course.code }}</div>
-                                <div class="tt-slot-name">{{ slot.course.name|truncatewords:5 }}</div>
-                                <div class="tt-slot-meta">
-                                    <span>Room: {{ slot.room.name }}</span>
-                                    <span>Lec: {{ slot.lecturer.name }}</span>
-                                </div>
-                                {% if slot.is_ongoing %}
-                                    <span style="position: absolute; bottom: 4px; right: 4px; background: #10b981; color: white; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 4px; text-transform: uppercase;">● Live</span>
-                                {% endif %}
+                    {% with slot=row.day_slots|dict_key:day.dow %}
+                    <div class="tt-cell {% if day.dow == today_dow %}today-col{% endif %} {% if not slot %}empty{% endif %}">
+                        {% if slot %}
+                        <div class="tt-slot {% if slot.course.required_room_type == 'Lab' %}lab{% elif slot.course.required_room_type == 'Seminar' %}seminar{% endif %} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}">
+                            <div class="tt-slot-code">{{ slot.course.code }}</div>
+                            <div class="tt-slot-name">{{ slot.course.name|truncatewords:5 }}</div>
+                            <div class="tt-slot-meta">
+                                <span>Room: {{ slot.room.name }}</span>
+                                <span>Lec: {{ slot.lecturer.name }}</span>
                             </div>
+                            {% if slot.is_ongoing %}
+                                <span style="position: absolute; bottom: 4px; right: 4px; background: #10b981; color: white; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 4px; text-transform: uppercase;">● Live</span>
                             {% endif %}
-                        {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
+                    {% endwith %}
                 {% endfor %}
-                {% endwith %}
-
             {% endfor %}
         </div>
     </div>

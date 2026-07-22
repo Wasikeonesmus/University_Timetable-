@@ -1,0 +1,79 @@
+{% extends 'scheduler/base.html' %}
+
+{% block title %}Import History — {{ active_university.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+
+  <!-- Header -->
+  <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <h1 style="font-weight: 800; font-size: 2rem; margin-bottom: 0.3rem; color: var(--text);">📜 Import History</h1>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">Last 50 smart imports for <strong style="color: var(--text);">{{ active_university.name }}</strong></p>
+    </div>
+    <a href="{% url 'scheduler:import_resources' %}"
+       style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary); color: white; font-weight: 600; padding: 0.6rem 1.2rem; border-radius: 8px; text-decoration: none; font-size: 0.88rem;">
+      ⬆️ Import File
+    </a>
+  </div>
+
+  {% if logs %}
+  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm);">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border); background: rgba(0,0,0,0.02);">
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">File</th>
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Imported By</th>
+          <th style="text-align: left; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">When</th>
+          <th style="text-align: center; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Created</th>
+          <th style="text-align: center; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">Flags</th>
+          <th style="padding: 0.75rem 1rem;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 0.75rem 1rem; font-weight: 500; color: var(--text);">{{ log.file_name|truncatechars:40 }}</td>
+          <td style="padding: 0.75rem 1rem; color: var(--text-muted);">{{ log.imported_by.username|default:"—" }}</td>
+          <td style="padding: 0.75rem 1rem; color: var(--text-muted);">{{ log.imported_at|date:"N j, Y g:i A" }}</td>
+          <td style="padding: 0.75rem 1rem; text-align: center;">
+            {% for k, v in log.created_count.items %}
+              <span style="font-size: 0.75rem; background: rgba(16,185,129,0.08); color: var(--success); padding: 1px 6px; border-radius: 4px; margin: 1px; display: inline-block;">{{ v }} {{ k|title }}</span>
+            {% empty %}
+              <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+            {% endfor %}
+          </td>
+          <td style="padding: 0.75rem 1rem; text-align: center;">
+            {% if log.flagged_dupes %}
+              <span style="background: rgba(245,158,11,0.1); color: #d97706; font-weight: 700; padding: 2px 8px; border-radius: 9999px; font-size: 0.8rem;">
+                {{ log.flagged_dupes|length }} flag{{ log.flagged_dupes|length|pluralize }}
+              </span>
+            {% else %}
+              <span style="color: var(--text-muted); font-size: 0.8rem;">None</span>
+            {% endif %}
+          </td>
+          <td style="padding: 0.75rem 1rem; text-align: right;">
+            <a href="{% url 'scheduler:import_audit_report' log.pk %}"
+               style="font-size: 0.82rem; color: var(--primary); font-weight: 600; text-decoration: none;">
+              View &rarr;
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div style="text-align: center; padding: 5rem 2rem; color: var(--text-muted);">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem;">📭</div>
+    <p style="font-size: 1rem;">No imports yet for this university.</p>
+    <a href="{% url 'scheduler:import_resources' %}"
+       style="display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary); color: white; font-weight: 600; padding: 0.7rem 1.4rem; border-radius: 8px; text-decoration: none; font-size: 0.9rem; margin-top: 1rem;">
+      ⬆️ Import a File
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

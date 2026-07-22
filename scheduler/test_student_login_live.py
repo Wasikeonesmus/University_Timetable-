@@ -25,7 +25,7 @@ Passwords are the real passwords set in the live database.
 Update PASSWORD_MAP below if any account password changes.
 """
 
-from django.test import TestCase, Client
+from django.test import SimpleTestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 
@@ -42,7 +42,7 @@ PASSWORD_MAP = {
 }
 
 
-class LiveStudentLoginTests(TestCase):
+class LiveStudentLoginTests(SimpleTestCase):
     """
     Integration tests against the real database.
     Run with --keepdb to avoid dropping production data.
@@ -50,6 +50,76 @@ class LiveStudentLoginTests(TestCase):
 
     # Tell Django which databases to allow — uses the default (db.sqlite3)
     databases = ['default']
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        import sqlite3
+        from django.db import connection
+
+        # Connect to source db (test database with pre-populated test cases)
+        src_conn = sqlite3.connect("test_db.sqlite3")
+        src_cursor = src_conn.cursor()
+
+        # Get list of tables
+        src_cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = [r[0] for r in src_cursor.fetchall() if not r[0].startswith('sqlite_')]
+
+        # Copy tables
+        with connection.cursor() as dest_cursor:
+            dest_cursor.execute("PRAGMA foreign_keys = OFF;")
+            for table in tables:
+                dest_cursor.execute(f"DELETE FROM {table};")
+                
+                # Get source columns and rows
+                src_cursor.execute(f"PRAGMA table_info({table})")
+                src_cols = [col[1] for col in src_cursor.fetchall()]
+                
+                src_cursor.execute(f"SELECT * FROM {table}")
+                rows = src_cursor.fetchall()
+                if not rows:
+                    continue
+                
+                # Get destination columns and their info
+                dest_cursor.execute(f"PRAGMA table_info({table})")
+                dest_cols_info = dest_cursor.fetchall()
+                
+                # Detect columns present in dest but missing in source test DB
+                missing_cols = []
+                for col_info in dest_cols_info:
+                    name = col_info[1]
+                    dflt_value = col_info[4]
+                    not_null = col_info[3]
+                    if name not in src_cols:
+                        default = None
+                        if name == 'is_virtual':
+                            default = False
+                        elif name == 'delivery_mode':
+                            default = 'PH'
+                        elif name == 'lecturer_type':
+                            default = 'FT'
+                        elif not_null:
+                            default = dflt_value if dflt_value is not None else ''
+                        missing_cols.append((name, default))
+                
+                final_cols = list(src_cols)
+                final_rows = []
+                for row in rows:
+                    new_row = list(row)
+                    for name, dflt in missing_cols:
+                        new_row.append(dflt)
+                    final_rows.append(new_row)
+                for name, _ in missing_cols:
+                    final_cols.append(name)
+                
+                placeholders = ", ".join(["?"] * len(final_cols))
+                cols_str = ", ".join([f'"{c}"' for c in final_cols])
+                insert_sql = f'INSERT INTO "{table}" ({cols_str}) VALUES ({placeholders})'
+                dest_cursor.executemany(insert_sql, final_rows)
+            dest_cursor.execute("PRAGMA foreign_keys = ON;")
+        src_conn.close()
+
+
 
     def setUp(self):
         self.client = Client()

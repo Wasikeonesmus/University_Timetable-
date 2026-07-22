@@ -13,6 +13,16 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7-alpine
+    container_name: timetable_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes  # enable AOF persistence
+
   web:
     build: .
     container_name: timetable_web
@@ -21,13 +31,16 @@ services:
       - .:/app
     ports:
       - "8000:8000"
+      - "80:8000"
     environment:
       - SECRET_KEY=django-insecure-prod-key-goes-here-12345
       - DEBUG=True
       - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
-      - ALLOWED_HOSTS=127.0.0.1,localhost,web
+      - REDIS_URL=redis://redis:6379/1
+      - ALLOWED_HOSTS=*
     depends_on:
       - db
+      - redis
 
   worker:
     build: .
@@ -39,9 +52,25 @@ services:
       - SECRET_KEY=django-insecure-prod-key-goes-here-12345
       - DEBUG=True
       - DATABASE_URL=postgres://timetable_user:timetable_pass@db:5432/timetable_db
+      - REDIS_URL=redis://redis:6379/1
     depends_on:
       - db
+      - redis
+      - web
+
+  nginx:
+    image: nginx:alpine
+    container_name: timetable_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./staticfiles:/app/staticfiles:ro
+      - ./media:/app/media:ro
+    depends_on:
       - web
 
 volumes:
   pgdata:
+  redisdata:

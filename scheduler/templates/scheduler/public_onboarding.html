@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Onboarding &amp; Preference Form — UniSchedule</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 620px;
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #ffffff;
+            padding: 28px 32px;
+        }
+        .header h1 {
+            margin: 0 0 4px 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+        .header p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: #94a3b8;
+        }
+        .form-body {
+            padding: 32px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.92rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 28px 0 14px 0;
+            border-bottom: 2px solid #eff6ff;
+            padding-bottom: 6px;
+        }
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            background: #fafbfc;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: var(--text-main);
+        }
+        .btn-submit {
+            display: block;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 28px;
+            transition: opacity 0.15s;
+        }
+        .btn-submit:hover {
+            opacity: 0.95;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Faculty Onboarding &amp; Preference Form</h1>
+        <p>{{ university.name|default:"University Timetable System" }} • Pre-Login Setup</p>
+    </div>
+    <form method="POST" class="form-body">
+        {% csrf_token %}
+
+        <div class="section-title">1. Personal &amp; Contact Verification</div>
+        
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" name="name" id="name" class="form-control" value="{{ lecturer.name }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Official Email Address</label>
+            <input type="email" name="email" id="email" class="form-control" value="{{ lecturer.email|default:'' }}" placeholder="e.g. name@university.edu" required>
+        </div>
+
+        <div class="form-group">
+            <label for="lecturer_type">Contract Employment Type</label>
+            <select name="lecturer_type" id="lecturer_type" class="form-control">
+                <option value="FT" {% if lecturer.lecturer_type == 'FT' %}selected{% endif %}>Full-Time (Permanent / Tenured)</option>
+                <option value="PT" {% if lecturer.lecturer_type == 'PT' %}selected{% endif %}>Part-Time (Adjunct / Sessional)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="max_hours_per_week">Target Maximum Weekly Contact Hours</label>
+            <input type="number" name="max_hours_per_week" id="max_hours_per_week" class="form-control" value="{{ lecturer.max_hours_per_week|default:20 }}" min="1" max="60" required>
+        </div>
+
+        <div class="section-title">2. Account Password (Optional)</div>
+        <div class="form-group">
+            <label for="password">Create / Update Portal Password</label>
+            <input type="password" name="password" id="password" class="form-control" placeholder="Leave blank to keep existing password">
+        </div>
+
+        <div class="section-title">3. Teaching Unavailability Constraints</div>
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: -8px; margin-bottom: 10px;">
+            Tick any time slots below when you are <strong>UNAVAILABLE</strong> to teach (e.g. administrative meetings or research days):
+        </p>
+        <div class="checkbox-grid">
+            {% for ts in timeslots %}
+                <label class="checkbox-item">
+                    <input type="checkbox" name="unavailable_slots" value="{{ ts.id }}">
+                    <span>{{ ts.get_day_of_week_display }} Slot {{ ts.slot_number }} ({{ ts.start_time|time:"H:i" }}-{{ ts.end_time|time:"H:i" }})</span>
+                </label>
+            {% empty %}
+                <div style="font-size: 0.8rem; color: var(--text-muted);">No custom time slots configured yet.</div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" name="save_onboarding" value="1" class="btn-submit">Submit Profile &amp; Save Preferences</button>
+    </form>
+</div>
+</body>
+</html>

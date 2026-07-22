@@ -1,5 +1,6 @@
 import logging
 import time
+import threading
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,15 @@ else:
     logger.info("[Firebase] Unconfigured. Real-time features disabled; falling back to polling.")
 
 
+def _fire_and_forget(fn, *args, **kwargs):
+    """
+    Runs *fn* on a daemon thread so Firebase HTTPS calls can never block
+    the scheduling pipeline, regardless of network latency or reachability.
+    """
+    t = threading.Thread(target=fn, args=args, kwargs=kwargs, daemon=True)
+    t.start()
+
+
 def update_generation_status(timetable_id: int, data: dict):
     """
     Pushes generation status data to Firebase under:
@@ -42,13 +52,17 @@ def update_generation_status(timetable_id: int, data: dict):
     """
     if not is_enabled:
         return
-    try:
-        from firebase_admin import db
-        ref = db.reference(f'timetables/{timetable_id}/status')
-        ref.set(data)
-        logger.debug(f"[Firebase] Updated status for timetable {timetable_id}")
-    except Exception as e:
-        logger.warning(f"[Firebase] Failed to write status for timetable {timetable_id}: {e}")
+
+    def _do():
+        try:
+            from firebase_admin import db
+            ref = db.reference(f'timetables/{timetable_id}/status')
+            ref.set(data)
+            logger.debug(f"[Firebase] Updated status for timetable {timetable_id}")
+        except Exception as e:
+            logger.warning(f"[Firebase] Failed to write status for timetable {timetable_id}: {e}")
+
+    _fire_and_forget(_do)
 
 
 def update_timetable_conflicts(timetable_id: int, data: dict):
@@ -58,13 +72,17 @@ def update_timetable_conflicts(timetable_id: int, data: dict):
     """
     if not is_enabled:
         return
-    try:
-        from firebase_admin import db
-        ref = db.reference(f'timetables/{timetable_id}/conflicts')
-        ref.set(data)
-        logger.debug(f"[Firebase] Updated conflicts for timetable {timetable_id}")
-    except Exception as e:
-        logger.warning(f"[Firebase] Failed to write conflicts for timetable {timetable_id}: {e}")
+
+    def _do():
+        try:
+            from firebase_admin import db
+            ref = db.reference(f'timetables/{timetable_id}/conflicts')
+            ref.set(data)
+            logger.debug(f"[Firebase] Updated conflicts for timetable {timetable_id}")
+        except Exception as e:
+            logger.warning(f"[Firebase] Failed to write conflicts for timetable {timetable_id}: {e}")
+
+    _fire_and_forget(_do)
 
 
 def trigger_timetable_refresh(timetable_id: int):
@@ -74,12 +92,16 @@ def trigger_timetable_refresh(timetable_id: int):
     """
     if not is_enabled:
         return
-    try:
-        from firebase_admin import db
-        ref = db.reference(f'timetables/{timetable_id}/refresh')
-        ref.set({
-            'updated_at': int(time.time() * 1000)
-        })
-        logger.debug(f"[Firebase] Triggered refresh timestamp for timetable {timetable_id}")
-    except Exception as e:
-        logger.warning(f"[Firebase] Failed to write refresh trigger for timetable {timetable_id}: {e}")
+
+    def _do():
+        try:
+            from firebase_admin import db
+            ref = db.reference(f'timetables/{timetable_id}/refresh')
+            ref.set({
+                'updated_at': int(time.time() * 1000)
+            })
+            logger.debug(f"[Firebase] Triggered refresh timestamp for timetable {timetable_id}")
+        except Exception as e:
+            logger.warning(f"[Firebase] Failed to write refresh trigger for timetable {timetable_id}: {e}")
+
+    _fire_and_forget(_do)

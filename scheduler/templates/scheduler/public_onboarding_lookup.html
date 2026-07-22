@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Verification & Onboarding — UniSchedule</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 520px;
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #ffffff;
+            padding: 28px 32px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+        .header p {
+            margin: 0;
+            font-size: 0.88rem;
+            color: #94a3b8;
+        }
+        .form-body {
+            padding: 32px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #ffffff;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            margin-top: 8px;
+        }
+        .btn-submit:hover {
+            opacity: 0.92;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            margin-bottom: 20px;
+        }
+        .alert-warning {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            color: #d48806;
+        }
+        .alert-info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #096dd9;
+        }
+        .footer-text {
+            margin-top: 24px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .footer-text a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Faculty Verification & Onboarding</h1>
+            <p>Enter your institutional Email or Staff ID to start</p>
+        </div>
+
+        <div class="form-body">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+
+            {% if error %}
+            <div class="alert alert-warning">
+                <strong>Record Not Found:</strong> {{ error }}
+                {% if show_create_option %}
+                <form method="post" action="{% url 'scheduler:public_lecturer_onboarding_direct' %}" style="margin-top: 12px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="lookup_query" value="{{ query }}">
+                    <input type="hidden" name="create_new" value="1">
+                    <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 6px;">
+                        Register New Faculty Profile for '{{ query }}' →
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% elif not messages %}
+            <div class="alert alert-info">
+                Welcome to the Faculty Verification Portal. Please verify your staff email or staff ID below to access your onboarding form.
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'scheduler:public_lecturer_onboarding_direct' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="lookup_query">Official Staff Email / Staff ID / Full Name</label>
+                    <input type="text" id="lookup_query" name="lookup_query" class="form-control" placeholder="e.g. j.doe@university.edu or STF-104" value="{{ query|default:'' }}" required autofocus>
+                </div>
+
+                <button type="submit" class="btn-submit">Search Record & Continue →</button>
+            </form>
+
+            <div class="footer-text">
+                Already verified your account? <a href="{% url 'accounts:login' %}">Sign In to Faculty Portal</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

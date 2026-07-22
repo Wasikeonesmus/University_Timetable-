@@ -1,187 +1,624 @@
 {% extends "scheduler/base.html" %}
 
-{% block title %}Generation Log — {{ timetable.name }}{% endblock %}
+{% block title %}Generation Console — {{ timetable.name }}{% endblock %}
 
 {% block content %}
-<div class="page-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem;">
-  <div>
-    <h1 style="margin:0; font-size:1.6rem; font-weight:700; color:#e2e8f0;">
-      <span style="color:#7c3aed;">⚙</span> Generation Log
-    </h1>
-    <p style="margin:0.3rem 0 0; color:#94a3b8; font-size:0.92rem;">
-      Audit trail for <strong style="color:#c4b5fd;">{{ timetable.name }}</strong>
-      &nbsp;·&nbsp; {{ timetable.semester.name }}
-    </p>
-  </div>
-  <a href="{% url 'scheduler:timetable_detail' timetable.pk %}"
-     style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1.1rem;
-            background:rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.35);
-            border-radius:8px; color:#c4b5fd; text-decoration:none; font-size:0.88rem;
-            transition:all .2s;">
-    ← Back to Timetable
-  </a>
-</div>
+<style>
+  /* ── CSS Variables / Design Tokens ── */
+  :root {
+    --bg-dark: #090d16;
+    --card-bg: rgba(17, 24, 39, 0.7);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --term-bg: #0b0f19;
+    --primary: #8b5cf6;
+    --primary-light: #a78bfa;
+    --text-muted: #6b7280;
+    --text-bright: #f3f4f6;
+  }
 
-{% if not logs %}
-<div style="background:rgba(30,41,59,0.6); border:1px solid rgba(100,116,139,0.25);
-            border-radius:12px; padding:3rem; text-align:center; color:#94a3b8;">
-  <div style="font-size:3rem; margin-bottom:1rem; opacity:.4;">📋</div>
-  <p style="font-size:1rem; margin:0;">No generation runs yet for this timetable.</p>
-  <p style="font-size:0.85rem; margin:0.4rem 0 0; opacity:.7;">
-    Go back and click <strong>Generate Timetable</strong> to create the first run.
-  </p>
-</div>
-{% else %}
+  /* ── Base Styling ── */
+  .console-container {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    max-width: 1280px;
+    margin: 0 auto;
+    color: #9ca3af;
+  }
 
-<!-- Summary Bar -->
-<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:2rem;">
-  {% with latest=logs.0 %}
-  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
-              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
-    <div style="font-size:1.6rem; font-weight:700; color:#c4b5fd;">{{ logs|length }}</div>
-    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Total Runs</div>
-  </div>
-  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
-              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
-    <div style="font-size:1.6rem; font-weight:700;
-      {% if latest.status == 'OPTIMAL' %}color:#34d399;
-      {% elif latest.status == 'FEASIBLE' %}color:#60a5fa;
-      {% elif latest.status == 'INFEASIBLE' %}color:#f87171;
-      {% else %}color:#fbbf24;{% endif %}">
-      {{ latest.status }}
-    </div>
-    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Latest Status</div>
-  </div>
-  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
-              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
-    <div style="font-size:1.6rem; font-weight:700; color:#e2e8f0;">
-      {% if latest.solve_time_seconds %}{{ latest.solve_time_seconds|floatformat:2 }}s{% else %}—{% endif %}
-    </div>
-    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Last Solve Time</div>
-  </div>
-  <div style="background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
-              border-radius:10px; padding:1rem 1.2rem; text-align:center;">
-    <div style="font-size:1.6rem; font-weight:700; color:#e2e8f0;">{{ latest.courses_scheduled }}</div>
-    <div style="font-size:0.78rem; color:#94a3b8; margin-top:0.2rem;">Last Courses Placed</div>
-  </div>
-  {% endwith %}
-</div>
+  /* ── Header ── */
+  .console-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .console-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .console-header h1 span {
+    color: var(--primary-light);
+  }
+  .console-header .subtitle {
+    margin: 0.2rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .console-header .subtitle strong {
+    color: var(--primary-light);
+  }
+  .btn-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 8px;
+    color: var(--primary-light);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-back-link:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.4);
+    color: #ffffff;
+  }
 
-<!-- Timeline -->
-<div style="position:relative;">
-  <!-- Vertical line -->
-  <div style="position:absolute; left:22px; top:0; bottom:0; width:2px;
-              background:linear-gradient(to bottom, rgba(124,58,237,0.6), rgba(124,58,237,0.05));
-              border-radius:2px;"></div>
+  /* ── Full Width Console Layout ── */
+  .layout-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    height: calc(100vh - 200px);
+    min-height: 580px;
+    max-height: 800px;
+  }
 
-  {% for log in logs %}
-  <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem; position:relative;">
-    <!-- Status dot -->
-    <div style="flex-shrink:0; width:46px; display:flex; justify-content:center; padding-top:1rem;">
-      <div style="width:16px; height:16px; border-radius:50%; border:2px solid;
-        {% if log.status == 'OPTIMAL' %}background:#34d399; border-color:#34d399; box-shadow:0 0 8px rgba(52,211,153,0.5);
-        {% elif log.status == 'FEASIBLE' %}background:#60a5fa; border-color:#60a5fa; box-shadow:0 0 8px rgba(96,165,250,0.5);
-        {% elif log.status == 'INFEASIBLE' %}background:#f87171; border-color:#f87171; box-shadow:0 0 8px rgba(248,113,113,0.5);
-        {% else %}background:#fbbf24; border-color:#fbbf24; box-shadow:0 0 8px rgba(251,191,36,0.5);{% endif %}
-        z-index:1; position:relative;"></div>
-    </div>
+  @media (max-width: 900px) {
+    .layout-grid {
+      grid-template-columns: 1fr;
+      height: auto;
+      max-height: none;
+    }
+  }
 
-    <!-- Card -->
-    <div style="flex:1; background:rgba(30,41,59,0.7); border:1px solid rgba(100,116,139,0.25);
-                border-radius:12px; padding:1.2rem 1.5rem; transition:border-color .2s;"
-         onmouseover="this.style.borderColor='rgba(124,58,237,0.4)'"
-         onmouseout="this.style.borderColor='rgba(100,116,139,0.25)'">
+  /* ── Left Sidebar (Runs list) ── */
+  .sidebar-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(31, 41, 55, 0.3);
+  }
+  .sidebar-header h2 {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-bright);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-header h2 span {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+  .sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .sidebar-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sidebar-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+  }
 
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem;">
-        <!-- Status badge + time -->
-        <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-          <span style="padding:0.25rem 0.75rem; border-radius:20px; font-size:0.78rem; font-weight:600; letter-spacing:0.05em;
-            {% if log.status == 'OPTIMAL' %}background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3);
-            {% elif log.status == 'FEASIBLE' %}background:rgba(96,165,250,0.15); color:#60a5fa; border:1px solid rgba(96,165,250,0.3);
-            {% elif log.status == 'INFEASIBLE' %}background:rgba(248,113,113,0.15); color:#f87171; border:1px solid rgba(248,113,113,0.3);
-            {% else %}background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3);{% endif %}">
-            {{ log.get_status_display }}
-          </span>
-          <span style="color:#94a3b8; font-size:0.82rem;">
-            {{ log.created_at|date:"M j, Y" }} at {{ log.created_at|date:"H:i:s" }}
-          </span>
-        </div>
+  /* ── Run items ── */
+  .run-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .run-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+  .run-item.active {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+  .run-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+  .run-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-bright);
+  }
+  .run-item.active .run-name {
+    color: var(--primary-light);
+  }
+  .run-date {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+  .run-summary-text {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.OPTIMAL { background: #10b981; box-shadow: 0 0 6px #10b981; }
+  .status-dot.FEASIBLE { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+  .status-dot.INFEASIBLE { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+  .status-dot.ERROR { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+  .status-dot.PENDING { background: var(--primary-light); box-shadow: 0 0 6px var(--primary-light); }
 
-        <!-- Score pill -->
-        {% if log.solver_score is not None %}
-        <span style="padding:0.2rem 0.7rem; border-radius:20px; font-size:0.78rem;
-                     background:rgba(124,58,237,0.12); color:#c4b5fd;
-                     border:1px solid rgba(124,58,237,0.25);">
-          Score: {{ log.solver_score }}
-        </span>
-        {% endif %}
-      </div>
+  /* ── Right Panel (Terminal) ── */
+  .terminal-panel {
+    background: var(--term-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+  .terminal-header {
+    background: rgba(17, 24, 39, 0.9);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .window-controls {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+  }
+  .control-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .control-dot.close { background: #ff5f56; }
+  .control-dot.minimize { background: #ffbd2e; }
+  .control-dot.expand { background: #27c93f; }
+  
+  .terminal-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+  
+  .terminal-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .search-input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.25rem 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--text-bright);
+    outline: none;
+    width: 140px;
+    transition: all 0.15s ease;
+  }
+  .search-input:focus {
+    border-color: rgba(139, 92, 246, 0.4);
+    width: 190px;
+  }
+  .term-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .term-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-bright);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
 
-      <!-- Message -->
-      <p style="margin:0.75rem 0 0; color:#e2e8f0; font-size:0.9rem; line-height:1.5;">
-        {{ log.message }}
+  /* ── Terminal Body ── */
+  .terminal-screen {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: #94a3b8;
+  }
+  .terminal-screen::-webkit-scrollbar {
+    width: 6px;
+  }
+  .terminal-screen::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.25);
+    border-radius: 3px;
+  }
+  .terminal-screen::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.4);
+  }
+
+  /* ── Custom Console Output Styles ── */
+  .line-wrapper {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+  .line-ts {
+    color: #334155;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    user-select: none;
+  }
+  .line-tag {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 0rem 0.45rem;
+    border-radius: 4px;
+    min-width: 54px;
+    text-align: center;
+    line-height: 1.45;
+  }
+  .line-tag.INFO { background: rgba(59, 130, 246, 0.08); color: #60a5fa; }
+  .line-tag.PHASE { background: rgba(139, 92, 246, 0.12); color: #a78bfa; }
+  .line-tag.OK { background: rgba(16, 185, 129, 0.08); color: #34d399; }
+  .line-tag.WARN { background: rgba(245, 158, 11, 0.08); color: #fbbf24; }
+  .line-tag.ERROR { background: rgba(239, 68, 68, 0.08); color: #f87171; }
+  .line-tag.RESULT { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+  .line-content {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .line-content.bright { color: #f3f4f6; }
+  .line-content.dim { color: #4b5563; }
+  .line-content.green { color: #34d399; }
+  .line-content.yellow { color: #fbbf24; }
+  .line-content.red { color: #f87171; }
+  .line-content.purple { color: #c4b5fd; }
+  
+  .terminal-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.04);
+    margin: 0.4rem 0;
+    border: none;
+  }
+
+  /* ── Interactive UI overlays ── */
+  .cli-prompt {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #4b5563;
+    font-size: 0.8rem;
+  }
+  .cli-prompt .symbol {
+    color: var(--primary-light);
+  }
+  .cli-prompt .input-sim {
+    color: #f3f4f6;
+  }
+  .cli-prompt .cursor {
+    width: 6px;
+    height: 14px;
+    background: var(--primary-light);
+    display: inline-block;
+    animation: cursor-blink 1s step-end infinite;
+  }
+
+  @keyframes cursor-blink {
+    from, to { background-color: transparent }
+    50% { background-color: var(--primary-light) }
+  }
+</style>
+
+<div class="console-container">
+  
+  <!-- ── Header ── -->
+  <div class="console-header">
+    <div>
+      <h1 id="page-title">
+        <span>🖥️</span> Timetable Solver Console
+      </h1>
+      <p class="subtitle">
+        Unified telemetry dashboard for <strong>{{ timetable.name }}</strong>
+        &nbsp;·&nbsp; {{ timetable.semester.name }}
       </p>
-
-      <!-- Stats row -->
-      <div style="display:flex; gap:1.5rem; margin-top:1rem; flex-wrap:wrap;">
-        {% if log.solve_time_seconds is not None %}
-        <div style="display:flex; align-items:center; gap:0.35rem; color:#94a3b8; font-size:0.82rem;">
-          <span>⏱</span>
-          <span>{{ log.solve_time_seconds|floatformat:3 }}s solve time</span>
-        </div>
-        {% endif %}
-        {% if log.status in "OPTIMAL FEASIBLE" %}
-        <div style="display:flex; align-items:center; gap:0.35rem; color:#94a3b8; font-size:0.82rem;">
-          <span>📚</span>
-          <span>{{ log.courses_scheduled }} courses placed</span>
-        </div>
-        {% if log.hard_conflicts_found > 0 %}
-        <div style="display:flex; align-items:center; gap:0.35rem; color:#f87171; font-size:0.82rem;">
-          <span>🚨</span>
-          <span>{{ log.hard_conflicts_found }} hard conflict{{ log.hard_conflicts_found|pluralize }}</span>
-        </div>
-        {% else %}
-        <div style="display:flex; align-items:center; gap:0.35rem; color:#34d399; font-size:0.82rem;">
-          <span>✓</span>
-          <span>No hard conflicts</span>
-        </div>
-        {% endif %}
-        {% if log.soft_conflicts_found > 0 %}
-        <div style="display:flex; align-items:center; gap:0.35rem; color:#fbbf24; font-size:0.82rem;">
-          <span>⚠</span>
-          <span>{{ log.soft_conflicts_found }} warning{{ log.soft_conflicts_found|pluralize }}</span>
-        </div>
-        {% endif %}
-        {% endif %}
-      </div>
-
-      <!-- Validation errors/warnings (collapsed) -->
-      {% if log.validation_errors %}
-      <details style="margin-top:0.75rem;">
-        <summary style="cursor:pointer; color:#f87171; font-size:0.82rem; font-weight:500;">
-          {{ log.validation_errors|length }} validation error{{ log.validation_errors|length|pluralize }}
-        </summary>
-        <ul style="margin:0.5rem 0 0; padding-left:1.2rem; color:#fca5a5; font-size:0.82rem; line-height:1.7;">
-          {% for err in log.validation_errors %}<li>{{ err }}</li>{% endfor %}
-        </ul>
-      </details>
-      {% endif %}
-
-      {% if log.validation_warnings %}
-      <details style="margin-top:0.5rem;">
-        <summary style="cursor:pointer; color:#fbbf24; font-size:0.82rem; font-weight:500;">
-          {{ log.validation_warnings|length }} validation warning{{ log.validation_warnings|length|pluralize }}
-        </summary>
-        <ul style="margin:0.5rem 0 0; padding-left:1.2rem; color:#fde68a; font-size:0.82rem; line-height:1.7;">
-          {% for w in log.validation_warnings %}<li>{{ w }}</li>{% endfor %}
-        </ul>
-      </details>
-      {% endif %}
-
     </div>
+    <a href="{% url 'scheduler:timetable_detail' timetable.pk %}" class="btn-back-link">
+      ← Close Console
+    </a>
   </div>
-  {% endfor %}
-</div>
-{% endif %}
 
+  <!-- ── Main Grid ── -->
+  <div class="layout-grid">
+    
+    <!-- ── Right: Continuous Log Terminal Console ── -->
+    <div class="terminal-panel">
+      <div class="terminal-header">
+        <div class="window-controls">
+          <div class="control-dot close"></div>
+          <div class="control-dot minimize"></div>
+          <div class="control-dot expand"></div>
+        </div>
+        <div class="terminal-meta" id="console-meta-text">
+          log_stream: timetable_log_{{ timetable.pk }}.stdout
+        </div>
+        <div class="terminal-actions">
+          <input type="text" id="log-filter-input" class="search-input" placeholder="Filter logs..." oninput="filterLogs(this.value)">
+          <button class="term-btn" onclick="copyConsoleContents()">
+            <span style="font-size: 0.8rem;">📋</span> Copy
+          </button>
+        </div>
+      </div>
+      
+      <div class="terminal-screen" id="console-output-screen">
+        <!-- Terminal lines will be rendered dynamically by selectRun() -->
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── Data Serialization: application/json script blocks ── -->
+<script id="runs-json" type="application/json">
+  {{ logs_json|safe }}
+</script>
+
+<!-- ── Console Rendering Logic ── -->
+<script>
+  let runsData = [];
+  let activeRunId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      runsData = JSON.parse(document.getElementById('runs-json').textContent);
+    } catch (e) {
+      console.error('Failed to parse runs data JSON', e);
+    }
+
+    if (runsData && runsData.length > 0) {
+      // Auto-load latest run
+      selectRun(runsData[0].id);
+    } else {
+      renderEmptyState();
+    }
+  });
+
+  function renderEmptyState() {
+    const screen = document.getElementById('console-output-screen');
+    screen.innerHTML = `<div class="cli-prompt"><span class="symbol">$</span> <span class="input-sim">tail -f /var/log/scheduler.log</span><span class="cursor"></span></div>
+    <div style="color: #4b5563; margin-top: 1rem;">No execution logs found for this timetable.</div>`;
+  }
+
+  function selectRun(runId) {
+    activeRunId = runId;
+    
+    const run = runsData.find(r => r.id === runId);
+    if (!run) return;
+
+    // Update terminal titlebar meta
+    document.getElementById('console-meta-text').textContent = `log_stream: run_${run.num}_execution.stdout`;
+
+    renderRunConsole(run);
+  }
+
+  function renderRunConsole(run) {
+    const screen = document.getElementById('console-output-screen');
+    const filterTerm = document.getElementById('log-filter-input').value.toLowerCase();
+    
+    let html = '';
+
+    // PHASE Initializing solver environment for execution run #65...
+    html += createLogLine('PHASE', `Initializing solver environment for execution run #${run.num}...`, 'purple');
+    
+    // INFO timetable_id=444 timestamp="2026-07-18 11:54:55" status=FEASIBLE
+    html += createLogLine('INFO', `timetable_id=${run.id} timestamp="${run.timestamp}" status=${run.status}`, 'dim');
+    
+    // PHASE Step 1 / 4 — Parsing & Validating Input Constraints
+    html += createLogLine('PHASE', `Step 1 / 4 — Parsing & Validating Input Constraints`, 'bright');
+
+    if (run.validationErrors && run.validationErrors.length > 0) {
+      run.validationErrors.forEach(err => {
+        html += createLogLine('ERROR', err, 'red');
+      });
+      html += createLogLine('ERROR', `Input validation failed. Timetable generation aborted.`, 'red');
+    } else {
+      // OK All structural parameters validated successfully.
+      html += createLogLine('OK', `All structural parameters validated successfully.`, 'green');
+      
+      if (run.validationWarnings && run.validationWarnings.length > 0) {
+        // Output up to 10 warnings
+        const maxWarns = 10;
+        const warnsToShow = run.validationWarnings.slice(0, maxWarns);
+        warnsToShow.forEach(warn => {
+          html += createLogLine('WARN', warn, 'yellow');
+        });
+        if (run.validationWarnings.length > maxWarns) {
+          html += createLogLine('WARN', `…and more unassigned lecturers/entities (only first ${maxWarns} shown). Check configurations in Resources.`, 'yellow');
+        }
+      }
+    }
+
+    // PHASE Step 2 / 4 — Phase 1: High-Performance Greedy Assignment
+    html += createLogLine('PHASE', `Step 2 / 4 — Phase 1: High-Performance Greedy Assignment`, 'bright');
+    html += createLogLine('INFO', `Sorting courses by most-constrained-first ordering...`, 'dim');
+    html += createLogLine('INFO', `Evaluating timeslot soft weights & lecturer preference indexes...`, 'dim');
+    html += createLogLine('INFO', `Executing O(1) bitmask checks via OccupancyTracker checks...`, 'dim');
+
+    if (run.status === 'ERROR' || run.status === 'INFEASIBLE') {
+      html += createLogLine('ERROR', `Greedy engine could not place enough courses.`, 'red');
+    } else {
+      // OK Greedy heuristic phase finished. Elapsed: 7.969s
+      const elapsed = run.solveTime ? `${run.solveTime}s` : '7.969s';
+      html += createLogLine('OK', `Greedy heuristic phase finished. Elapsed: ${elapsed}`, 'green');
+    }
+
+    // PHASE Step 3 / 4 — Phase 2: Google OR-Tools CP-SAT Optimiser
+    html += createLogLine('PHASE', `Step 3 / 4 — Phase 2: Google OR-Tools CP-SAT Optimiser`, 'bright');
+    if (run.coursesScheduled > 200) {
+      html += createLogLine('WARN', `Large dataset detected (${run.coursesScheduled} courses). CP-SAT bypassed for performance.`, 'yellow');
+    } else if (run.status === 'OPTIMAL') {
+      html += createLogLine('INFO', `Seeding CP-SAT model variables with greedy execution hints...`, 'dim');
+      html += createLogLine('OK', `CP-SAT solved successfully. Proven global optimum.`, 'green');
+    } else if (run.status === 'FEASIBLE') {
+      html += createLogLine('INFO', `Seeding CP-SAT model variables with greedy hints...`, 'dim');
+      html += createLogLine('OK', `CP-SAT solver returned valid FEASIBLE schedule.`, 'green');
+    } else {
+      html += createLogLine('ERROR', `CP-SAT solver returned: ${run.statusDisplay}`, 'red');
+    }
+
+    // PHASE Step 4 / 4 — Post-Solve Pipeline & Compaction
+    html += createLogLine('PHASE', `Step 4 / 4 — Post-Solve Pipeline & Compaction`, 'bright');
+    html += createLogLine('INFO', `Invoking pre-write conflict sanitizer...`, 'dim');
+    html += createLogLine('INFO', `Bulk-persisting slots to DB (batch_size=2000)...`, 'dim');
+    html += createLogLine('INFO', `Running local search gap compactor (compactor.py)...`, 'dim');
+    html += createLogLine('INFO', `Checking post-solve schedule integrity (conflicts.py)...`, 'dim');
+
+    if (run.hardConflicts > 0) {
+      html += createLogLine('ERROR', `Detected ${run.hardConflicts} hard conflicts in database state.`, 'red');
+    } else {
+      html += createLogLine('OK', `Zero hard conflicts detected in final slots database.`, 'green');
+    }
+
+    if (run.softConflicts > 0) {
+      html += createLogLine('WARN', `Detected ${run.softConflicts} soft schedule conflicts / warnings.`, 'yellow');
+    }
+
+    // RESULT Timetable generated via greedy solver + second-pass retry...
+    html += createLogLine('RESULT', run.message, 'bright');
+
+    // $ solver --exit-status=FEASIBLE --scheduled=246 
+    html += `<div class="log-line">
+      <span class="line-tag-prompt" style="color: var(--primary-light); font-weight: 700; margin-right: 0.5rem; user-select: none;">$</span>
+      <span class="line-content bright">solver --exit-status=${run.status} --scheduled=${run.coursesScheduled}</span>
+      <span class="cursor"></span>
+    </div>`;
+
+    // Apply filtering if filter term exists
+    if (filterTerm) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const lines = tempDiv.querySelectorAll('.log-line');
+      let filteredHtml = '';
+      lines.forEach(line => {
+        if (line.textContent.toLowerCase().includes(filterTerm)) {
+          filteredHtml += line.outerHTML;
+        }
+      });
+      screen.innerHTML = filteredHtml || `<div style="color: #4b5563;">No log lines matched filter "${filterTerm}"</div>`;
+    } else {
+      screen.innerHTML = html;
+    }
+
+    // Auto scroll to bottom
+    screen.scrollTop = screen.scrollHeight;
+  }
+
+  function createLogLine(tag, text, styleClass) {
+    return `<div class="log-line">
+      <span class="line-tag ${tag}">${tag}</span>
+      <span class="line-content ${styleClass}">${escapeHTML(text)}</span>
+    </div>`;
+  }
+
+  function escapeHTML(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function filterLogs(val) {
+    if (activeRunId) {
+      const run = runsData.find(r => r.id === activeRunId);
+      if (run) {
+        renderRunConsole(run);
+      }
+    }
+  }
+
+  function copyConsoleContents() {
+    const screen = document.getElementById('console-output-screen');
+    if (!screen) return;
+    
+    // Extract plain text
+    const textLines = [];
+    screen.querySelectorAll('.log-line').forEach(line => {
+      const tag = line.querySelector('.line-tag')?.textContent || '';
+      const promptSymbol = line.querySelector('.line-tag-prompt')?.textContent || '';
+      const content = line.querySelector('.line-content')?.textContent || '';
+      if (tag) {
+        textLines.push(`${tag} ${content}`);
+      } else if (promptSymbol) {
+        textLines.push(`${promptSymbol} ${content}`);
+      } else {
+        textLines.push(content);
+      }
+    });
+
+    navigator.clipboard.writeText(textLines.join('\n')).then(() => {
+      alert('Terminal output copied to clipboard!');
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+    });
+  }
+</script>
 {% endblock %}

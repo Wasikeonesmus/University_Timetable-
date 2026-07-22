@@ -16,7 +16,7 @@ def auto_provision_university(sender, instance, created, **kwargs):
     """
     Whenever a new University is created, automatically provision:
       - A default Fall semester
-      - 25 time slots (Mon–Fri, 5 slots/day: 08:30–17:00)
+      - 35 time slots (Mon–Sun, 5 slots/day: 08:30–17:00)
       - A default Campus so imports work immediately
     """
     if not created:
@@ -33,21 +33,20 @@ def auto_provision_university(sender, instance, created, **kwargs):
     if not Semester.objects.filter(university=instance).exists():
         Semester.objects.create(
             university=instance,
-            name='Fall 2026',
+            name='Semester 1 2026',
             start_date=datetime.date(2026, 9, 1),
             end_date=datetime.date(2026, 12, 20),
             is_active=True,
         )
         logger.info(f"[AutoProvision] Created default semester for '{instance.name}'")
 
-    # 2. Default time slots (Mon–Fri, 5 slots/day)
+    # 2. Default time slots (Mon–Sun, 4 x 3-hour slots/day)
     if not TimeSlot.objects.filter(university=instance).exists():
         slot_config = [
-            (1, datetime.time(8, 30),  datetime.time(10, 0)),
-            (2, datetime.time(10, 15), datetime.time(11, 45)),
-            (3, datetime.time(12, 0),  datetime.time(13, 30)),
-            (4, datetime.time(13, 45), datetime.time(15, 15)),
-            (5, datetime.time(15, 30), datetime.time(17, 0)),
+            (1, datetime.time(8, 0),  datetime.time(11, 0), False),
+            (2, datetime.time(11, 0), datetime.time(14, 0), False),
+            (3, datetime.time(14, 0), datetime.time(17, 0), False),
+            (4, datetime.time(17, 30), datetime.time(20, 30), True),
         ]
         slots = [
             TimeSlot(
@@ -56,13 +55,13 @@ def auto_provision_university(sender, instance, created, **kwargs):
                 slot_number=slot_num,
                 start_time=start,
                 end_time=end,
-                is_evening=False,
+                is_evening=is_eve,
             )
-            for day in range(1, 6)
-            for slot_num, start, end in slot_config
+            for day in range(1, 8)
+            for slot_num, start, end, is_eve in slot_config
         ]
         TimeSlot.objects.bulk_create(slots)
-        logger.info(f"[AutoProvision] Created 25 time slots for '{instance.name}'")
+        logger.info(f"[AutoProvision] Created 28 3-hour time slots for '{instance.name}'")
 
     # 3. Default campus (needed for imports to work)
     if not Campus.objects.filter(university=instance).exists():
@@ -74,6 +73,21 @@ def auto_provision_university(sender, instance, created, **kwargs):
 # Thread-local storage to track which timetables are already queued for regeneration
 # in the current database transaction. This prevents queueing multiple tasks.
 _local = threading.local()
+
+from contextlib import contextmanager
+
+@contextmanager
+def mute_signals():
+    """
+    Temporarily mute all auto-generation and notification signals in the current thread.
+    """
+    old_val = getattr(_local, 'mute_signals', False)
+    _local.mute_signals = True
+    try:
+        yield
+    finally:
+        _local.mute_signals = old_val
+
 
 def queue_auto_generation(timetable):
     if not hasattr(_local, 'pending_timetables'):
@@ -159,7 +173,11 @@ def queue_auto_generation(timetable):
                         close_old_connections()
 
                 t_thread = threading.Thread(target=run_async, name=f"AutoGenerate-{timetable.id}")
-                t_thread.daemon = False  # Non-daemon so it survives dev server reloads
+                # FIX BUG 12: Set daemon=True. Non-daemon threads accumulate during dev server
+                # hot-reloads because each auto-save of a watched model triggers a new thread,
+                # but the old interpreter is kept alive until all non-daemon threads finish.
+                # Daemon threads are automatically killed when the main process exits/reloads.
+                t_thread.daemon = True
                 t_thread.start()
                 logger.info(f"[Signals] Automatically started background thread for timetable {timetable.id}")
             except Exception as e:
@@ -170,31 +188,35 @@ def queue_auto_generation(timetable):
 
 def get_university_from_instance(instance):
     try:
-        if isinstance(instance, Course):
+        model_name = instance._meta.model_name
+        if model_name == 'course':
             from .models import Program
             return Program.objects.select_related('department__faculty__campus__university').get(pk=instance.program_id).department.faculty.campus.university
-        elif isinstance(instance, Lecturer):
+        elif model_name == 'lecturer':
             from .models import Department
             return Department.objects.select_related('faculty__campus__university').get(pk=instance.department_id).faculty.campus.university
-        elif isinstance(instance, StudentGroup):
+        elif model_name == 'studentgroup':
             from .models import Program
             return Program.objects.select_related('department__faculty__campus__university').get(pk=instance.program_id).department.faculty.campus.university
-        elif isinstance(instance, Room):
+        elif model_name == 'room':
             from .models import Campus
             return Campus.objects.select_related('university').get(pk=instance.campus_id).university
-        elif isinstance(instance, TimeSlot):
+        elif model_name == 'timeslot':
             return instance.university
-        elif isinstance(instance, Constraint):
+        elif model_name == 'constraint':
             return instance.university
-        elif isinstance(instance, LecturerAvailability):
+        elif model_name == 'lectureravailability':
             from .models import Lecturer
             return Lecturer.objects.select_related('department__faculty__campus__university').get(pk=instance.lecturer_id).department.faculty.campus.university
-    except Exception:
+    except Exception as e:
+        print(f"[DEBUG] get_university_from_instance exception: {e}")
         pass
     return None
 
 
 def trigger_regeneration_for_university_models(sender, instance, **kwargs):
+    if getattr(_local, 'mute_signals', False):
+        return
     # Skip during migrations or bulk loading of fixtures
     if kwargs.get('raw', False):
         return
@@ -209,20 +231,12 @@ def trigger_regeneration_for_university_models(sender, instance, **kwargs):
         logger.debug(f"[Signals] Could not resolve university for instance {instance_str} of model {sender.__name__}")
         return
 
-    # Find active timetables for the university.
-    # Falls back to the most recent timetable if none is marked is_active=True,
-    # so auto-generation works even before a timetable has been explicitly activated.
+    # Only trigger for timetables explicitly marked is_active=True.
+    # If no active timetable exists the signal is a no-op — admins must
+    # activate a timetable before auto-generation kicks in.
     active_timetables = list(
         Timetable.objects.filter(semester__university=university, is_active=True)
     )
-    if not active_timetables:
-        latest = (
-            Timetable.objects.filter(semester__university=university)
-            .order_by('-created_at')
-            .first()
-        )
-        if latest:
-            active_timetables = [latest]
 
     for timetable in active_timetables:
         queue_auto_generation(timetable)
@@ -239,8 +253,28 @@ for model in MODELS_TO_WATCH:
     post_delete.connect(trigger_regeneration_for_university_models, sender=model, dispatch_uid=f"auto_gen_delete_{model.__name__.lower()}")
 
 # Auto-provision semester + timeslots + campus when a new university is created
-from .models import University
+from .models import University, Semester
 post_save.connect(auto_provision_university, sender=University, dispatch_uid="auto_provision_university")
+
+
+# ── Semester cache invalidation ───────────────────────────────────────────────
+def invalidate_semester_cache(sender, instance, **kwargs):
+    """
+    Bust the active_semester_{university_id} cache key whenever a Semester is
+    saved or deleted. This keeps context_processors.py in sync with DB changes
+    without waiting for the 60-second TTL to expire.
+    """
+    from django.core.cache import cache
+    try:
+        university_id = instance.university_id
+        if university_id:
+            cache.delete(f'active_semester_{university_id}')
+            logger.debug(f"[Cache] Invalidated active_semester cache for university {university_id}")
+    except Exception as e:
+        logger.warning(f"[Cache] Failed to invalidate semester cache: {e}")
+
+post_save.connect(invalidate_semester_cache, sender=Semester, dispatch_uid="invalidate_semester_cache_save")
+post_delete.connect(invalidate_semester_cache, sender=Semester, dispatch_uid="invalidate_semester_cache_delete")
 
 
 # ── Google Calendar Sync Signals ─────────────────────────────────────────────
@@ -252,6 +286,8 @@ def sync_schedule_slot_to_google(sender, instance, created, **kwargs):
     (Note: bulk_create during solver generation does not trigger this signal,
     which is handled separately in tasks.py).
     """
+    if getattr(_local, 'mute_signals', False):
+        return
     if kwargs.get('raw', False):
         return
 
@@ -259,10 +295,18 @@ def sync_schedule_slot_to_google(sender, instance, created, **kwargs):
     if not lecturer:
         return
 
+    # FIX BUG 6: Check explicitly with hasattr + log when profile is missing,
+    # instead of silently swallowing RelatedObjectDoesNotExist.
+    if not hasattr(lecturer, 'user_profile') or lecturer.user_profile is None:
+        logger.debug(
+            f"[GoogleSync] Lecturer '{lecturer.name}' (id={lecturer.id}) has no linked UserProfile — skipping Calendar sync."
+        )
+        return
+
     try:
-        profile = lecturer.user_profile
-        user = profile.user
-    except Exception:
+        user = lecturer.user_profile.user
+    except Exception as e:
+        logger.warning(f"[GoogleSync] Could not resolve user for lecturer '{lecturer.name}': {e}")
         return
 
     from accounts.models import GoogleCalendarToken
@@ -281,6 +325,8 @@ def delete_schedule_slot_from_google(sender, instance, **kwargs):
     """
     Triggers Google Calendar event deletion when a ScheduleSlot is deleted.
     """
+    if getattr(_local, 'mute_signals', False):
+        return
     if not instance.google_event_id:
         return
 
@@ -292,12 +338,19 @@ def delete_schedule_slot_from_google(sender, instance, **kwargs):
     if not lecturer:
         return
 
+    # FIX BUG 6: Check for missing UserProfile explicitly and log it.
+    if not hasattr(lecturer, 'user_profile') or lecturer.user_profile is None:
+        logger.debug(
+            f"[GoogleSync] Lecturer '{lecturer.name}' (id={lecturer.id}) has no linked UserProfile — skipping Calendar event deletion."
+        )
+        return
+
     try:
-        profile = lecturer.user_profile
-        user = profile.user
+        user = lecturer.user_profile.user
         token_record = user.google_token
         token_json = token_record.token
-    except Exception:
+    except Exception as e:
+        logger.warning(f"[GoogleSync] Could not resolve Google token for lecturer '{lecturer.name}': {e}")
         return
 
     import sys
@@ -310,5 +363,66 @@ def delete_schedule_slot_from_google(sender, instance, **kwargs):
 
 post_save.connect(sync_schedule_slot_to_google, sender=ScheduleSlot, dispatch_uid="sync_slot_to_google")
 post_delete.connect(delete_schedule_slot_from_google, sender=ScheduleSlot, dispatch_uid="delete_slot_from_google")
+
+
+def notify_slot_changes(sender, instance, created, **kwargs):
+    """
+    Automatically notifies the lecturer and affected student group when a schedule slot is created or updated manually.
+    """
+    if getattr(_local, 'mute_signals', False):
+        return
+    if kwargs.get('raw', False):
+        return
+
+    # Check if timetable is active. We only notify users about changes in the active timetable.
+    if not getattr(instance.timetable, 'is_active', False):
+        try:
+            from .models import Timetable
+            is_active = Timetable.objects.filter(pk=instance.timetable_id, is_active=True).exists()
+            if not is_active:
+                return
+        except Exception:
+            return
+
+    import sys
+    if 'test' in sys.argv or 'pytest' in sys.argv or any('test' in arg for arg in sys.argv):
+        from .tasks import send_slot_change_notifications
+        send_slot_change_notifications(instance.id)
+    else:
+        from django_q.tasks import async_task
+        async_task('scheduler.tasks.send_slot_change_notifications', instance.id)
+
+
+post_save.connect(notify_slot_changes, sender=ScheduleSlot, dispatch_uid="notify_slot_changes")
+
+
+def auto_provision_lecturer_credentials(sender, instance, created, **kwargs):
+    """
+    When a Lecturer is created or updated manually, trigger credentials provisioning in the background.
+    """
+    if getattr(_local, 'mute_signals', False):
+        return
+    if kwargs.get('raw', False):
+        return
+
+    import sys
+    is_test = 'test' in sys.argv or 'pytest' in sys.argv or any('pytest' in arg for arg in sys.argv)
+    if is_test:
+        # In test environments, only auto-provision if explicitly enabled via _local flag
+        if not getattr(_local, 'enable_auto_provision_in_tests', False):
+            return
+
+    if created and instance.is_active:
+        university = get_university_from_instance(instance)
+        if university:
+            if is_test:
+                from .tasks import provision_lecturer_credentials
+                provision_lecturer_credentials(university.id)
+            else:
+                from django_q.tasks import async_task
+                async_task('scheduler.tasks.provision_lecturer_credentials', university.id)
+
+post_save.connect(auto_provision_lecturer_credentials, sender=Lecturer, dispatch_uid="auto_provision_lecturer_credentials")
+
 
 

@@ -25,6 +25,7 @@ urlpatterns = [
     path('timetables/<int:pk>/export-csv/', views.export_timetable_csv, name='export_timetable_csv'),
     path('timetables/<int:pk>/export-pdf/', views.export_timetable_pdf, name='export_timetable_pdf'),
     path('timetables/<int:pk>/export-word/', views.export_timetable_word, name='export_timetable_word'),
+    path('timetables/<int:pk>/export-workload-word/', views.export_workload_word, name='export_workload_word'),
     path('timetables/<int:pk>/export-excel/', views.export_timetable_excel, name='export_timetable_excel'),
 
     # Schedule slot editing
@@ -34,6 +35,7 @@ urlpatterns = [
     path('constraints/', views.constraint_list, name='constraint_list'),
     path('constraints/create/', views.constraint_create, name='constraint_create'),
     path('constraints/<int:pk>/delete/', views.constraint_delete, name='constraint_delete'),
+    path('constraints/<int:pk>/edit/', views.constraint_edit, name='constraint_edit'),
 
     # University & role switching
     path('switch-university/', views.switch_university, name='switch_university'),
@@ -41,10 +43,14 @@ urlpatterns = [
 
     # Reports & resources
     path('reports/', views.reports, name='reports'),
+    path('reports/workloads/', views.reports_workloads, name='reports_workloads'),
+    path('reports/rooms/', views.reports_rooms, name='reports_rooms'),
     path('resources/', views.resources_manager, name='resources_manager'),
     path('resources/import/', views.import_resources, name='import_resources'),
+    path('resources/auto-heal/', views.manual_auto_heal, name='manual_auto_heal'),
     path('resources/delete/', views.bulk_delete_resources, name='bulk_delete_resources'),
     path('resources/delete/<str:model_type>/<int:pk>/', views.delete_resource, name='delete_resource'),
+    path('resources/apply-3hr-timeslots/', views.apply_default_3hr_timeslots, name='apply_default_3hr_timeslots'),
 
     # Lecturer self-service (Phase 2)
     path('availability/', views.lecturer_availability, name='lecturer_availability'),
@@ -68,6 +74,14 @@ urlpatterns = [
     path('portal/admin/lecturers/<int:pk>/', views.admin_lecturer_profile, name='admin_lecturer_profile'),
     path('portal/admin/lecturers/<int:pk>/delete/', views.admin_lecturer_delete, name='admin_lecturer_delete'),
 
+    # Admin Resource Profiles (Room, Student Group, Course, University, Department, TimeSlot)
+    path('portal/admin/rooms/<int:pk>/', views.admin_room_profile, name='admin_room_profile'),
+    path('portal/admin/studentgroups/<int:pk>/', views.admin_studentgroup_profile, name='admin_studentgroup_profile'),
+    path('portal/admin/courses/<int:pk>/', views.admin_course_profile, name='admin_course_profile'),
+    path('portal/admin/universities/<int:pk>/', views.admin_university_profile, name='admin_university_profile'),
+    path('portal/admin/departments/<int:pk>/', views.admin_department_profile, name='admin_department_profile'),
+    path('portal/admin/timeslots/<int:pk>/', views.admin_timeslot_profile, name='admin_timeslot_profile'),
+
     # ── Lecturer Portal (Phase 3) ────────────────────────────────────────────
     path('portal/', views.lecturer_portal_dashboard, name='lecturer_portal_dashboard'),
     path('portal/timetable/', views.lecturer_portal_weekly_timetable, name='lecturer_portal_weekly_timetable'),
@@ -84,5 +98,14 @@ urlpatterns = [
     path('timetables/<int:pk>/ai/quality-score/', views.ai_quality_score, name='ai_quality_score'),
     path('timetables/<int:pk>/ai/recommend-swaps/', views.ai_recommend_swaps, name='ai_recommend_swaps'),
     path('student/timetable/', views.student_portal_weekly_timetable, name='student_portal_weekly_timetable'),
+    path('lecturers/update-hours/', views.update_lecturer_hours, name='update_lecturer_hours'),
+    path('courses/reassign/', views.reassign_course, name='reassign_course'),
+    path('courses/auto-balance/', views.auto_balance_workloads_view, name='auto_balance_workloads'),
+    path('portal/onboarding/', views.public_lecturer_onboarding, name='public_lecturer_onboarding_direct'),
+    path('portal/onboarding/<uuid:token>/', views.public_lecturer_onboarding, name='public_lecturer_onboarding'),
+
+    # Import audit
+    path('import-audit/<int:pk>/', views.import_audit_report, name='import_audit_report'),
+    path('import-audit/', views.import_audit_log_list, name='import_audit_log_list'),
 ]
 

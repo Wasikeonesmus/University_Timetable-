@@ -11,7 +11,7 @@ class TimetableForm(forms.ModelForm):
         fields = ['semester', 'name', 'is_active']
         widgets = {
             'semester': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
-            'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. Fall 2026 Schedule V1'}),
+            'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. Semester 1 2026 Schedule V1'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'})
         }
 
@@ -26,11 +26,16 @@ class ConstraintForm(forms.ModelForm):
         help_text="Provide parameters as JSON. Leave empty if none are required."
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['parameters_json'].initial = json.dumps(self.instance.parameters)
+
     class Meta:
         model = Constraint
         fields = ['university', 'name', 'constraint_type', 'is_hard', 'weight']
         widgets = {
-            'university': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
+            'university': forms.HiddenInput(),
             'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. Dr. John unavailable'}),
             'constraint_type': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
             'is_hard': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -94,29 +99,44 @@ class DepartmentForm(forms.ModelForm):
         }
 
 class CourseForm(forms.ModelForm):
+    # FIX BUG 9: Added delivery_mode, additional_student_groups, required_features
+    # which were missing from the form, making them only configurable via the admin panel.
     class Meta:
         model = Course
-        fields = ['program', 'code', 'name', 'duration_slots', 'sessions_per_week', 'required_room_type', 'lecturer', 'student_group']
+        fields = [
+            'program', 'code', 'name', 'duration_slots', 'sessions_per_week',
+            'delivery_mode', 'required_room_type', 'lecturer', 'student_group',
+            'additional_student_groups', 'required_features',
+        ]
         widgets = {
             'program': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
             'code': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. EE101'}),
             'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. Circuit Theory'}),
             'duration_slots': forms.NumberInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'min': 1}),
             'sessions_per_week': forms.NumberInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'min': 1, 'max': 14}),
+            'delivery_mode': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
             'required_room_type': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
             'lecturer': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
             'student_group': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
+            'additional_student_groups': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+            'required_features': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         }
 
 class LecturerForm(forms.ModelForm):
+    # FIX BUG 10: Added lecturer_type, max_slots_per_day, is_active, staff_id
+    # which were missing, making those fields only configurable via admin.
     class Meta:
         model = Lecturer
-        fields = ['department', 'name', 'email', 'max_hours_per_week']
+        fields = ['department', 'staff_id', 'name', 'email', 'lecturer_type', 'max_hours_per_week', 'max_slots_per_day', 'is_active']
         widgets = {
             'department': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
+            'staff_id': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. EMP/2024/001 (optional)'}),
             'name': forms.TextInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. Dr. John Smith'}),
             'email': forms.EmailInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'placeholder': 'e.g. smith@ku.ac.ke'}),
+            'lecturer_type': forms.Select(attrs={'class': 'form-select bg-dark text-white border-secondary'}),
             'max_hours_per_week': forms.NumberInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'min': 1}),
+            'max_slots_per_day': forms.NumberInput(attrs={'class': 'form-control bg-dark text-white border-secondary', 'min': 1}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 class StudentGroupForm(forms.ModelForm):

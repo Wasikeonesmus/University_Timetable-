@@ -8,8 +8,8 @@
 .tt-container { overflow-x: auto; }
 .tt-grid {
     display: grid;
-    grid-template-columns: 90px repeat(5, 1fr);
-    min-width: 700px;
+    grid-template-columns: 85px repeat({{ days|length|default:7 }}, minmax(130px, 1fr));
+    min-width: 960px;
     border: 1px solid var(--border);
     border-radius: 14px;
     overflow: hidden;
@@ -58,11 +58,15 @@
     background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(37,99,235,.04));
     border: 1px solid rgba(37,99,235,.2);
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 8px 8px 24px 8px;
+    min-height: 90px;
     height: 100%;
     cursor: pointer;
     transition: all .18s;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 .tt-slot:hover { border-color: var(--primary); box-shadow: 0 2px 12px rgba(37,99,235,.15); transform: translateY(-1px); }
 .tt-slot.lab {
@@ -73,18 +77,20 @@
     background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.04));
     border-color: rgba(16,185,129,.2);
 }
-.tt-slot-code { font-size: 12px; font-weight: 800; color: var(--primary); margin-bottom: 2px; }
+.tt-slot-code { font-size: 11px; font-weight: 800; color: var(--primary); margin-bottom: 2px; }
 .tt-slot.lab .tt-slot-code { color: var(--purple); }
 .tt-slot.seminar .tt-slot-code { color: var(--success); }
-.tt-slot-name { font-size: 10px; color: var(--text-muted); line-height: 1.3; margin-bottom: 4px; }
-.tt-slot-meta { font-size: 10px; color: var(--text-muted); display: flex; flex-direction: column; gap: 1px; }
+.tt-slot-name { font-size: 10px; font-weight: 600; color: var(--text-main); line-height: 1.25; margin-bottom: 4px; word-break: break-word; }
+.tt-slot-meta { font-size: 9.5px; color: var(--text-muted); display: flex; flex-direction: column; gap: 2px; word-break: break-word; overflow-wrap: anywhere; }
 .tt-slot-attend {
-    position: absolute; bottom: 6px; right: 6px;
+    position: absolute; bottom: 4px; right: 4px;
     font-size: 9px; font-weight: 700;
     padding: 2px 6px; border-radius: 4px;
-    background: rgba(37,99,235,.1); color: var(--primary);
+    background: rgba(37,99,235,.12); color: var(--primary);
     text-decoration: none;
-    transition: background .18s;
+    transition: all .18s;
+    white-space: nowrap;
+    z-index: 2;
 }
 .tt-slot-attend:hover { background: var(--primary); color: #fff; }
 
@@ -165,41 +171,37 @@
         </div>
         {% endfor %}
 
-        <!-- Collect all unique time labels used across the week -->
-        {% regroup all_slots by time_slot.slot_number as by_slot %}
-        {% for slot_group in by_slot %}
-            {% with ref=slot_group.list.0.time_slot %}
+        <!-- Render all time slots across the full weekly grid -->
+        {% for row in grid_rows %}
             <!-- Time column -->
             <div class="tt-time-cell">
-                <div>{{ ref.start_time|time:"g:i A" }}</div>
-                <div style="color:var(--text-light);font-size:9px;">— {{ ref.end_time|time:"g:i A" }}</div>
+                <div>{{ row.start_time|time:"g:i A" }}</div>
+                <div style="color:var(--text-light);font-size:9px;">— {{ row.end_time|time:"g:i A" }}</div>
             </div>
             <!-- Day columns -->
             {% for day in days %}
-                <div class="tt-cell {% if day.dow == today_dow %}today-col{% endif %}">
-                    {% for slot in slots_by_day|dict_key:day.dow %}
-                        {% if slot.time_slot.slot_number == ref.slot_number %}
-                        <div class="tt-slot {% if slot.course.required_room_type == 'Lab' %}lab{% elif slot.course.required_room_type == 'Seminar' %}seminar{% endif %} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}">
-                            <div class="tt-slot-code">{{ slot.course.code }}</div>
-                            <div class="tt-slot-name">{{ slot.course.name|truncatewords:5 }}</div>
-                            <div class="tt-slot-meta">
-                                <span>Room: {{ slot.room.name }}</span>
-                                <span>Group: {{ slot.student_group.name }}</span>
-                            </div>
-                            {% if slot.is_ongoing %}
-                                <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="tt-slot-attend ongoing" style="background:#10b981; color:white; animation:pulse-green 2s infinite;">Attend</a>
-                            {% elif slot.has_ended %}
-                                <span class="tt-slot-attend ended" style="background:#e2e8f0; color:#64748b; cursor:default; border:1px solid #cbd5e1;">Ended</span>
-                            {% else %}
-                                <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="tt-slot-attend">Attend</a>
-                            {% endif %}
+                {% with slot=row.day_slots|dict_key:day.dow %}
+                <div class="tt-cell {% if day.dow == today_dow %}today-col{% endif %} {% if not slot %}empty{% endif %}">
+                    {% if slot %}
+                    <div class="tt-slot {% if slot.course.required_room_type == 'Lab' %}lab{% elif slot.course.required_room_type == 'Seminar' %}seminar{% endif %} {% if slot.is_ongoing %}ongoing{% elif slot.has_ended %}ended{% endif %}">
+                        <div class="tt-slot-code">{{ slot.course.code }}</div>
+                        <div class="tt-slot-name">{{ slot.course.name|truncatewords:5 }}</div>
+                        <div class="tt-slot-meta">
+                            <span>Room: {{ slot.room.name }}</span>
+                            <span>Group: {{ slot.student_group.name }}</span>
                         </div>
+                        {% if slot.is_ongoing %}
+                            <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="tt-slot-attend ongoing" style="background:#10b981; color:white; animation:pulse-green 2s infinite;">Attend</a>
+                        {% elif slot.has_ended %}
+                            <span class="tt-slot-attend ended" style="background:#e2e8f0; color:#64748b; cursor:default; border:1px solid #cbd5e1;">Ended</span>
+                        {% else %}
+                            <a href="{% url 'scheduler:lecturer_attendance_start' slot.id %}" class="tt-slot-attend">Attend</a>
                         {% endif %}
-                    {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
+                {% endwith %}
             {% endfor %}
-            {% endwith %}
-
         {% endfor %}
     </div>
 </div>

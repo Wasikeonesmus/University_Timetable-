@@ -1,0 +1,63 @@
+{% if page_obj.has_other_pages %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="font-size: 0.85rem; color: var(--text-muted);" id="showing-info-text">
+        Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> records
+    </div>
+    
+    <div style="display: flex; gap: 0.25rem;">
+        {% if page_obj.has_previous %}
+            <button type="button" class="btn btn-secondary pagination-btn" data-page="{{ page_obj.previous_page_number }}" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--card-bg); border-color: var(--border); color: var(--text);">
+                &laquo; Prev
+            </button>
+        {% else %}
+            <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; opacity: 0.4; cursor: not-allowed; background: var(--card-bg); border-color: var(--border); color: var(--text-muted);" disabled>
+                &laquo; Prev
+            </button>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <button type="button" class="btn btn-primary" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--primary); border: none; color: white;" disabled>
+                    {{ num }}
+                </button>
+            {% elif num > page_obj.number|add:-3 and num < page_obj.number|add:3 %}
+                <button type="button" class="btn btn-secondary pagination-btn" data-page="{{ num }}" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--card-bg); border-color: var(--border); color: var(--text);">
+                    {{ num }}
+                </button>
+            {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                {% if num == 1 and page_obj.number > 4 %}
+                    <button type="button" class="btn btn-secondary pagination-btn" data-page="{{ num }}" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--card-bg); border-color: var(--border); color: var(--text);">
+                        {{ num }}
+                    </button>
+                    <span style="padding: 0.35rem 0.5rem; color: var(--text-muted);">...</span>
+                {% elif num == page_obj.paginator.num_pages and page_obj.number < page_obj.paginator.num_pages|add:-3 %}
+                    <span style="padding: 0.35rem 0.5rem; color: var(--text-muted);">...</span>
+                    <button type="button" class="btn btn-secondary pagination-btn" data-page="{{ num }}" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--card-bg); border-color: var(--border); color: var(--text);">
+                        {{ num }}
+                    </button>
+                {% else %}
+                    <button type="button" class="btn btn-secondary pagination-btn" data-page="{{ num }}" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--card-bg); border-color: var(--border); color: var(--text);">
+                        {{ num }}
+                    </button>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+            <button type="button" class="btn btn-secondary pagination-btn" data-page="{{ page_obj.next_page_number }}" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; background: var(--card-bg); border-color: var(--border); color: var(--text);">
+                Next &raquo;
+            </button>
+        {% else %}
+            <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.7rem; font-size: 0.8rem; opacity: 0.4; cursor: not-allowed; background: var(--card-bg); border-color: var(--border); color: var(--text-muted);" disabled>
+                Next &raquo;
+            </button>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;" id="showing-info-text">
+    <div style="font-size: 0.85rem; color: var(--text-muted);">
+        Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> records
+    </div>
+</div>
+{% endif %}

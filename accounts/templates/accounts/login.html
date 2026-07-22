@@ -234,7 +234,7 @@
             <form method="post" id="login-form">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label class="form-label" for="id_login_username">Username</label>
+                    <label class="form-label" for="id_login_username">Email Address</label>
                     {{ form.username }}
                     {% if form.username.errors %}
                         <ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>
@@ -257,7 +257,7 @@
         </div>
 
         <div class="auth-footer">
-            Don't have an account? <a href="{% url 'accounts:register' %}">Create one</a>
+            Faculty member or new lecturer? <a href="{% url 'scheduler:public_lecturer_onboarding_direct' %}">Faculty Verification &amp; Onboarding Portal</a>
         </div>
     </div>
 </body>

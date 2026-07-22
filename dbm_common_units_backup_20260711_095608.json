@@ -1,0 +1,96 @@
+{
+  "generated_at": "2026-07-11T09:56:08.481306",
+  "moved_courses": [
+    {
+      "id": 28722,
+      "program": 187,
+      "code": "BUD 001",
+      "name": "BUSINESS MATHEMATICS",
+      "duration_slots": 3,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21873,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    },
+    {
+      "id": 28723,
+      "program": 187,
+      "code": "BUD 003",
+      "name": "THEORIES OF COMMERCE",
+      "duration_slots": 3,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21781,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    },
+    {
+      "id": 28724,
+      "program": 187,
+      "code": "DCU 002",
+      "name": "HEALTH AWARENESS AND LIFE SKILLS",
+      "duration_slots": 1,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21874,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    },
+    {
+      "id": 28725,
+      "program": 187,
+      "code": "DCU 001",
+      "name": "COMMUNICATION SKILLS",
+      "duration_slots": 1,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21875,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    },
+    {
+      "id": 28727,
+      "program": 187,
+      "code": "DCU OO4",
+      "name": "COMPUTER APPLICATION SOFTWARE",
+      "duration_slots": 3,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21881,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    },
+    {
+      "id": 28730,
+      "program": 187,
+      "code": "DCU 003",
+      "name": "INFORMATION LITERACY",
+      "duration_slots": 3,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21883,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    },
+    {
+      "id": 28734,
+      "program": 187,
+      "code": "DCU 005",
+      "name": "ENTERPRENEURSHIP",
+      "duration_slots": 3,
+      "sessions_per_week": 1,
+      "required_room_type": "Lecture",
+      "lecturer": 21884,
+      "student_group": 21250,
+      "required_features": [],
+      "additional_student_groups": []
+    }
+  ]
+}
