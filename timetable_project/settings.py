@@ -34,6 +34,11 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 if DEBUG:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost', cast=Csv())
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://127.0.0.1,http://localhost,http://167.233.37.95,https://167.233.37.95',
+    cast=Csv()
+)
 
 # ── Application definition ───────────────────────────────────────────────────
 INSTALLED_APPS = [
