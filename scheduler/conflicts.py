@@ -2,6 +2,12 @@ from collections import defaultdict
 from django.db.models import Q
 from .models import ScheduleSlot, TimeSlot, Constraint, LecturerAvailability, Lecturer, StudentGroup
 
+def _is_virtual(room):
+    if getattr(room, 'is_virtual', False):
+        return True
+    name_lower = room.name.lower()
+    return any(keyword in name_lower for keyword in ('zoom', 'online', 'virtual', 'teams', 'meet', 'remote', 'webex'))
+
 def check_conflicts_for_timetable(timetable):
     """
     Wrapper that fetches all slots for a timetable and runs conflict detection.
@@ -379,12 +385,6 @@ def detect_conflicts(slots, university):
                             'gaps': gaps
                         }
                     })
-
-def _is_virtual(room):
-    if getattr(room, 'is_virtual', False):
-        return True
-    name_lower = room.name.lower()
-    return any(keyword in name_lower for keyword in ('zoom', 'online', 'virtual', 'teams', 'meet', 'remote', 'webex'))
 
             # 2. Campus Travel and Building Travel Check
             if len(day_slots) > 1:
