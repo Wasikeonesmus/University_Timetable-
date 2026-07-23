@@ -2282,8 +2282,46 @@ def auto_heal_university_data(university):
       5. Room too small for group    → upgrade room capacities
     Returns a list of fix summary strings for display.
     """
-    from .models import Program
+    from .models import Program, Campus, Room, TimeSlot
     fixes = []
+
+    # ── Auto-provision default rooms if missing for university ───────────────
+    rooms = list(Room.objects.filter(campus__university=university))
+    if not rooms:
+        default_campus = Campus.objects.filter(university=university).first() or Campus.objects.create(
+            university=university, name="Main Campus", code="MAIN"
+        )
+        new_rooms = [
+            Room(campus=default_campus, name="Lecture Hall 1", capacity=120, room_type="Lecture Hall"),
+            Room(campus=default_campus, name="Room 101", capacity=60, room_type="Lecture"),
+            Room(campus=default_campus, name="Room 102", capacity=60, room_type="Lecture"),
+            Room(campus=default_campus, name="Lab 1", capacity=40, room_type="Lab"),
+        ]
+        Room.objects.bulk_create(new_rooms)
+        rooms = new_rooms
+        fixes.append("✅ Auto-created default classrooms and labs for the university.")
+
+    # ── Auto-provision default time slots if missing for university ──────────
+    timeslots = list(TimeSlot.objects.filter(university=university))
+    if not timeslots:
+        import datetime
+        default_slots = [
+            (datetime.time(8, 30), datetime.time(10, 0), 1),
+            (datetime.time(10, 15), datetime.time(11, 45), 2),
+            (datetime.time(12, 0), datetime.time(13, 30), 3),
+            (datetime.time(14, 0), datetime.time(15, 30), 4),
+            (datetime.time(15, 45), datetime.time(17, 15), 5),
+        ]
+        new_ts = []
+        for day in range(1, 6):  # Mon-Fri
+            for st, et, s_num in default_slots:
+                new_ts.append(TimeSlot(
+                    university=university, day_of_week=day,
+                    start_time=st, end_time=et, slot_number=s_num
+                ))
+        TimeSlot.objects.bulk_create(new_ts)
+        timeslots = new_ts
+        fixes.append("✅ Auto-created default Monday–Friday teaching time slots.")
 
     courses = list(Course.objects.filter(
         program__department__faculty__campus__university=university
@@ -2830,7 +2868,7 @@ def import_resources(request):
                     from scheduler.validation import validate_university_data
                     is_valid, val_errors, val_warnings = validate_university_data(university_ref)
                     if val_errors:
-                        all_errors.extend(val_errors)
+                        all_warnings.extend([f"⚠️ {err}" for err in val_errors])
                     if val_warnings:
                         all_warnings.extend(val_warnings)
 
@@ -3471,7 +3509,7 @@ def import_resources(request):
                     from scheduler.validation import validate_university_data
                     is_valid, val_errors, val_warnings = validate_university_data(university)
                     if val_errors:
-                        import_errors.extend(val_errors)
+                        import_warnings.extend([f"⚠️ {err}" for err in val_errors])
                     if val_warnings:
                         import_warnings.extend(val_warnings)
 

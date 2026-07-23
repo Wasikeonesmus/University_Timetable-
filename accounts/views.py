@@ -66,8 +66,18 @@ def logout_view(request):
 
 
 def register_view(request):
-    """Redirects registration attempts to login page."""
-    return redirect('accounts:login')
+    """User registration view."""
+    if request.user.is_authenticated:
+        return redirect('scheduler:dashboard')
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, "Account created successfully! Please log in.")
+            return redirect('accounts:login')
+    else:
+        form = RegisterForm()
+    return render(request, 'accounts/register.html', {'form': form})
 
 
 @login_required

@@ -163,6 +163,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # (safe for local dev without Redis installed).
 REDIS_URL = config('REDIS_URL', default=None)
 
+# If running inside a Docker container, automatically resolve 127.0.0.1 / localhost to the 'redis' container service host
+if REDIS_URL and os.path.exists('/.dockerenv'):
+    REDIS_URL = REDIS_URL.replace('127.0.0.1', 'redis').replace('localhost', 'redis')
+
 if REDIS_URL:
     CACHES = {
         'default': {
@@ -183,9 +187,9 @@ if REDIS_URL:
             'TIMEOUT': 300,  # default TTL: 5 minutes
         }
     }
-    # Store Django sessions in Redis for fast, centralized session management.
-    # This is especially useful in multi-worker / Docker deployments.
-    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    # Store Django sessions in Redis cache with database fallback (cached_db).
+    # This prevents login failures if Redis is restarting or temporarily unreachable.
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
     SESSION_CACHE_ALIAS = 'default'
 else:
     # No Redis configured: use Django's thread-safe in-memory cache.

@@ -1176,9 +1176,11 @@ def import_entities(university, entities_dict) -> dict:
                     room_obj.capacity = capacity
                     room_obj.room_type = room_type
                     upd_rooms.append(room_obj)
+            else:
                 is_virt = any(k in name.lower() for k in ('zoom', 'online', 'virtual', 'teams', 'meet', 'remote', 'webex'))
-                room_cache[r_key] = Room(campus=c_obj, name=name, capacity=capacity, room_type=room_type, is_virtual=is_virt)
-                new_rooms.append(room_cache[r_key])
+                room_obj = Room(campus=c_obj, name=name, capacity=capacity, room_type=room_type, is_virtual=is_virt)
+                room_cache[r_key] = room_obj
+                new_rooms.append(room_obj)
                 
         if new_rooms:
             Room.objects.bulk_create(new_rooms)
@@ -1320,11 +1322,10 @@ def import_entities(university, entities_dict) -> dict:
 
             from scheduler.validation import validate_university_data
             is_valid, val_errors, val_warnings = validate_university_data(university)
+            all_w = list(val_warnings or [])
             if val_errors:
-                ex = Exception("Validation failed.")
-                ex.errors = val_errors
-                raise ex
-            summary['warnings'] = val_warnings
+                all_w.extend([f"⚠️ {err}" for err in val_errors])
+            summary['warnings'] = all_w
             
     # Trigger lecturer credentials provisioning
     import sys
