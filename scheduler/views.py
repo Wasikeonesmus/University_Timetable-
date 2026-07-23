@@ -2423,6 +2423,7 @@ def auto_heal_university_data(university):
         overloaded_ts = [l for l in all_uni_lecs if lec_slots_map[l.id] > num_ts]
 
         reassigned_count = 0
+        changed_courses = []
         for o_lec in overloaded_ts:
             o_courses = [c for c in all_uni_courses if c.lecturer_id == o_lec.id]
             for c in o_courses:
@@ -2432,12 +2433,13 @@ def auto_heal_university_data(university):
                 for cand in under_utilized:
                     if lec_slots_map[cand.id] + c_slots <= num_ts * 0.6:
                         c.lecturer = cand
-                        c.save()
+                        changed_courses.append(c)
                         lec_slots_map[o_lec.id] -= c_slots
                         lec_slots_map[cand.id] += c_slots
                         reassigned_count += 1
                         break
-        if reassigned_count:
+        if changed_courses:
+            Course.objects.bulk_update(changed_courses, ['lecturer'], batch_size=500)
             fixes.append(f"✅ Automatically redistributed {reassigned_count} course(s) from overloaded lecturers to available faculty to fit within weekly time slots.")
 
     # ── Fix 5: Room capacity too small for group sizes ────────────────────────

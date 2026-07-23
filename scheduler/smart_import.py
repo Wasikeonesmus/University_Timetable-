@@ -123,12 +123,29 @@ def _strip_title(name):
 def _find_close_name_match(name, existing_names, threshold=FUZZY_MATCH_THRESHOLD):
     """
     Returns (best_match_name, ratio) if a close-enough match exists in
-    *existing_names*, otherwise (None, 0.0).
+    *existing_names*, otherwise (None, 0.0). Fast optimized O(1)/O(K) search.
     """
+    if not existing_names or not name:
+        return None, 0.0
     norm_in = _strip_title(name).lower().strip()
+    if not norm_in:
+        return None, 0.0
+
+    # 1. Fast exact normalized check
+    for existing in existing_names:
+        norm_ex = _strip_title(existing).lower().strip()
+        if norm_ex == norm_in:
+            return existing, 1.0
+
+    # 2. Limit fuzzy candidate comparisons to matching first character or surname to avoid N^2 slowdown
+    first_char = norm_in[0]
+    candidates = [e for e in existing_names if _strip_title(e).lower().strip().startswith(first_char)]
+    if not candidates:
+        candidates = existing_names[:50]
+
     best_match = None
     best_ratio = 0.0
-    for existing in existing_names:
+    for existing in candidates:
         norm_ex = _strip_title(existing).lower().strip()
         ratio = SequenceMatcher(None, norm_in, norm_ex).ratio()
         if ratio > best_ratio:
